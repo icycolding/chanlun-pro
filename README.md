@@ -71,7 +71,7 @@
 
 > 请先阅读安装文档，确保自己能够正常安装后，在添加微信好友；
 >
-> 扫码添加作者微信，备注 ："chanlun-pro 试用"
+> 扫码添加作者微信，备注 ：“chanlun-pro 试用”
 
 ### 作者微信
 
@@ -110,4 +110,5 @@
 ![策略回测结果查看](cookbook/docs/img/back_test_5.png)
 
 ![监控任务管理](cookbook/docs/img/check.png)
+
 

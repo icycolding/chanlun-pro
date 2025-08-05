@@ -48,49 +48,47 @@ def check_env():
 
     # 检查 Redis
     try:
-        r = redis.Redis(
-            host=config.REDIS_HOST,
-            port=config.REDIS_PORT,
-            password=config.REDIS_PWD,
-            decode_responses=True,
-        )
-        r.ping()
-        print("Redis 连接正常")
-    except Exception as e:
-        print(f"Redis 连接异常：{e}")
-
+        if config.REDIS_HOST != "":
+            R = redis.Redis(
+                host=config.REDIS_HOST, port=config.REDIS_PORT, decode_responses=True
+            )
+            R.get("check")
+    except:
+        print("Redis 连接失败，请检查是否有安装并启动 Redis 服务端，并且配置正确")
+        print("Redis 不是必须的，不使用可以忽略")
     # 检查 MySQL
     try:
-        conn = pymysql.connect(
-            host=config.DB_HOST,
-            port=config.DB_PORT,
-            user=config.DB_USER,
-            password=config.DB_PWD,
-            database=config.DB_DATABASE,
-            charset="utf8mb4",
+        if config.DB_TYPE == "mysql":
+            pymysql.connect(
+                host=config.DB_HOST,
+                port=config.DB_PORT,
+                user=config.DB_USER,
+                password=config.DB_PWD,
+                database=config.DB_DATABASE,
+            )
+    except:
+        print(
+            "MySQL 连接失败，请检查是否安装并运行 MySQL，并且检查配置的 ip、端口、用户名、密码、数据库 是否正确"
         )
-        conn.close()
-        print("MySQL 连接正常")
-    except Exception as e:
-        print(f"MySQL 连接异常：{e}")
 
-    # 检查 TA-Lib 是否安装
-    try:
-        import talib
-
-        print("TA-Lib 安装正常")
-    except Exception as e:
-        print(f"TA-Lib 安装异常：{e}")
-        print("请参考 https://github.com/TA-Lib/ta-lib-python 进行安装")
-
-    # 检查 数据目录是否存在
-    data_path = pathlib.Path("data")
-    if data_path.exists() is False:
-        print("data 目录不存在，请创建")
+    # 检查授权信息
+    pyarmor_path = pathlib.Path().cwd() / "src" / "pyarmor_runtime_005445"
+    if (pyarmor_path / "pyarmor.rkey").is_file() is False:
+        print(" - " * 20)
+        print("授权文件不存在")
+        print("请联系作者，获取试用授权文件")
+        print(f"并将授权文件文件存放在 ：{pyarmor_path} 路径之下")
+        print(" - " * 20)
     else:
-        print("data 目录存在")
+        with open(pyarmor_path / "pyarmor.rkey", "rb") as fp:
+            key_str = fp.read()
+            mac_re = r"([0-9a-f]{2}(?::[0-9a-f]{2}){5})"
+            key_str = str(key_str)
+            match = re.search(mac_re, key_str)
+            if match:
+                print("授权信息：", match.group(0))
 
-    print("环境检查完成")
+    print("环境OK")
 
 
 if __name__ == "__main__":
