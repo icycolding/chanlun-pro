@@ -169,3 +169,4 @@ src/cl_vnpy/.vntrader
 src/cl_myquant/gmcache
 # 无用的排除
 /my_debug
+pyarmor.rkey

@@ -1,12 +1,5 @@
-import pathlib
+# import chanlun.encodefix  # Fix Windows print 乱码问题
 import sys
-
-# 将项目中的 src 目录，添加到 sys.path 中
-src_path = pathlib.Path(__file__).parent.parent / ".." / "src"
-sys.path.append(str(src_path))
-web_server_path = pathlib.Path(__file__).parent
-sys.path.append(str(web_server_path))
-
 
 is_wpf_launcher = False
 try:
@@ -32,26 +25,23 @@ try:
         sys.stdout = filter(sys.stdout)
         sys.stderr = filter(sys.stderr)
 
-except Exception:
+except Exception as e:
     pass
 
-import logging
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+import pathlib
 import traceback
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
-
-from tornado.httpserver import HTTPServer
-from tornado.ioloop import IOLoop
-from tornado.wsgi import WSGIContainer
-
-# 禁用Tornado访问日志
-logging.getLogger('tornado.access').setLevel(logging.WARNING)
-
-import chanlun.encodefix  # Fix Windows print 乱码问题  # noqa: F401
 from chanlun import config
 
+cmd_path = pathlib.Path.cwd()
+sys.path.append(str(cmd_path))
+
 try:
-    from cl_app import create_app
+    from app import create_app
 except Exception as e:
     print(e)
     traceback.print_exc()
@@ -64,7 +54,7 @@ if __name__ == "__main__":
         app = create_app()
 
         s = HTTPServer(WSGIContainer(app))
-        s.bind(9901, config.WEB_HOST)
+        s.bind(9900, config.WEB_HOST)
 
         print("启动成功")
         s.start(1)
@@ -72,14 +62,12 @@ if __name__ == "__main__":
         if len(sys.argv) >= 2 and sys.argv[1] == "nobrowser":
             pass
         else:
-            webbrowser.open("http://127.0.0.1:9901")
+            webbrowser.open("http://127.0.0.1:9900")
         IOLoop.instance().start()
 
     except Exception as e:
         print(e)
         traceback.print_exc()
 
-        if is_wpf_launcher is False:
-            input("出现异常，按回车键退出")
         if is_wpf_launcher is False:
             input("出现异常，按回车键退出")
