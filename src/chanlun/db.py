@@ -208,6 +208,45 @@ class TableByAIAnalyse(Base):
     __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
 
 
+class TableByNews(Base):
+    # 新闻数据表
+    __tablename__ = "cl_news"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    news_id = Column(String(50), comment="新闻ID")  # 外部新闻ID
+    story_id = Column(String(50), comment="故事ID")  # 故事ID
+    title = Column(String(500), comment="新闻标题")  # 新闻标题
+    body = Column(Text, comment="新闻内容")  # 新闻内容
+    source = Column(String(100), comment="新闻来源")  # 新闻来源
+    published_at = Column(DateTime, comment="发布时间")  # 发布时间
+    language = Column(String(10), comment="语言", default="zh")  # 语言
+    category = Column(String(50), comment="分类")  # 分类
+    tags = Column(String(200), comment="标签")  # 标签
+    sentiment_score = Column(Float, comment="情感分数")  # 情感分数
+    importance_score = Column(Float, comment="重要性分数")  # 重要性分数
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)  # 创建时间
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)  # 更新时间
+    
+    # 添加配置设置编码
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
+class TableByMarketSummary(Base):
+    # 市场总结数据表
+    __tablename__ = "cl_market_summary"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    title = Column(String(200), comment="总结标题")
+    content = Column(Text, comment="总结内容")
+    market = Column(String(20), comment="市场")
+    code = Column(String(20), comment="标的代码")
+    summary_type = Column(String(50), comment="总结类型", default="market_analysis")
+    chart_snapshot = Column(Text, comment="图表快照HTML", nullable=True)
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    
+    # 添加配置设置编码
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
 @fun.singleton
 class DB(object):
     global Base
@@ -1248,6 +1287,226 @@ class DB(object):
 
         return True
 
+    def news_insert(self, news_data: dict) -> bool:
+        """
+        插入新闻数据
+        :param news_data: 新闻数据字典
+        :return: 是否成功
+        """
+        with self.Session() as session:
+            # 检查是否已存在相同的新闻（根据news_id或title+source+published_at）
+            existing_news = None
+            if news_data.get('story_id'):
+                existing_news = session.query(TableByNews).filter(
+                    TableByNews.story_id == news_data['story_id']
+                ).first()
+            
+            if not existing_news and news_data.get('title') and news_data.get('source'):
+                existing_news = session.query(TableByNews).filter(
+                    TableByNews.title == news_data['title'],
+                    TableByNews.source == news_data['source'],
+                    TableByNews.published_at == news_data.get('published_at')
+                ).first()
+            
+            if existing_news:
+                # 更新现有新闻
+                for key, value in news_data.items():
+                    if hasattr(existing_news, key) and value is not None:
+                        setattr(existing_news, key, value)
+                existing_news.updated_at = datetime.datetime.now()
+            else:
+                # 创建新的新闻记录
+                print('news_data.get',news_data.get('published_at'))
+                news_record = TableByNews(
+                    news_id=news_data.get('news_id'),
+                    story_id=news_data.get('story_id'),
+                    title=news_data.get('title'),
+                    body=news_data.get('body'),
+                    source=news_data.get('source'),
+                    published_at=news_data.get('published_at'),
+                    language=news_data.get('language', 'zh'),
+                    category=news_data.get('category'),
+                    tags=news_data.get('tags'),
+                    sentiment_score=news_data.get('sentiment_score'),
+                    importance_score=news_data.get('importance_score')
+                )
+                session.add(news_record)
+            
+            session.commit()
+        return True
+
+    def news_query(self, limit: int = 100, offset: int = 0, 
+                   start_date: datetime.datetime = None, 
+                   end_date: datetime.datetime = None,
+                   source: str = None, category: str = None) -> List[TableByNews]:
+        """
+        查询新闻数据
+        :param limit: 限制返回数量
+        :param offset: 偏移量
+        :param start_date: 开始日期
+        :param end_date: 结束日期
+        :param source: 新闻来源
+        :param category: 新闻分类
+        :return: 新闻列表
+        """
+        with self.Session() as session:
+            query = session.query(TableByNews)
+            
+            if start_date:
+                query = query.filter(TableByNews.published_at >= start_date)
+            if end_date:
+                query = query.filter(TableByNews.published_at <= end_date)
+            if source:
+                query = query.filter(TableByNews.source == source)
+            if category:
+                query = query.filter(TableByNews.category == category)
+            
+            return query.order_by(TableByNews.published_at.desc()).offset(offset).limit(limit).all()
+
+    def news_get_by_id(self, news_id: str) -> TableByNews:
+        """
+        根据新闻ID获取新闻
+        :param news_id: 新闻ID
+        :return: 新闻记录
+        """
+        with self.Session() as session:
+            return session.query(TableByNews).filter(TableByNews.news_id == news_id).first()
+
+    def news_delete(self, news_id: str) -> bool:
+        """
+        删除新闻
+        :param news_id: 新闻ID
+        :return: 是否成功
+        """
+        with self.Session() as session:
+            session.query(TableByNews).filter(TableByNews.news_id == news_id).delete()
+            session.commit()
+        return True
+
+    def news_count(self, start_date: datetime.datetime = None, 
+                   end_date: datetime.datetime = None,
+                   source: str = None, category: str = None) -> int:
+        """
+        统计新闻数量
+        :param start_date: 开始日期
+        :param end_date: 结束日期
+        :param source: 新闻来源
+        :param category: 新闻分类
+        :return: 新闻数量
+        """
+        with self.Session() as session:
+            query = session.query(TableByNews)
+            
+            if start_date:
+                query = query.filter(TableByNews.published_at >= start_date)
+            if end_date:
+                query = query.filter(TableByNews.published_at <= end_date)
+            if source:
+                query = query.filter(TableByNews.source == source)
+            if category:
+                query = query.filter(TableByNews.category == category)
+            
+            return query.count()
+
+    def market_summary_insert(self, summary_data: dict) -> bool:
+        """
+        保存市场总结数据
+        :param summary_data: 总结数据字典
+        :return: 是否成功
+        """
+        with self.Session() as session:
+            summary_record = TableByMarketSummary(
+                title=summary_data.get('title', '市场总结'),
+                content=summary_data.get('content'),
+                market=summary_data.get('market'),
+                code=summary_data.get('code'),
+                summary_type=summary_data.get('summary_type', 'market_analysis')
+            )
+            session.add(summary_record)
+            session.commit()
+            return summary_record.id
+
+    def market_summary_query(self, limit: int = 100, offset: int = 0,
+                           market: str = None, code: str = None,
+                           summary_type: str = None,
+                           start_date: datetime.datetime = None,
+                           end_date: datetime.datetime = None) -> List[TableByMarketSummary]:
+        """
+        查询市场总结数据
+        :param limit: 限制返回数量
+        :param offset: 偏移量
+        :param market: 市场
+        :param code: 标的代码
+        :param summary_type: 总结类型
+        :param start_date: 开始日期
+        :param end_date: 结束日期
+        :return: 总结列表
+        """
+        with self.Session() as session:
+            query = session.query(TableByMarketSummary)
+            
+            if market:
+                query = query.filter(TableByMarketSummary.market == market)
+            if code:
+                query = query.filter(TableByMarketSummary.code == code)
+            if summary_type:
+                query = query.filter(TableByMarketSummary.summary_type == summary_type)
+            if start_date:
+                query = query.filter(TableByMarketSummary.created_at >= start_date)
+            if end_date:
+                query = query.filter(TableByMarketSummary.created_at <= end_date)
+            
+            return query.order_by(TableByMarketSummary.created_at.desc()).offset(offset).limit(limit).all()
+
+    def market_summary_get_by_id(self, summary_id: int) -> TableByMarketSummary:
+        """
+        根据ID获取市场总结
+        :param summary_id: 总结ID
+        :return: 总结记录
+        """
+        with self.Session() as session:
+            return session.query(TableByMarketSummary).filter(TableByMarketSummary.id == summary_id).first()
+
+    def market_summary_delete(self, summary_id: int) -> bool:
+        """
+        删除市场总结
+        :param summary_id: 总结ID
+        :return: 是否成功
+        """
+        with self.Session() as session:
+            session.query(TableByMarketSummary).filter(TableByMarketSummary.id == summary_id).delete()
+            session.commit()
+        return True
+
+    def market_summary_count(self, market: str = None, code: str = None,
+                           summary_type: str = None,
+                           start_date: datetime.datetime = None,
+                           end_date: datetime.datetime = None) -> int:
+        """
+        统计市场总结数量
+        :param market: 市场
+        :param code: 标的代码
+        :param summary_type: 总结类型
+        :param start_date: 开始日期
+        :param end_date: 结束日期
+        :return: 总结数量
+        """
+        with self.Session() as session:
+            query = session.query(TableByMarketSummary)
+            
+            if market:
+                query = query.filter(TableByMarketSummary.market == market)
+            if code:
+                query = query.filter(TableByMarketSummary.code == code)
+            if summary_type:
+                query = query.filter(TableByMarketSummary.summary_type == summary_type)
+            if start_date:
+                query = query.filter(TableByMarketSummary.created_at >= start_date)
+            if end_date:
+                query = query.filter(TableByMarketSummary.created_at <= end_date)
+            
+            return query.count()
+
 
 db: DB = DB()
 
@@ -1414,3 +1673,15 @@ if __name__ == "__main__":
     #     "a", "SZ.300014", "5m", "bi", fun.str_to_datetime("2023-12-25 13:55:00")
     # )
     # print(record)
+    
+    # 测试新闻数据操作
+    # news_data = {
+    #     'news_id': '12345',
+    #     'title': '测试新闻标题',
+    #     'body': '测试新闻内容',
+    #     'source': '测试来源',
+    #     'published_at': datetime.datetime.now()
+    # }
+    # db.news_insert(news_data)
+    # news_list = db.news_query(limit=10)
+    # print(f"查询到 {len(news_list)} 条新闻")

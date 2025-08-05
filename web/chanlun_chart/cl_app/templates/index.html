@@ -35,12 +35,12 @@
   </head>
 
   <body>
-    <div class="layui-fluid" style="padding: 0">
-      <div class="layui-row">
+    <div class="layui-fluid" style="padding: 0; height: 100vh; display: flex; flex-direction: column;">
+      <div class="layui-row" style="flex: 3; min-height: 0;">
         <div
           class="layui-col-xs10 layui-col-sm10 layui-col-md10"
           id="chart_container"
-          style="display: flex; flex-direction: column; height: 100vh">
+          style="display: flex; flex-direction: column; height: 100%;">
           {# 图表内容 #}
           <div
             id="tv_charts_area"
@@ -147,6 +147,17 @@
                           <i class="layui-icon layui-icon-refresh"></i>
                         </button>
                       </div>
+                      <div
+                        class="layui-form-mid"
+                        style="padding: 4px 0 !important; float: left">
+                        <button
+                          type="button"
+                          id="history_market_summary_btn"
+                          class="layui-btn layui-btn-primary layui-border-blue layui-btn-sm"
+                          onclick="window.open('/market_summary', '_blank')">
+                          <i class="layui-icon layui-icon-chart"></i> 历史报告
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </form>
@@ -164,6 +175,7 @@
                 <hr class="layui-border-red" />
               </div>
             </div>
+
             <div class="layui-colla-item">
               <div class="layui-colla-title" data-ca-title="监控提醒">
                 监控提醒
@@ -309,6 +321,45 @@
           </div>
         </div>
       </div>
+      <!-- 新闻资讯区域 - 占用屏幕底部1/4 -->
+      <div class="layui-row" style="flex: 1; min-height: 0; background-color: #f8f8f8; border-top: 1px solid #e6e6e6;">
+        <div class="layui-col-xs12" style="height: 100%; padding: 10px;">
+          <div style="height: 100%; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <h3 id="news_section_title" style="margin: 0; color: #333;">新闻资讯</h3>
+              <div style="display: flex; gap: 8px;">
+                <button
+                  type="button"
+                  id="market_summary_btn"
+                  class="layui-btn layui-btn-normal layui-btn-sm">
+                  <i class="layui-icon layui-icon-chart"></i> 市场总结
+                </button>
+                <button
+                  type="button"
+                  id="refresh_news"
+                  class="layui-btn layui-btn-primary layui-border-red layui-btn-sm">
+                  <i class="layui-icon layui-icon-refresh"></i> 刷新新闻
+                </button>
+              </div>
+            </div>
+            <div
+              id="news_list"
+              style="
+                flex: 1;
+                overflow-y: auto;
+                background-color: white;
+                border: 1px solid #e6e6e6;
+                border-radius: 4px;
+                padding: 15px;
+              ">
+              <!-- 新闻列表将通过JavaScript动态加载 -->
+              <div class="layui-text" style="text-align: center; color: #999; padding: 20px;">
+                点击刷新按钮加载新闻
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     {% include 'sub_temp.html' %}
   </body>
@@ -356,12 +407,81 @@
     function change_chart_ticker(_market, _code) {
       var market = _market;
       var code = _code;
+      console.log('code',code)
       Utils.set_local_data("market", market);
       Utils.set_local_data(market + "_code", code);
       layui.each(chart_widgets, function (i, w) {
         w.activeChart().setSymbol(market + ":" + code);
       });
       ZiXuan.render_zixuan_opts();
+      
+      // 根据股票代码搜索相关新闻
+      search_news_by_code(market, code);
+    }
+    
+    // 根据股票代码搜索相关新闻
+    function search_news_by_code(market, code) {
+      // 构建搜索查询，包含股票代码和市场信息
+      var searchQuery = code;
+      if (market === 'a') {
+        searchQuery += ' 股票 A股';
+      } else if (market === 'hk') {
+        searchQuery += ' 港股 香港';
+      } else if (market === 'us') {
+        searchQuery += ' 美股 美国';
+      } else if (market === 'currency') {
+        searchQuery += ' 外汇 汇率';
+      } else if (market === 'futures') {
+        searchQuery += ' 期货';
+      }
+      
+      console.log('搜索相关新闻:', searchQuery);
+      
+      // 发送语义搜索请求
+      $.ajax({
+        url: '/api/news/semantic_search',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          query: searchQuery,
+          n_results: 50,
+          filters: {
+            market_relevance: {"$gte": 0.3}  // 只显示市场相关度较高的新闻
+          }
+        }),
+        success: function(response) {
+           console.log('新闻搜索结果:', response);
+           if (response.code === 0 && response.data && response.data.results && response.data.results.length > 0) {
+             // 转换搜索结果格式以匹配render_news_list期望的数据结构
+             var formattedNews = response.data.results.map(function(item) {
+               var metadata = item.metadata || {};
+               return {
+                 news_id: metadata.news_id || item.id,
+                 title: metadata.title || '无标题',
+                 published_at: metadata.published_at || metadata.timestamp,
+                 source: metadata.source || '未知来源',
+                 body: item.document || metadata.body || ''
+               };
+             });
+             
+             // 渲染搜索到的新闻
+             News.render_news_list(formattedNews);
+             // 更新新闻区域标题，显示当前搜索的股票
+             $('#news_section_title').text('新闻资讯 - ' + code + ' 相关');
+           } else {
+             console.log('未找到相关新闻，加载默认新闻');
+             // 如果没有找到相关新闻，加载默认新闻
+             News.load_news();
+             $('#news_section_title').text('新闻资讯');
+           }
+         },
+        error: function(xhr, status, error) {
+          console.error('搜索新闻失败:', error);
+          // 搜索失败时加载默认新闻
+          News.load_news();
+          $('#news_section_title').text('新闻资讯');
+        }
+      });
     }
   </script>
   <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
@@ -373,6 +493,33 @@
   <script src="{{ url_for('static', filename='js/bkgn.js') }}"></script>
   <script>
     $(function () {
+      // 处理URL参数
+      function handleUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const market = urlParams.get('market');
+        const code = urlParams.get('code');
+        
+        if (market && code) {
+          console.log('URL参数检测到:', 'market=' + market, 'code=' + code);
+          // 设置市场和代码到localStorage
+          Utils.set_local_data('market', market);
+          Utils.set_local_data(market + '_code', code);
+          
+          // 更新表单选择
+          setTimeout(function() {
+            layui.use('form', function() {
+              var form = layui.form;
+              form.val('select_market_form', {
+                market: market
+              });
+            });
+          }, 100);
+        }
+      }
+      
+      // 页面加载时处理URL参数
+      handleUrlParams();
+      
       // 缠论配置项更改
       layui.use(function () {
         var layer = layui.layer;
@@ -589,6 +736,8 @@
             }
           }
 
+
+
           if (ca_title === "板块概念") {
             if (is_open) {
               // 板块概念
@@ -605,7 +754,14 @@
         form.on("select(select_market)", function (data) {
           var market = data.value;
           Utils.set_local_data("market", market);
-          location.reload();
+          // 保持URL参数进行刷新
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.has('market') || urlParams.has('code')) {
+            urlParams.set('market', market);
+            window.location.href = window.location.pathname + '?' + urlParams.toString();
+          } else {
+            location.reload();
+          }
         });
 
         // 固定条，显示与隐藏菜单栏
@@ -614,6 +770,11 @@
         // AI 分析助手
         AI.init_ai_opts();
         AI.get_ai_analyse_records();
+
+        // 新闻模块初始化
+        News.init();
+        // 自动加载新闻数据
+        News.load_news();
       });
 
       // 初始化展示页面
@@ -731,5 +892,246 @@
       init_web();
       interval_update_rates = setInterval(ZiXuan.stocks_update_rate(), 30000);
     });
+
+    // 新闻模块对象（移到全局作用域）
+    window.News = {
+      // 初始化
+      init: function() {
+        var self = this;
+        // 绑定刷新按钮事件
+        $('#refresh_news').click(function() {
+          self.load_news();
+        });
+        
+        // 绑定市场总结按钮事件
+        $('#market_summary_btn').click(function() {
+          self.generate_market_summary();
+        });
+      },
+
+      // 加载新闻数据
+      load_news: function() {
+        var self = this;
+        var newsContainer = $('#news_list');
+        
+        // 显示加载中状态
+        newsContainer.html('<div class="layui-text" style="text-align: center; color: #999; padding: 20px;"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 加载中...</div>');
+        
+        // 发送AJAX请求获取新闻数据
+        $.ajax({
+          url: '/api/news',
+          type: 'GET',
+          data: {
+            limit: 20,
+            offset: 0
+          },
+          success: function(response) {
+            if (response.code === 0 && response.data && response.data.news_list) {
+              self.render_news_list(response.data.news_list);
+            } else {
+              newsContainer.html('<div class="layui-text" style="text-align: center; color: #ff5722; padding: 20px;">加载新闻失败: ' + (response.msg || '未知错误') + '</div>');
+            }
+          },
+          error: function(xhr, status, error) {
+            newsContainer.html('<div class="layui-text" style="text-align: center; color: #ff5722; padding: 20px;">网络错误，请稍后重试</div>');
+          }
+        });
+      },
+
+      // 渲染新闻列表
+      render_news_list: function(newsList) {
+        var self = this;
+        var newsContainer = $('#news_list');
+        var html = '';
+        
+        // 存储当前新闻列表数据
+        this.currentNewsList = newsList;
+        
+        if (newsList.length === 0) {
+          html = '<div class="layui-text" style="text-align: center; color: #999; padding: 20px;">暂无新闻数据</div>';
+        } else {
+          newsList.forEach(function(news) {
+            // var publishTime = news.published_at ? new Date(news.published_at).toLocaleString('zh-CN', {
+            //   month: '2-digit',
+            //   day: '2-digit',
+            //   hour: '2-digit',
+            //   minute: '2-digit'
+            // }) : '未知时间';
+            publishTime =news.published_at.replace('T',' ').replace('Z','');
+            html += '<div class="news-item" style="margin-bottom: 10px; padding: 8px; border: 1px solid #e6e6e6; border-radius: 4px; cursor: pointer;" data-news-id="' + news.news_id + '">';
+            html += '<div class="news-title" style="font-size: 12px; font-weight: bold; color: #333; margin-bottom: 4px; line-height: 1.4;" title="' + news.title + '">' + (news.title.length > 50 ? news.title.substring(0, 50) + '...' : news.title) + '</div>';
+            html += '<div class="news-meta" style="font-size: 10px; color: #999;">';
+            html += '<span class="news-time">' + publishTime + '</span>';
+            if (news.source) {
+              html += ' | <span class="news-source">' + news.source + '</span>';
+            }
+            html += '</div>';
+            html += '</div>';
+          });
+        }
+        
+        newsContainer.html(html);
+        
+        // 使用事件委托绑定新闻项点击事件
+        newsContainer.off('click', '.news-item').on('click', '.news-item', function() {
+          var newsId = $(this).data('news-id');
+          console.log('News item clicked, ID:', newsId);
+          if (self.show_news_detail) {
+            self.show_news_detail(newsId);
+          } else {
+            console.error('News.show_news_detail function not found');
+          }
+        });
+      },
+
+      // 存储当前新闻列表数据
+      currentNewsList: [],
+      
+      // 显示新闻详情
+      show_news_detail: function(newsId) {
+        console.log('show_news_detail called with newsId:', newsId);
+        
+        // 首先尝试从当前新闻列表中查找
+        var news = this.currentNewsList.find(function(item) {
+          return item.news_id === String(newsId) || item.news_id === newsId || item.id === parseInt(newsId) || item.story_id === newsId;
+        });
+        
+        if (news) {
+          console.log('Found news in current list:', news);
+          this.display_news_detail(news);
+        } else {
+          console.log('News not found in current list, fetching from API');
+          // 如果当前列表中没有，则从API获取
+          $.ajax({
+            url: '/api/news',
+            type: 'GET',
+            data: {
+              limit: 100,
+              offset: 0
+            },
+            success: function(response) {
+              console.log('News detail AJAX success:', response);
+              if (response.code === 0 && response.data && response.data.news_list) {
+                var foundNews = response.data.news_list.find(function(item) {
+                  return item.news_id === String(newsId) || item.news_id === newsId || item.id === parseInt(newsId) || item.story_id === newsId;
+                });
+                
+                if (foundNews) {
+                  window.News.display_news_detail(foundNews);
+                } else {
+                  layui.layer.msg('未找到新闻详情');
+                }
+              } else {
+                layui.layer.msg('获取新闻详情失败');
+              }
+            },
+            error: function(xhr, status, error) {
+              console.error('News detail AJAX error:', error);
+              layui.layer.msg('网络错误，请稍后重试');
+            }
+          });
+        }
+      },
+      
+      // 显示新闻详情弹窗
+      display_news_detail: function(news) {
+        var publishTime = news.published_at ? new Date(news.published_at).toLocaleString('zh-CN') : '未知时间';
+        var content = '<div style="padding: 20px;">';
+        content += '<h3 style="margin-bottom: 15px; color: #333;">' + news.title + '</h3>';
+        content += '<div style="margin-bottom: 15px; color: #666; font-size: 12px;">';
+        content += '<span>发布时间: ' + publishTime + '</span>';
+        if (news.source) {
+          content += ' | <span>来源: ' + news.source + '</span>';
+        }
+        content += '</div>';
+        content += '<div style="line-height: 1.6; color: #333;">' + (news.body || '暂无正文内容') + '</div>';
+        content += '</div>';
+        
+        layui.layer.open({
+          type: 1,
+          title: '新闻详情',
+          area: ['80%', '80%'],
+          content: content,
+          shadeClose: true,
+          maxmin: true
+        });
+      },
+      
+      // 生成市场总结
+      generate_market_summary: function() {
+        var self = this;
+        
+        // 检查是否有新闻数据
+        if (!this.currentNewsList || this.currentNewsList.length === 0) {
+          layui.layer.msg('请先加载新闻数据');
+          return;
+        }
+        
+        // 显示加载提示
+        var loadingIndex = layui.layer.load(1, {
+          content: '正在生成市场总结，请稍候...',
+          success: function(layero) {
+            layero.find('.layui-layer-content').css({
+              'padding-top': '40px',
+              'width': '200px'
+            });
+          }
+        });
+        
+        // 获取当前标的信息
+        var currentMarket = Utils.get_market();
+        var currentCode = Utils.get_code();
+        
+        // 发送请求生成市场总结
+        $.ajax({
+          url: '/api/news/market_summary',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            news_list: this.currentNewsList,
+            current_market: currentMarket,
+            current_code: currentCode
+          }),
+          success: function(response) {
+            layui.layer.close(loadingIndex);
+            
+            if (response.code === 0 && response.data && response.data.summary) {
+              self.show_market_summary(response.data.summary);
+            } else {
+              layui.layer.msg('生成市场总结失败: ' + (response.msg || '未知错误'));
+            }
+          },
+          error: function(xhr, status, error) {
+            layui.layer.close(loadingIndex);
+            layui.layer.msg('网络错误，请稍后重试');
+          }
+        });
+      },
+      
+      // 显示市场总结弹窗
+      show_market_summary: function(summary) {
+        var currentDate = new Date().toLocaleDateString('zh-CN');
+        var content = '<div style="padding: 20px;">';
+        content += '<div style="margin-bottom: 20px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">';
+        content += '<h4 style="margin: 0 0 10px 0; color: #333;">📊 ' + currentDate + ' 市场总结</h4>';
+        content += '<p style="margin: 0; color: #666; font-size: 12px;">基于当前新闻数据，由AI大模型生成</p>';
+        content += '</div>';
+        // 使用marked.js将Markdown转换为HTML
+        var htmlContent = marked.parse ? marked.parse(summary) : (marked(summary) || summary);
+        content += '<div style="line-height: 1.8; color: #333;">' + htmlContent + '</div>';
+        content += '</div>';
+        
+        layui.layer.open({
+          type: 1,
+          title: '市场总结',
+          area: ['85%', '85%'],
+          content: content,
+          shadeClose: true,
+          maxmin: true,
+          btn: ['关闭'],
+          btnAlign: 'c'
+        });
+      }
+    };
   </script>
 </html>

@@ -1,0 +1,245 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+缠论AI增强分析功能配置文件模板
+
+使用说明:
+1. 复制此文件为 config_ai_enhanced.py
+2. 填入您的API密钥
+3. 根据需要调整其他配置项
+4. 在代码中导入配置: from config_ai_enhanced import *
+"""
+
+# =============================================================================
+# AI API 配置
+# =============================================================================
+
+# OpenRouter API 配置
+# 获取地址: https://openrouter.ai/keys
+OPENROUTER_API_KEY = "your_openrouter_api_key_here"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+OPENROUTER_MODEL = "google/gemini-2.5-pro-preview"  # 可选择其他模型
+
+# SiliconFlow API 配置
+# 获取地址: https://siliconflow.cn
+SILICONFLOW_API_KEY = "your_siliconflow_api_key_here"
+SILICONFLOW_BASE_URL = "https://api.siliconflow.cn/v1"
+SILICONFLOW_MODEL = "deepseek-ai/deepseek-v3"  # 可选择其他模型
+
+# =============================================================================
+# 知识库配置
+# =============================================================================
+
+# 默认知识库名称
+DEFAULT_KNOWLEDGE_BASE_NAME = "chanlun_kb"
+
+# 知识库存储路径
+KNOWLEDGE_BASE_DIR = "./knowledge_bases/"
+
+# TF-IDF 配置
+TFIDF_CONFIG = {
+    "max_features": 1000,      # 最大特征数
+    "min_df": 1,              # 最小文档频率
+    "max_df": 0.95,           # 最大文档频率
+    "stop_words": None,       # 停用词（None表示不使用）
+    "ngram_range": (1, 2),    # N-gram范围
+}
+
+# 相似度搜索配置
+SIMILARITY_CONFIG = {
+    "default_top_k": 5,       # 默认返回结果数
+    "min_similarity": 0.1,    # 最小相似度阈值
+    "max_similarity": 1.0,    # 最大相似度阈值
+}
+
+# =============================================================================
+# 分析配置
+# =============================================================================
+
+# 分析类型与知识库分类映射
+ANALYSIS_TYPE_MAPPING = {
+    'comprehensive': None,  # 搜索所有分类
+    'trading': ['买卖点实战', '技术分析', '实时监控'],
+    'risk': ['风险控制', '市场心理', '止损策略'],
+    'selection': ['选股策略', '板块分析', '市场特点'],
+    'technical': ['技术指标实战', '背驰实战', '线段实战'],
+    'center': ['中枢实战', '中枢理论'],
+}
+
+# 默认分析配置
+DEFAULT_ANALYSIS_CONFIG = {
+    "use_knowledge": True,
+    "max_knowledge_docs": 3,
+    "knowledge_categories": None,
+    "enable_cache": True,
+    "timeout": 30,  # API请求超时时间（秒）
+}
+
+# =============================================================================
+# 日志配置
+# =============================================================================
+
+# 日志级别
+LOG_LEVEL = "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# 日志格式
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# 日志文件路径
+LOG_FILE = "./logs/ai_enhanced.log"
+
+# =============================================================================
+# 缓存配置
+# =============================================================================
+
+# 是否启用缓存
+ENABLE_CACHE = True
+
+# 缓存目录
+CACHE_DIR = "./cache/"
+
+# 缓存过期时间（秒）
+CACHE_EXPIRE_TIME = 3600  # 1小时
+
+# =============================================================================
+# 性能配置
+# =============================================================================
+
+# 批量处理配置
+BATCH_CONFIG = {
+    "max_batch_size": 10,     # 最大批量处理数量
+    "batch_delay": 1,         # 批量处理间隔（秒）
+    "max_retries": 3,         # 最大重试次数
+    "retry_delay": 2,         # 重试间隔（秒）
+}
+
+# 并发配置
+CONCURRENCY_CONFIG = {
+    "max_workers": 4,         # 最大工作线程数
+    "enable_async": False,    # 是否启用异步处理
+}
+
+# =============================================================================
+# 市场配置
+# =============================================================================
+
+# 支持的市场
+SUPPORTED_MARKETS = ["a", "hk", "us", "futures", "currency"]
+
+# 默认市场
+DEFAULT_MARKET = "a"
+
+# 支持的时间周期
+SUPPORTED_FREQUENCIES = [
+    "1m", "5m", "15m", "30m", "1h", "2h", "4h", 
+    "1d", "1w", "1M"
+]
+
+# 默认时间周期
+DEFAULT_FREQUENCY = "30m"
+
+# =============================================================================
+# 安全配置
+# =============================================================================
+
+# API密钥加密（可选）
+ENABLE_KEY_ENCRYPTION = False
+ENCRYPTION_KEY = "your_encryption_key_here"  # 32字节密钥
+
+# 请求限制
+RATE_LIMIT_CONFIG = {
+    "requests_per_minute": 60,
+    "requests_per_hour": 1000,
+    "enable_rate_limit": True,
+}
+
+# =============================================================================
+# 开发配置
+# =============================================================================
+
+# 调试模式
+DEBUG_MODE = False
+
+# 测试模式（使用模拟数据）
+TEST_MODE = False
+
+# 详细输出
+VERBOSE_OUTPUT = False
+
+# =============================================================================
+# 配置验证函数
+# =============================================================================
+
+def validate_config():
+    """
+    验证配置的有效性
+    
+    Returns:
+        bool: 配置是否有效
+    """
+    errors = []
+    
+    # 检查API密钥
+    if not OPENROUTER_API_KEY or OPENROUTER_API_KEY == "your_openrouter_api_key_here":
+        errors.append("OpenRouter API密钥未配置")
+    
+    if not SILICONFLOW_API_KEY or SILICONFLOW_API_KEY == "your_siliconflow_api_key_here":
+        errors.append("SiliconFlow API密钥未配置")
+    
+    # 检查路径
+    import os
+    if not os.path.exists(os.path.dirname(KNOWLEDGE_BASE_DIR)):
+        try:
+            os.makedirs(os.path.dirname(KNOWLEDGE_BASE_DIR), exist_ok=True)
+        except Exception as e:
+            errors.append(f"无法创建知识库目录: {e}")
+    
+    if not os.path.exists(os.path.dirname(LOG_FILE)):
+        try:
+            os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+        except Exception as e:
+            errors.append(f"无法创建日志目录: {e}")
+    
+    # 检查数值配置
+    if BATCH_CONFIG["max_batch_size"] <= 0:
+        errors.append("批量处理大小必须大于0")
+    
+    if SIMILARITY_CONFIG["min_similarity"] < 0 or SIMILARITY_CONFIG["min_similarity"] > 1:
+        errors.append("相似度阈值必须在0-1之间")
+    
+    if errors:
+        print("配置验证失败:")
+        for error in errors:
+            print(f"  - {error}")
+        return False
+    
+    print("配置验证通过")
+    return True
+
+def get_config_summary():
+    """
+    获取配置摘要
+    
+    Returns:
+        dict: 配置摘要
+    """
+    return {
+        "openrouter_configured": bool(OPENROUTER_API_KEY and OPENROUTER_API_KEY != "your_openrouter_api_key_here"),
+        "siliconflow_configured": bool(SILICONFLOW_API_KEY and SILICONFLOW_API_KEY != "your_siliconflow_api_key_here"),
+        "knowledge_base_dir": KNOWLEDGE_BASE_DIR,
+        "default_market": DEFAULT_MARKET,
+        "default_frequency": DEFAULT_FREQUENCY,
+        "debug_mode": DEBUG_MODE,
+        "test_mode": TEST_MODE,
+        "cache_enabled": ENABLE_CACHE,
+        "rate_limit_enabled": RATE_LIMIT_CONFIG["enable_rate_limit"],
+    }
+
+if __name__ == "__main__":
+    print("=== 缠论AI增强分析配置检查 ===")
+    validate_config()
+    
+    print("\n=== 配置摘要 ===")
+    import json
+    summary = get_config_summary()
+    print(json.dumps(summary, indent=2, ensure_ascii=False))

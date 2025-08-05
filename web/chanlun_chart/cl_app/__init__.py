@@ -47,6 +47,7 @@ from chanlun.zixuan import ZiXuan
 from .alert_tasks import AlertTasks
 from .other_tasks import OtherTasks
 from .xuangu_tasks import XuanguTasks
+from .news_vector_api import register_vector_api_routes
 
 
 def create_app(test_config=None):
@@ -250,6 +251,14 @@ def create_app(test_config=None):
             market_default_codes=market_default_codes,
             market_frequencys=market_frequencys,
         )
+
+    @app.route("/market_summary")
+    @login_required
+    def market_summary():
+        """
+        市场总结页面
+        """
+        return render_template("market_summary.html")
 
     @app.route("/tv/config")
     @login_required
@@ -1534,5 +1543,339 @@ def create_app(test_config=None):
                 stocks[_code] = _stock
 
         return {"code": 0, "msg": "", "data": stocks, "count": len(stocks)}
+    from .news_vector_db import NewsVectorDB
+        
+        # 创建临时实例来使用时间标准化函数
+    temp_vector_db = NewsVectorDB()
+    @app.route("/api/news", methods=["POST"])
+    @login_required
+    def receive_news():
+        """
+        接收新闻数据的API接口
+        接受POST请求，处理新闻数据，并存储到向量数据库
+        """
+        from .news_vector_db import get_vector_db
+        
+        print('start get post')
+        # try:
+            # 获取POST请求的JSON数据
+        if request.is_json:
+            news_data = request.get_json()
+        else:
+            # 如果不是JSON格式，尝试从form数据获取
+            news_data = request.form.to_dict()
+        
+        # 验证必要字段
+        required_fields = ['title', 'body', 'source', 'published_at']
+        for field in required_fields:
+            if field not in news_data:
+                return {
+                    "code": 400,
+                    "msg": f"缺少必要字段: {field}",
+                    "data": None
+                }
+        
+        # 处理发布时间格式 - 统一转换为中国时区
+      
+        published_at_str = temp_vector_db._normalize_datetime(news_data.get('published_at'))
+        print('原published_at',news_data.get('published_at'))
+        print('published_at_str',published_at_str)
+        # 将标准化后的ISO字符串转换为datetime对象用于数据库存储
+        try:
+            published_at = datetime.datetime.fromisoformat(published_at_str)
+        except ValueError:
+            # 如果转换失败，使用当前中国时间
+            import pytz
+            china_tz = pytz.timezone('Asia/Shanghai')
+            published_at = datetime.datetime.now(china_tz)
+        
+        # 构建新闻数据库存储结构
+        # print('news_data11', news_data)
+        if news_data.get('sentiment_score'):
+            sentiment_score = news_data.get('sentiment_score')
+        else:
+            sentiment_score = 0
+        if news_data.get('importance_score'):
+            importance_score = news_data.get('importance_score')
+        else:
+            importance_score = 0
+        print('published_at',published_at)
+        news_db_data = {
+            'news_id': str(news_data.get('id', int(time.time() * 1000))),
+            'story_id': news_data.get('story_id'),
+            'title': news_data.get('title'),
+            'body': news_data.get('body'),
+            'source': news_data.get('source'),
+            'published_at': published_at,
+            'language': news_data.get('language', 'zh'),
+            'category': news_data.get('category'),
+            'tags': news_data.get('tags'),
+            'sentiment_score': sentiment_score,
+            'importance_score': importance_score
+        }
+        
+        # 保存新闻数据到关系数据库
+        try:
+            db.news_insert(news_db_data)
+            __log.info(f"新闻数据已保存到关系数据库: {news_db_data['title']}")
+            db_save_success = True
+        except Exception as db_error:
+            __log.error(f"保存新闻数据到关系数据库失败: {str(db_error)}")
+            db_save_success = False
+        
+        # 保存新闻数据到向量数据库
+        vector_save_success = False
+        try:
+            # 获取向量数据库实例
+            vector_db = get_vector_db()
+            
+            # 添加到向量数据库
+            vector_save_success = vector_db.add_news(news_db_data)
+            
+            if vector_save_success:
+                __log.info(f"新闻数据已保存到向量数据库: {news_db_data['title']}")
+            else:
+                __log.warning(f"新闻数据保存到向量数据库失败: {news_db_data['title']}")
+                
+        except Exception as vector_error:
+            __log.error(f"保存新闻数据到向量数据库时发生异常: {str(vector_error)}")
+            vector_save_success = False
+        
+        # 构建返回的新闻项目数据结构
+        news_item = {
+            'id': news_db_data['news_id'],
+            'story_id': news_db_data['story_id'],
+            'title': news_db_data['title'],
+            'body': news_db_data['body'],
+            'source': news_db_data['source'],
+            'published_at': published_at.isoformat() if published_at else None,
+            'language': news_db_data['language'],
+            'category': news_db_data['category'],
+            'tags': news_db_data['tags'],
+            'sentiment_score': news_db_data['sentiment_score'],
+            'importance_score': news_db_data['importance_score'],
+            'created_at': datetime.datetime.now().isoformat(),
+            'db_saved': db_save_success,
+            'vector_saved': vector_save_success
+        }
+        
+        __log.info(f"接收到新闻数据: {news_item['title']}")
+        
+        # 可以在这里调用新闻分析功能
+        # 例如：使用AI增强分析功能对新闻进行分析
+        
+        return {
+            "code": 0,
+            "msg": "新闻数据接收成功",
+            "data": {
+                "received_news": news_item,
+                "processed_at": datetime.datetime.now().isoformat(),
+                "storage_status": {
+                    "relational_db": db_save_success,
+                    "vector_db": vector_save_success
+                }
+            }
+        }
+            
+        # except Exception as e:
+        #     __log.error(f"处理新闻数据时发生错误: {str(e)}")
+        #     return {
+        #         "code": 500,
+        #         "msg": f"处理新闻数据时发生错误: {str(e)}",
+        #         "data": None
+        #     }
+
+    @app.route("/api/news", methods=["GET"])
+    @login_required
+    def get_news():
+        """
+        查询新闻数据的API接口
+        支持分页和筛选参数
+        """
+        try:
+            # 获取查询参数
+            limit = int(request.args.get('limit', 20))
+            offset = int(request.args.get('offset', 0))
+            source = request.args.get('source')
+            category = request.args.get('category')
+            start_date = request.args.get('start_date')
+            end_date = request.args.get('end_date')
+            
+            # 处理日期参数
+            start_datetime = None
+            end_datetime = None
+            if start_date:
+                try:
+                    start_datetime = datetime.datetime.fromisoformat(start_date)
+                except ValueError:
+                    start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+            if end_date:
+                try:
+                    end_datetime = datetime.datetime.fromisoformat(end_date)
+                except ValueError:
+                    end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+            
+            # 查询新闻数据
+            news_list = db.news_query(
+                limit=limit,
+                offset=offset,
+                start_date=start_datetime,
+                end_date=end_datetime,
+                source=source,
+                category=category
+            )
+            
+            # 统计总数
+            total_count = db.news_count(
+                start_date=start_datetime,
+                end_date=end_datetime,
+                source=source,
+                category=category
+            )
+            
+            # 转换为字典格式
+            news_data = []
+            for news in news_list:
+                news_dict = {
+                    'id': news.id,
+                    'news_id': news.news_id,
+                    'story_id': news.story_id,
+                    'title': news.title,
+                    'body': news.body,
+                    'source': news.source,
+                    'published_at': news.published_at.isoformat() if news.published_at else None,
+                    'language': news.language,
+                    'category': news.category,
+                    'tags': news.tags,
+                    'sentiment_score': news.sentiment_score,
+                    'importance_score': news.importance_score,
+                    'created_at': news.created_at.isoformat() if news.created_at else None,
+                    'updated_at': news.updated_at.isoformat() if news.updated_at else None
+                }
+                news_data.append(news_dict)
+            
+            return {
+                "code": 0,
+                "msg": "查询成功",
+                "data": {
+                    "news_list": news_data,
+                    "total_count": total_count,
+                    "limit": limit,
+                    "offset": offset,
+                    "has_more": (offset + limit) < total_count
+                }
+            }
+            
+        except Exception as e:
+            __log.error(f"查询新闻数据时发生错误: {str(e)}")
+            return {
+                "code": 500,
+                "msg": f"查询新闻数据时发生错误: {str(e)}",
+                "data": None
+            }
+
+    @app.route("/chart")
+    def chart():
+        """
+        生成图表图片
+        """
+        try:
+            import tempfile
+            import base64
+            from io import BytesIO
+            from chanlun.kcharts import render_charts
+            from chanlun.tools.ai_analyse import AIAnalyse
+            
+            # 获取参数
+            market = request.args.get('market', 'FE')
+            code = request.args.get('code', 'EURUSD')
+            frequency = request.args.get('frequency', '5m')
+            
+            # 构建完整的代码
+            full_code = f"{market}.{code}"
+            
+            # 获取缠论分析数据
+            ai_analyse = AIAnalyse(market)
+            cl_data = ai_analyse.analyse(full_code, frequency)
+            
+            if cl_data is None:
+                return "无法获取图表数据", 404
+            
+            # 创建临时文件
+            with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as tmp_file:
+                tmp_path = tmp_file.name
+            
+            # 生成图表并保存到临时文件
+            config = {
+                'to_file': tmp_path,
+                'chart_width': '800px',
+                'chart_high': '600px',
+                'chart_kline_nums': 200
+            }
+            
+            render_charts(f"{full_code} {frequency}", cl_data, config=config)
+            
+            # 读取生成的HTML文件
+            with open(tmp_path, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+            
+            # 清理临时文件
+            os.unlink(tmp_path)
+            
+            return html_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+            
+        except Exception as e:
+            __log.error(f"生成图表时发生错误: {str(e)}")
+            return f"生成图表时发生错误: {str(e)}", 500
+    
+    @app.route("/chart_image")
+    def chart_image():
+        """
+        生成图表的base64图片数据
+        """
+        try:
+            from chanlun.tools.ai_analyse import AIAnalyse
+            import json
+            
+            # 获取参数
+            market = request.args.get('market', 'FE')
+            code = request.args.get('code', 'EURUSD')
+            frequency = request.args.get('frequency', '5m')
+            
+            # 构建完整的代码
+            full_code = f"{market}.{code}"
+            
+            # 获取缠论分析数据
+            ai_analyse = AIAnalyse()
+            cl_data = ai_analyse.analyse(full_code, frequency)
+            
+            if cl_data is None:
+                return json.dumps({"error": "无法获取图表数据"}), 404
+            
+            # 简化的图表数据返回（K线数据）
+            klines = cl_data.get_klines()
+            chart_data = {
+                "symbol": full_code,
+                "frequency": frequency,
+                "klines": [
+                    {
+                        "date": k.date.strftime('%Y-%m-%d %H:%M:%S'),
+                        "open": k.o,
+                        "high": k.h,
+                        "low": k.l,
+                        "close": k.c,
+                        "volume": k.v
+                    } for k in klines[-50:]  # 只返回最近50根K线
+                ]
+            }
+            
+            return json.dumps(chart_data, ensure_ascii=False), 200, {'Content-Type': 'application/json; charset=utf-8'}
+            
+        except Exception as e:
+            __log.error(f"生成图表数据时发生错误: {str(e)}")
+            return json.dumps({"error": f"生成图表数据时发生错误: {str(e)}"}), 500
+
+    # 注册向量数据库API路由
+    register_vector_api_routes(app)
 
     return app

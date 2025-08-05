@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场总结历史 - 缠论量化分析平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .summary-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.3s ease;
+        }
+        .summary-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .summary-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 8px 8px 0 0;
+        }
+        .summary-content {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .summary-meta {
+            background-color: #f8f9fa;
+            padding: 10px 20px;
+            border-top: 1px solid #e0e0e0;
+            border-radius: 0 0 8px 8px;
+        }
+        .filter-section {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .markdown-content {
+            line-height: 1.6;
+        }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            color: #333;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        .markdown-content ul, .markdown-content ol {
+            padding-left: 20px;
+        }
+        .markdown-content blockquote {
+            border-left: 4px solid #007bff;
+            padding-left: 15px;
+            margin: 15px 0;
+            background-color: #f8f9fa;
+        }
+        .pagination-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">
+                    <i class="fas fa-chart-line text-primary"></i>
+                    市场总结历史
+                </h1>
+                
+                <!-- 筛选区域 -->
+                <div class="filter-section">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="marketFilter" class="form-label">市场</label>
+                            <select class="form-select" id="marketFilter">
+                                <option value="">全部市场</option>
+                                <option value="a">A股</option>
+                                <option value="hk">港股</option>
+                                <option value="us">美股</option>
+                                <option value="futures">期货</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="codeFilter" class="form-label">标的代码</label>
+                            <input type="text" class="form-control" id="codeFilter" placeholder="输入标的代码">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="startDate" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="endDate" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button class="btn btn-primary me-2" onclick="searchSummaries()">
+                                <i class="fas fa-search"></i> 搜索
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetFilters()">
+                                <i class="fas fa-undo"></i> 重置
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 加载状态 -->
+                <div id="loadingState" class="loading" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">加载中...</span>
+                    </div>
+                    <p class="mt-3">正在加载市场总结...</p>
+                </div>
+                
+                <!-- 空状态 -->
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h4>暂无市场总结</h4>
+                    <p>请尝试调整筛选条件或生成新的市场总结</p>
+                </div>
+                
+                <!-- 总结列表 -->
+                <div id="summaryList"></div>
+                
+                <!-- 分页 -->
+                <div id="paginationWrapper" class="pagination-wrapper"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 详情模态框 -->
+    <div class="modal fade" id="summaryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="summaryModalTitle">市场总结详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="summaryModalContent"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" id="downloadBtn">
+                        <i class="fas fa-download"></i> 下载
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        let currentPage = 1;
+        let currentLimit = 10;
+        let currentSummaryId = null;
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSummaries();
+        });
+        
+        // 加载市场总结列表
+        function loadSummaries(page = 1) {
+            currentPage = page;
+            
+            const params = new URLSearchParams({
+                page: page,
+                limit: currentLimit
+            });
+            
+            // 添加筛选参数
+            const market = document.getElementById('marketFilter').value;
+            const code = document.getElementById('codeFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (market) params.append('market', market);
+            if (code) params.append('code', code);
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+            
+            // 显示加载状态
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('summaryList').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+            document.getElementById('paginationWrapper').style.display = 'none';
+            
+            fetch(`/api/news/market_summary/list?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loadingState').style.display = 'none';
+                    
+                    if (data.code === 0 && data.data.list.length > 0) {
+                        renderSummaryList(data.data.list);
+                        renderPagination(data.data.total, data.data.page, data.data.limit);
+                        document.getElementById('summaryList').style.display = 'block';
+                        document.getElementById('paginationWrapper').style.display = 'block';
+                    } else {
+                        document.getElementById('emptyState').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('加载失败:', error);
+                    document.getElementById('loadingState').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                });
+        }
+        
+        // 渲染总结列表
+        function renderSummaryList(summaries) {
+            const listContainer = document.getElementById('summaryList');
+            listContainer.innerHTML = '';
+            
+            summaries.forEach(summary => {
+                const summaryCard = document.createElement('div');
+                summaryCard.className = 'summary-card';
+                
+                // 截取内容预览
+                const contentPreview = summary.content ? 
+                    (summary.content.length > 200 ? summary.content.substring(0, 200) + '...' : summary.content) : 
+                    '暂无内容';
+                
+                summaryCard.innerHTML = `
+                    <div class="summary-header">
+                        <h5 class="mb-1">${summary.title || '市场总结'}</h5>
+                        <small>ID: ${summary.id}</small>
+                    </div>
+                    <div class="summary-content">
+                        <div class="markdown-content">${marked.parse(contentPreview)}</div>
+                    </div>
+                    <div class="summary-meta">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <small><strong>市场:</strong> ${summary.market || 'N/A'}</small>
+                            </div>
+                            <div class="col-md-3">
+                                <small><strong>标的:</strong> ${summary.code || 'N/A'}</small>
+                            </div>
+                            <div class="col-md-3">
+                                <small><strong>类型:</strong> ${summary.summary_type || 'N/A'}</small>
+                            </div>
+                            <div class="col-md-3">
+                                <small><strong>创建时间:</strong> ${summary.created_at || 'N/A'}</small>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <button class="btn btn-primary btn-sm" onclick="viewSummaryDetail(${summary.id})">
+                                <i class="fas fa-eye"></i> 查看详情
+                            </button>
+                            <button class="btn btn-success btn-sm ms-2" onclick="downloadSummary(${summary.id})">
+                                <i class="fas fa-download"></i> 下载
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                listContainer.appendChild(summaryCard);
+            });
+        }
+        
+        // 渲染分页
+        function renderPagination(total, page, limit) {
+            const totalPages = Math.ceil(total / limit);
+            const paginationWrapper = document.getElementById('paginationWrapper');
+            
+            if (totalPages <= 1) {
+                paginationWrapper.innerHTML = '';
+                return;
+            }
+            
+            let paginationHtml = '<nav><ul class="pagination">';
+            
+            // 上一页
+            if (page > 1) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadSummaries(${page - 1})">上一页</a></li>`;
+            }
+            
+            // 页码
+            const startPage = Math.max(1, page - 2);
+            const endPage = Math.min(totalPages, page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const activeClass = i === page ? 'active' : '';
+                paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="loadSummaries(${i})">${i}</a></li>`;
+            }
+            
+            // 下一页
+            if (page < totalPages) {
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadSummaries(${page + 1})">下一页</a></li>`;
+            }
+            
+            paginationHtml += '</ul></nav>';
+            paginationWrapper.innerHTML = paginationHtml;
+        }
+        
+        // 查看总结详情
+        function viewSummaryDetail(summaryId) {
+            currentSummaryId = summaryId;
+            
+            fetch(`/api/news/market_summary/${summaryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 0) {
+                        const summary = data.data.summary;
+                        document.getElementById('summaryModalTitle').textContent = summary.title || '市场总结详情';
+                        
+                        const modalContent = document.getElementById('summaryModalContent');
+                        modalContent.innerHTML = `
+                            <div class="mb-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>市场:</strong> ${summary.market || 'N/A'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>标的代码:</strong> ${summary.code || 'N/A'}
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-6">
+                                        <strong>总结类型:</strong> ${summary.summary_type || 'N/A'}
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>创建时间:</strong> ${summary.created_at || 'N/A'}
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="markdown-content">
+                                ${marked.parse(summary.content || '暂无内容')}
+                            </div>
+                        `;
+                        
+                        const modal = new bootstrap.Modal(document.getElementById('summaryModal'));
+                        modal.show();
+                    } else {
+                        alert('获取总结详情失败: ' + data.msg);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取详情失败:', error);
+                    alert('获取总结详情失败');
+                });
+        }
+        
+        // 下载总结
+        function downloadSummary(summaryId) {
+            window.open(`/api/news/market_summary/${summaryId}/download`, '_blank');
+        }
+        
+        // 搜索总结
+        function searchSummaries() {
+            loadSummaries(1);
+        }
+        
+        // 重置筛选条件
+        function resetFilters() {
+            document.getElementById('marketFilter').value = '';
+            document.getElementById('codeFilter').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            loadSummaries(1);
+        }
+        
+        // 模态框下载按钮事件
+        document.getElementById('downloadBtn').addEventListener('click', function() {
+            if (currentSummaryId) {
+                downloadSummary(currentSummaryId);
+            }
+        });
+    </script>
+</body>
+</html>

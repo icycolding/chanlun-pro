@@ -66,7 +66,7 @@ class AIAnalyse:
             prompt = self.prompt(cd=cd)
         except Exception as e:
             return {"ok": False, "msg": f"获取缠论当前 Prompt 异常：{e}"}
-
+        print('prompt', prompt)
         analyse_res = self.req_llm_ai_model(prompt)
 
         if analyse_res["ok"]:
@@ -184,11 +184,13 @@ class AIAnalyse:
         """
         根据配置，调用不同的大模型服务
         """
+        # print('start ai OPENROUTER_AI_KEYS:',config.OPENROUTER_AI_KEYS)
+        # print('start ai OPENROUTER_AI_MODEL:',config.AI_MODEL)
         if config.OPENROUTER_AI_KEYS != "" and config.OPENROUTER_AI_MODEL != "":
             return self.req_openrouter_ai_model(prompt)
         if config.AI_TOKEN != "" and config.AI_MODEL != "":
             return self.req_siliconflow_ai_model(prompt)
-
+        # print('end ai')
         return {
             "ok": False,
             "msg": "未正确配置大模型的 API key 和模型名称",
@@ -202,7 +204,7 @@ class AIAnalyse:
         # return {"ok": True, "msg": msg}
 
         url = "https://api.siliconflow.cn/v1/chat/completions"
-
+        print('start ai2 AI_MODEL')
         payload = {
             "model": config.AI_MODEL,
             "messages": [
@@ -261,6 +263,7 @@ class AIAnalyse:
                 model=config.OPENROUTER_AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
             )
+            print('response', response)
             if (
                 response.choices[0].message.content == ""
                 and response.choices[0].message.refusal is not None

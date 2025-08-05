@@ -38,3 +38,9 @@ playwright
 
 pyfolio-reloaded
 dtaidistance
+
+# Vector Database Dependencies
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+jieba>=0.42.1
+scikit-learn>=1.3.0

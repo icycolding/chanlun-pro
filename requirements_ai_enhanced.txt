@@ -1,0 +1,45 @@
+# 缠论AI增强分析功能依赖包
+# 安装命令: pip install -r requirements_ai_enhanced.txt
+
+# 核心依赖
+jieba>=0.42.1              # 中文分词库，用于文本预处理
+scikit-learn>=1.0.0        # 机器学习库，用于TF-IDF和相似度计算
+numpy>=1.20.0              # 数值计算库
+pandas>=1.3.0              # 数据处理库
+
+# 技术分析依赖
+MyTT>=2.9.0                # 技术分析指标库
+
+# 可选依赖（如果需要更多技术指标）
+# TA-Lib>=0.4.25           # 技术分析库（需要先安装系统级ta-lib）
+
+# HTTP请求库（AI API调用）
+requests>=2.25.0           # HTTP请求库
+
+# 其他工具库
+tqdm>=4.60.0               # 进度条显示
+colorama>=0.4.4            # 彩色终端输出
+
+# 开发和测试依赖
+pytest>=6.0.0              # 测试框架
+pytest-cov>=2.10.0         # 测试覆盖率
+black>=21.0.0              # 代码格式化
+flake8>=3.8.0              # 代码检查
+
+# 文档生成
+mkdocs>=1.2.0              # 文档生成工具
+mkdocs-material>=7.0.0     # 文档主题
+
+# 注意事项:
+# 1. 如果使用TA-Lib，需要先安装系统级别的ta-lib库
+#    macOS: brew install ta-lib
+#    Ubuntu: sudo apt-get install libta-lib-dev
+#    Windows: 下载预编译包或使用conda安装
+#
+# 2. 某些包可能需要特定的Python版本
+#    建议使用Python 3.8+
+#
+# 3. 在虚拟环境中安装以避免依赖冲突
+#    conda create -n quant python=3.10
+#    conda activate quant
+#    pip install -r requirements_ai_enhanced.txt
