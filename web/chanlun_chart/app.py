@@ -1,5 +1,12 @@
-# import chanlun.encodefix  # Fix Windows print 乱码问题
+import pathlib
 import sys
+
+# 将项目中的 src 目录，添加到 sys.path 中
+src_path = pathlib.Path(__file__).parent.parent / ".." / "src"
+sys.path.append(str(src_path))
+web_server_path = pathlib.Path(__file__).parent
+sys.path.append(str(web_server_path))
+
 
 is_wpf_launcher = False
 try:
@@ -25,23 +32,26 @@ try:
         sys.stdout = filter(sys.stdout)
         sys.stderr = filter(sys.stderr)
 
-except Exception as e:
+except Exception:
     pass
 
-from tornado.wsgi import WSGIContainer
-from tornado.httpserver import HTTPServer
-from tornado.ioloop import IOLoop
-import pathlib
+import logging
 import traceback
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
+
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
+from tornado.wsgi import WSGIContainer
+
+# 禁用Tornado访问日志
+logging.getLogger('tornado.access').setLevel(logging.WARNING)
+
+import chanlun.encodefix  # Fix Windows print 乱码问题  # noqa: F401
 from chanlun import config
 
-cmd_path = pathlib.Path.cwd()
-sys.path.append(str(cmd_path))
-
 try:
-    from app import create_app
+    from cl_app import create_app
 except Exception as e:
     print(e)
     traceback.print_exc()
@@ -71,3 +81,6 @@ if __name__ == "__main__":
 
         if is_wpf_launcher is False:
             input("出现异常，按回车键退出")
+        if is_wpf_launcher is False:
+            input("出现异常，按回车键退出")
+

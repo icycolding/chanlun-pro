@@ -170,3 +170,11 @@ src/cl_myquant/gmcache
 # 无用的排除
 /my_debug
 pyarmor.rkey
+# 忽略数据库文件和目录
+*.sqlite3
+*.sqlite3.ba
+web/chanlun_chart/chroma_db/
+
+# 忽略日志和临时文件
+nohup.out
+*.sqlm
