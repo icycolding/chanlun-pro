@@ -2208,19 +2208,19 @@ def _generate_ai_market_summary(news_list: List[Dict], current_market: str = '',
                 logger.error(f"缠论图表快照异常: {str(e)}")
                 market_summary += f"\n\n## 缠论图表\n图表生成异常: {str(e)}"
             
-            # # 添加MACD和波动率技术分析
-            # try:
-            #     logger.info(f"正在为{current_code}生成MACD和波动率分析")
-            #     technical_analysis = _generate_technical_indicators_analysis(current_code, current_market)
-            #     if technical_analysis:
-            #         market_summary += f"\n\n## 技术指标分析\n{technical_analysis}"
-            #         logger.info("MACD和波动率分析添加成功")
-            #     else:
-            #         logger.warning("技术指标分析生成失败")
-            #         market_summary += "\n\n## 技术指标分析\n暂时无法生成技术指标分析，请稍后重试。"
-            # except Exception as e:
-            #     logger.error(f"技术指标分析异常: {str(e)}")
-            #     market_summary += f"\n\n## 技术指标分析\n技术指标分析异常: {str(e)}"
+            # 添加MACD和波动率技术分析
+            try:
+                logger.info(f"正在为{current_code}生成MACD和波动率分析")
+                technical_analysis = _generate_technical_indicators_analysis(current_code, current_market)
+                if technical_analysis:
+                    market_summary += f"\n\n## 技术指标分析\n{technical_analysis}"
+                    logger.info("MACD和波动率分析添加成功")
+                else:
+                    logger.warning("技术指标分析生成失败")
+                    market_summary += "\n\n## 技术指标分析\n暂时无法生成技术指标分析，请稍后重试。"
+            except Exception as e:
+                logger.error(f"技术指标分析异常: {str(e)}")
+                market_summary += f"\n\n## 技术指标分析\n技术指标分析异常: {str(e)}"
             
             # 添加缠论技术分析
             try:

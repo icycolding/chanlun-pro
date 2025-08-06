@@ -1552,7 +1552,10 @@ def create_app(test_config=None):
     def receive_news():
         """
         接收新闻数据的API接口
-        接受POST请求，处理新闻数据，并存储到向量数据库
+        接受POST请求，处理单条或多条新闻数据，并存储到向量数据库
+        支持格式：
+        1. 单条新闻：{"title": "...", "body": "...", ...}
+        2. 多条新闻：[{"title": "...", "body": "..."}, {...}]
         """
         from .news_vector_db import get_vector_db
         
@@ -1560,119 +1563,141 @@ def create_app(test_config=None):
         # try:
             # 获取POST请求的JSON数据
         if request.is_json:
-            news_data = request.get_json()
+            raw_data = request.get_json()
         else:
             # 如果不是JSON格式，尝试从form数据获取
-            news_data = request.form.to_dict()
+            raw_data = request.form.to_dict()
+        
+        # 判断是单条数据还是多条数据
+        if isinstance(raw_data, list):
+            news_data_list = raw_data
+        else:
+            news_data_list = [raw_data]
         
         # 验证必要字段
         required_fields = ['title', 'body', 'source', 'published_at']
-        for field in required_fields:
-            if field not in news_data:
-                return {
-                    "code": 400,
-                    "msg": f"缺少必要字段: {field}",
-                    "data": None
-                }
+        for i, news_data in enumerate(news_data_list):
+            for field in required_fields:
+                if field not in news_data:
+                    return {
+                        "code": 400,
+                        "msg": f"第{i+1}条新闻缺少必要字段: {field}",
+                        "data": None
+                    }
         
-        # 处理发布时间格式 - 统一转换为中国时区
-      
-        published_at_str = temp_vector_db._normalize_datetime(news_data.get('published_at'))
-        print('原published_at',news_data.get('published_at'))
-        print('published_at_str',published_at_str)
-        # 将标准化后的ISO字符串转换为datetime对象用于数据库存储
-        try:
-            published_at = datetime.datetime.fromisoformat(published_at_str)
-        except ValueError:
-            # 如果转换失败，使用当前中国时间
-            import pytz
-            china_tz = pytz.timezone('Asia/Shanghai')
-            published_at = datetime.datetime.now(china_tz)
+        # 批量处理新闻数据
+        processed_news = []
+        total_success = 0
+        total_db_success = 0
+        total_vector_success = 0
         
-        # 构建新闻数据库存储结构
-        # print('news_data11', news_data)
-        if news_data.get('sentiment_score'):
-            sentiment_score = news_data.get('sentiment_score')
-        else:
-            sentiment_score = 0
-        if news_data.get('importance_score'):
-            importance_score = news_data.get('importance_score')
-        else:
-            importance_score = 0
-        print('published_at',published_at)
-        news_db_data = {
-            'news_id': str(news_data.get('id', int(time.time() * 1000))),
-            'story_id': news_data.get('story_id'),
-            'title': news_data.get('title'),
-            'body': news_data.get('body'),
-            'source': news_data.get('source'),
-            'published_at': published_at,
-            'language': news_data.get('language', 'zh'),
-            'category': news_data.get('category'),
-            'tags': news_data.get('tags'),
-            'sentiment_score': sentiment_score,
-            'importance_score': importance_score
-        }
-        
-        # 保存新闻数据到关系数据库
-        try:
-            db.news_insert(news_db_data)
-            __log.info(f"新闻数据已保存到关系数据库: {news_db_data['title']}")
-            db_save_success = True
-        except Exception as db_error:
-            __log.error(f"保存新闻数据到关系数据库失败: {str(db_error)}")
-            db_save_success = False
-        
-        # 保存新闻数据到向量数据库
-        vector_save_success = False
-        try:
-            # 获取向量数据库实例
-            vector_db = get_vector_db()
-            
-            # 添加到向量数据库
-            vector_save_success = vector_db.add_news(news_db_data)
-            
-            if vector_save_success:
-                __log.info(f"新闻数据已保存到向量数据库: {news_db_data['title']}")
-            else:
-                __log.warning(f"新闻数据保存到向量数据库失败: {news_db_data['title']}")
+        # 获取向量数据库实例
+        vector_db = get_vector_db()
+        print('len(news_data_list)', len(news_data_list))
+
+        for i, news_data in enumerate(news_data_list):
+            try:
+                # 处理发布时间格式 - 统一转换为中国时区
+                published_at_str = temp_vector_db._normalize_datetime(news_data.get('published_at'))
+                print(f'第{i+1}条新闻 - 原published_at', news_data.get('published_at'))
+                print(f'第{i+1}条新闻 - published_at_str', published_at_str)
                 
-        except Exception as vector_error:
-            __log.error(f"保存新闻数据到向量数据库时发生异常: {str(vector_error)}")
-            vector_save_success = False
-        
-        # 构建返回的新闻项目数据结构
-        news_item = {
-            'id': news_db_data['news_id'],
-            'story_id': news_db_data['story_id'],
-            'title': news_db_data['title'],
-            'body': news_db_data['body'],
-            'source': news_db_data['source'],
-            'published_at': published_at.isoformat() if published_at else None,
-            'language': news_db_data['language'],
-            'category': news_db_data['category'],
-            'tags': news_db_data['tags'],
-            'sentiment_score': news_db_data['sentiment_score'],
-            'importance_score': news_db_data['importance_score'],
-            'created_at': datetime.datetime.now().isoformat(),
-            'db_saved': db_save_success,
-            'vector_saved': vector_save_success
-        }
-        
-        __log.info(f"接收到新闻数据: {news_item['title']}")
+                # 将标准化后的ISO字符串转换为datetime对象用于数据库存储
+                try:
+                    published_at = datetime.datetime.fromisoformat(published_at_str)
+                except ValueError:
+                    # 如果转换失败，使用当前中国时间
+                    import pytz
+                    china_tz = pytz.timezone('Asia/Shanghai')
+                    published_at = datetime.datetime.now(china_tz)
+                
+                # 构建新闻数据库存储结构
+                sentiment_score = news_data.get('sentiment_score', 0)
+                importance_score = news_data.get('importance_score', 0)
+                
+                print(f'第{i+1}条新闻 - published_at', published_at)
+                news_db_data = {
+                    'news_id': str(news_data.get('id', int(time.time() * 1000) + i)),
+                    'story_id': news_data.get('story_id'),
+                    'title': news_data.get('title'),
+                    'body': news_data.get('body'),
+                    'source': news_data.get('source'),
+                    'published_at': published_at,
+                    'language': news_data.get('language', 'zh'),
+                    'category': news_data.get('category'),
+                    'tags': news_data.get('tags'),
+                    'sentiment_score': sentiment_score,
+                    'importance_score': importance_score
+                }
+                
+                # 保存新闻数据到关系数据库
+                db_save_success = False
+                try:
+                    db.news_insert(news_db_data)
+                    __log.info(f"第{i+1}条新闻数据已保存到关系数据库: {news_db_data['title']}")
+                    db_save_success = True
+                    total_db_success += 1
+                except Exception as db_error:
+                    __log.error(f"第{i+1}条新闻保存到关系数据库失败: {str(db_error)}")
+                
+                # 保存新闻数据到向量数据库
+                vector_save_success = False
+                try:
+                    # 添加到向量数据库
+                    vector_save_success = vector_db.add_news(news_db_data)
+                    
+                    if vector_save_success:
+                        __log.info(f"第{i+1}条新闻数据已保存到向量数据库: {news_db_data['title']}")
+                        total_vector_success += 1
+                    else:
+                        __log.warning(f"第{i+1}条新闻数据保存到向量数据库失败: {news_db_data['title']}")
+                        
+                except Exception as vector_error:
+                    __log.error(f"第{i+1}条新闻保存到向量数据库时发生异常: {str(vector_error)}")
+                
+                # 构建返回的新闻项目数据结构
+                news_item = {
+                    'id': news_db_data['news_id'],
+                    'story_id': news_db_data['story_id'],
+                    'title': news_db_data['title'],
+                    'body': news_db_data['body'],
+                    'source': news_db_data['source'],
+                    'published_at': published_at.isoformat() if published_at else None,
+                    'language': news_db_data['language'],
+                    'category': news_db_data['category'],
+                    'tags': news_db_data['tags'],
+                    'sentiment_score': news_db_data['sentiment_score'],
+                    'importance_score': news_db_data['importance_score'],
+                    'created_at': datetime.datetime.now().isoformat(),
+                    'db_saved': db_save_success,
+                    'vector_saved': vector_save_success
+                }
+                
+                processed_news.append(news_item)
+                if db_save_success or vector_save_success:
+                    total_success += 1
+                
+                __log.info(f"第{i+1}条新闻处理完成: {news_item['title']}")
+                
+            except Exception as e:
+                __log.error(f"处理第{i+1}条新闻时发生错误: {str(e)}")
+                # 继续处理下一条新闻
+                continue
         
         # 可以在这里调用新闻分析功能
         # 例如：使用AI增强分析功能对新闻进行分析
         
         return {
             "code": 0,
-            "msg": "新闻数据接收成功",
+            "msg": f"批量新闻数据接收完成，共处理{len(news_data_list)}条，成功{total_success}条",
             "data": {
-                "received_news": news_item,
+                "received_news": processed_news,
                 "processed_at": datetime.datetime.now().isoformat(),
-                "storage_status": {
-                    "relational_db": db_save_success,
-                    "vector_db": vector_save_success
+                "summary": {
+                    "total_count": len(news_data_list),
+                    "success_count": total_success,
+                    "relational_db_success": total_db_success,
+                    "vector_db_success": total_vector_success
                 }
             }
         }
@@ -1877,5 +1902,8 @@ def create_app(test_config=None):
 
     # 注册向量数据库API路由
     register_vector_api_routes(app)
+    
+
+
 
     return app
