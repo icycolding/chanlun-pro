@@ -64,7 +64,7 @@ if __name__ == "__main__":
         app = create_app()
 
         s = HTTPServer(WSGIContainer(app))
-        s.bind(9901, config.WEB_HOST)
+        s.bind(9900, config.WEB_HOST)
 
         print("启动成功")
         s.start(1)
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         if len(sys.argv) >= 2 and sys.argv[1] == "nobrowser":
             pass
         else:
-            webbrowser.open("http://127.0.0.1:9901")
+            webbrowser.open("http://127.0.0.1:9900")
         IOLoop.instance().start()
 
     except Exception as e:
