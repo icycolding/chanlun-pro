@@ -979,8 +979,9 @@ def create_app(test_config=None):
         codes = request.form["codes"]
         codes = json.loads(codes)
         ex = get_exchange(Market(market))
-        stock_ticks = ex.ticks(codes)
         try:
+            stock_ticks = ex.ticks(codes)
+            
             now_trading = ex.now_trading()
             res_ticks = [
                 {"code": _c, "price": _t.last, "rate": round(float(_t.rate), 2)}
@@ -1547,6 +1548,28 @@ def create_app(test_config=None):
         
         # 创建临时实例来使用时间标准化函数
     temp_vector_db = NewsVectorDB()
+    
+    def convert_db_news_to_vector_format(db_news) -> dict:
+        """
+        将关系数据库的新闻记录转换为向量数据库格式
+        
+        Args:
+            db_news: 关系数据库新闻记录 (TableByNews对象)
+        
+        Returns:
+            dict: 向量数据库格式的新闻数据
+        """
+        return {
+            'news_id': str(db_news.news_id) if db_news.news_id else str(db_news.id),
+            'title': db_news.title or '',
+            'body': db_news.body or '',
+            'source': db_news.source or '',
+            'published_at': db_news.published_at,
+            'language': db_news.language or 'zh',
+            'category': db_news.category or '',
+            'sentiment_score': float(db_news.sentiment_score or 0.0),
+            'importance_score': float(db_news.importance_score or 0.5)
+        }
     @app.route("/api/news", methods=["POST"])
     @login_required
     def receive_news():
@@ -1758,8 +1781,17 @@ def create_app(test_config=None):
                 category=category
             )
             
+            # 获取向量数据库实例
+            from .news_vector_db import get_vector_db
+            vector_db = get_vector_db()
+            
+            # 检查是否需要同步数据到向量数据库
+            sync_to_vector = request.args.get('sync_to_vector', 'false').lower() == 'true'
+            
             # 转换为字典格式
             news_data = []
+            synced_count = 0
+            
             for news in news_list:
                 news_dict = {
                     'id': news.id,
@@ -1778,17 +1810,36 @@ def create_app(test_config=None):
                     'updated_at': news.updated_at.isoformat() if news.updated_at else None
                 }
                 news_data.append(news_dict)
+                
+                # 如果需要同步到向量数据库
+                if sync_to_vector and news.title and news.body:
+                    try:
+                        vector_format_data = convert_db_news_to_vector_format(news)
+                        if vector_db.add_news(vector_format_data):
+                            synced_count += 1
+                    except Exception as e:
+                        print(f"同步新闻到向量数据库失败: {news.news_id}, 错误: {str(e)}")
+            
+            response_data = {
+                "news_list": news_data,
+                "total_count": total_count,
+                "limit": limit,
+                "offset": offset,
+                "has_more": (offset + limit) < total_count
+            }
+            
+            # 如果进行了向量数据库同步，添加同步信息
+            if sync_to_vector:
+                response_data["sync_info"] = {
+                    "synced_count": synced_count,
+                    "total_processed": len(news_list),
+                    "sync_enabled": True
+                }
             
             return {
                 "code": 0,
                 "msg": "查询成功",
-                "data": {
-                    "news_list": news_data,
-                    "total_count": total_count,
-                    "limit": limit,
-                    "offset": offset,
-                    "has_more": (offset + limit) < total_count
-                }
+                "data": response_data
             }
             
         except Exception as e:
@@ -1798,6 +1849,125 @@ def create_app(test_config=None):
                 "msg": f"查询新闻数据时发生错误: {str(e)}",
                 "data": None
             }
+    
+    @app.route("/api/news/sync_to_vector", methods=["POST"])
+    @login_required
+    def sync_news_to_vector():
+        """
+        批量同步数据库新闻到向量数据库
+        支持参数:
+        - limit: 每批处理数量，默认100
+        - offset: 偏移量，默认0
+        - force: 是否强制重新同步已存在的新闻，默认false
+        """
+        try:
+            # 获取参数
+            limit = int(request.json.get('limit', 100)) if request.is_json else int(request.form.get('limit', 100))
+            offset = int(request.json.get('offset', 0)) if request.is_json else int(request.form.get('offset', 0))
+            force = str(request.json.get('force', 'false')).lower() == 'true' if request.is_json else str(request.form.get('force', 'false')).lower() == 'true'
+            
+            # 获取向量数据库实例
+            from .news_vector_db import get_vector_db
+            vector_db = get_vector_db()
+            
+            # 查询数据库中的新闻
+            news_list = db.news_query(limit=limit, offset=offset)
+            
+            if not news_list:
+                return {
+                    "code": 200,
+                    "msg": "没有找到需要同步的新闻",
+                    "data": {
+                        "synced_count": 0,
+                        "total_processed": 0,
+                        "skipped_count": 0,
+                        "error_count": 0
+                    }
+                }
+            
+            # 批量同步
+            synced_count = 0
+            skipped_count = 0
+            error_count = 0
+            error_details = []
+            
+            for news in news_list:
+                if not news.title or not news.body:
+                    skipped_count += 1
+                    continue
+                
+                try:
+                    # 转换数据格式
+                    vector_format_data = convert_db_news_to_vector_format(news)
+                    
+                    # 如果不是强制模式，检查是否已存在
+                    if not force:
+                        # 这里可以添加检查逻辑，暂时直接尝试添加
+                        pass
+                    
+                    # 添加到向量数据库
+                    if vector_db.add_news(vector_format_data):
+                        synced_count += 1
+                    else:
+                        skipped_count += 1
+                        
+                except Exception as e:
+                    error_count += 1
+                    error_details.append({
+                        "news_id": news.news_id or str(news.id),
+                        "title": news.title[:50] + "..." if news.title and len(news.title) > 50 else news.title,
+                        "error": str(e)
+                    })
+            
+            return {
+                "code": 0,
+                "msg": "同步完成",
+                "data": {
+                    "synced_count": synced_count,
+                    "total_processed": len(news_list),
+                    "skipped_count": skipped_count,
+                    "error_count": error_count,
+                    "error_details": error_details[:10] if error_details else [],  # 最多返回10个错误详情
+                    "has_more_errors": len(error_details) > 10
+                }
+            }
+            
+        except Exception as e:
+            __log.error(f"同步新闻到向量数据库时发生错误: {str(e)}")
+            return {
+                "code": 500,
+                "msg": f"同步新闻到向量数据库时发生错误: {str(e)}",
+                "data": None
+            }
+
+    # 经济数据API路由
+    @app.route("/api/economic/data", methods=["POST"])
+    def receive_economic_data():
+        """
+        接收经济数据的API接口
+        """
+        print('接收经济数据的API接口')
+
+        from .economic_data_receiver import receive_economic_data
+        return receive_economic_data()
+    
+    @app.route("/api/economic/data", methods=["GET"])
+    @login_required
+    def get_economic_data():
+        """
+        查询经济数据的API接口
+        """
+        from .economic_data_receiver import get_economic_data
+        
+        # 获取查询参数
+        indicator_name = request.args.get('indicator_name')
+        ds_mnemonic = request.args.get('ds_mnemonic')
+        year = request.args.get('year')
+        if year:
+            year = int(year)
+        limit = int(request.args.get('limit', 100))
+        
+        return get_economic_data(indicator_name, ds_mnemonic, year, limit)
 
     @app.route("/chart")
     def chart():

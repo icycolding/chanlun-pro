@@ -4,6 +4,7 @@ US Polygon 行情接口
 
 import datetime as dt
 import os
+import time
 from typing import Union
 
 from polygon.rest import RESTClient
@@ -152,6 +153,9 @@ class ExchangePolygon(Exchange):
                 end_date,
                 limit=50000,
             )
+            # 增加一个延时，防止请求过于频繁
+            time.sleep(1)
+
             klines_df = []
             for r in resp:
                 klines_df.append(
@@ -193,15 +197,22 @@ class ExchangePolygon(Exchange):
         """
         使用富途的接口获取行情Tick数据
         """
-        # ticks = {}
-        # for _c in codes:
-        #     _t = self.client.get_daily_open_close_agg(_c)
-        #     ticks[_c] = Tick(
-        #         code=_c, last=_t.close, buy1=_t.close, sell1=_t.close,
-        #         high=_t.high, low=_t.low, open=_t.open, volume=_t.volume,
-        #         rate=_t.
-        #     )
-        raise Exception("交易所不支持")
+        ticks = {}
+        yesterday = dt.date.today() + dt.timedelta(-1)
+        yesterday_str = yesterday.strftime('%Y-%m-%d')
+        for _c in codes:
+            try:
+                _t = self.client.get_daily_open_close_agg(_c, yesterday_str)
+                ticks[_c] = Tick(
+                    code=_c, last=_t.close, buy1=_t.close, sell1=_t.close,
+                    high=_t.high, low=_t.low, open=_t.open, volume=_t.volume,
+                    rate=(_t.close - _t.open) / _t.open if _t.open > 0 else 0,
+                )
+            except Exception as e:
+                print(f'polygon 获取 {_c} tick行情异常 {e}')
+                # 即使单个代码出错，也继续处理其他代码
+                continue
+        return ticks
 
     def now_trading(self):
         """

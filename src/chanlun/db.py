@@ -247,6 +247,28 @@ class TableByMarketSummary(Base):
     __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
 
 
+class TableByEconomicData(Base):
+    # 经济数据表
+    __tablename__ = "cl_economic_data"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    indicator_name = Column(String(200), comment="指标名称")  # 指标名称
+    ds_mnemonic = Column(String(50), comment="数据源助记符")  # 数据源助记符
+    latest_value = Column(Float, comment="最新值")  # 最新值
+    latest_value_date = Column(String(20), comment="最新值日期")  # 最新值日期
+    yoy_change_pct = Column(Float, comment="同比变化百分比")  # 同比变化百分比
+    previous_value = Column(Float, comment="前值")  # 前值
+    previous_value_date = Column(String(20), comment="前值日期")  # 前值日期
+    previous_year_value = Column(Float, comment="去年同期值")  # 去年同期值
+    year = Column(Integer, comment="年份")  # 年份
+    units = Column(String(50), comment="单位")  # 单位
+    source = Column(String(100), comment="数据来源")  # 数据来源
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)  # 创建时间
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)  # 更新时间
+    
+    # 添加配置设置编码
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
 @fun.singleton
 class DB(object):
     global Base
@@ -1504,6 +1526,114 @@ class DB(object):
                 query = query.filter(TableByMarketSummary.created_at >= start_date)
             if end_date:
                 query = query.filter(TableByMarketSummary.created_at <= end_date)
+            
+            return query.count()
+
+    def economic_data_insert(self, economic_data: dict) -> bool:
+        """
+        插入经济数据
+        :param economic_data: 经济数据字典
+        :return: 是否成功
+        """
+        with self.Session() as session:
+            # 检查是否已存在相同的经济数据（根据ds_mnemonic）
+            existing_data = None
+            if economic_data.get('ds_mnemonic'):
+                existing_data = session.query(TableByEconomicData).filter(
+                    TableByEconomicData.ds_mnemonic == economic_data['ds_mnemonic']
+                ).first()
+            print('economic_data',economic_data)
+            print('economic_data.get',economic_data.get('latest_value'))
+            if existing_data:
+                # 更新现有数据
+                for key, value in economic_data.items():
+                    if hasattr(existing_data, key) and value is not None:
+                        setattr(existing_data, key, value)
+                existing_data.updated_at = datetime.datetime.now()
+            else:
+                # 创建新的经济数据记录
+                economic_record = TableByEconomicData(
+                    indicator_name=economic_data.get('indicator_name'),
+                    ds_mnemonic=economic_data.get('ds_mnemonic'),
+                    latest_value=economic_data.get('latest_value'),
+                    latest_value_date=economic_data.get('latest_value_date'),
+                    yoy_change_pct=economic_data.get('yoy_change_pct'),
+                    previous_value=economic_data.get('previous_value'),
+                    previous_value_date=economic_data.get('previous_value_date'),
+                    previous_year_value=economic_data.get('previous_year_value'),
+                    year=economic_data.get('year'),
+                    units=economic_data.get('units'),
+                    source=economic_data.get('source')
+                )
+                session.add(economic_record)
+            
+            session.commit()
+        return True
+
+    def economic_data_query(self, limit: int = 100, offset: int = 0,
+                           year: int = None,
+                           ds_mnemonic: str = None,
+                           indicator_name: str = None) -> List[TableByEconomicData]:
+        """
+        查询经济数据
+        :param limit: 限制返回数量
+        :param offset: 偏移量
+        :param year: 年份
+        :param ds_mnemonic: 数据源助记符
+        :param indicator_name: 指标名称
+        :return: 经济数据列表
+        """
+        with self.Session() as session:
+            query = session.query(TableByEconomicData)
+            
+            if year:
+                query = query.filter(TableByEconomicData.year == year)
+            if ds_mnemonic:
+                query = query.filter(TableByEconomicData.ds_mnemonic == ds_mnemonic)
+            if indicator_name:
+                query = query.filter(TableByEconomicData.indicator_name.like(f'%{indicator_name}%'))
+            
+            return query.order_by(TableByEconomicData.id.desc()).offset(offset).limit(limit).all()
+
+    def economic_data_get_by_mnemonic(self, ds_mnemonic: str) -> TableByEconomicData:
+        """
+        根据数据源助记符获取经济数据
+        :param ds_mnemonic: 数据源助记符
+        :return: 经济数据记录
+        """
+        with self.Session() as session:
+            return session.query(TableByEconomicData).filter(TableByEconomicData.ds_mnemonic == ds_mnemonic).first()
+
+    def economic_data_delete(self, ds_mnemonic: str) -> bool:
+        """
+        删除经济数据
+        :param ds_mnemonic: 数据源助记符
+        :return: 是否成功
+        """
+        with self.Session() as session:
+            session.query(TableByEconomicData).filter(TableByEconomicData.ds_mnemonic == ds_mnemonic).delete()
+            session.commit()
+        return True
+
+    def economic_data_count(self, year: int = None,
+                           ds_mnemonic: str = None,
+                           indicator_name: str = None) -> int:
+        """
+        统计经济数据数量
+        :param year: 年份
+        :param ds_mnemonic: 数据源助记符
+        :param indicator_name: 指标名称
+        :return: 经济数据数量
+        """
+        with self.Session() as session:
+            query = session.query(TableByEconomicData)
+            
+            if year:
+                query = query.filter(TableByEconomicData.year == year)
+            if ds_mnemonic:
+                query = query.filter(TableByEconomicData.ds_mnemonic == ds_mnemonic)
+            if indicator_name:
+                query = query.filter(TableByEconomicData.indicator_name.like(f'%{indicator_name}%'))
             
             return query.count()
 

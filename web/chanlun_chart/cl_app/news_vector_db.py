@@ -15,6 +15,7 @@ import os
 import json
 import datetime
 import hashlib
+import tempfile
 from typing import List, Dict, Optional, Tuple, Any
 import logging
 from zoneinfo import ZoneInfo
@@ -22,8 +23,6 @@ import pytz
 
 try:
     import chromadb
-    from chromadb.config import Settings
-    from chromadb.utils import embedding_functions
 except ImportError:
     print("警告: chromadb 未安装，请运行: pip install chromadb")
     chromadb = None
@@ -40,6 +39,12 @@ try:
 except ImportError:
     print("警告: sentence-transformers 未安装，请运行: pip install sentence-transformers")
     SentenceTransformer = None
+
+try:
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+except ImportError:
+    print("警告: langchain 未安装，请运行: pip install langchain")
+    RecursiveCharacterTextSplitter = None
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -68,22 +73,29 @@ class NewsVectorDB:
     3. 向量维度: 384 (使用sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2)
     """
     
-    def __init__(self, db_path: str = "./chroma_db", model_name: str = "paraphrase-multilingual-MiniLM-L12-v2"):
+    def __init__(self, db_path: Optional[str] = None, model_name: str = "paraphrase-multilingual-MiniLM-L12-v2"):
         """
         初始化向量数据库
         
         Args:
-            db_path: 数据库存储路径
+            db_path: 数据库存储路径. 如果为 None, 将使用默认路径 (相对于本文件的 `../chroma_db`).
             model_name: 嵌入模型名称
         """
-        self.db_path = db_path
+        if db_path is None:
+            # 默认数据库路径，相对于此文件的位置
+            module_dir = os.path.dirname(os.path.abspath(__file__))
+            # 数据库位于 cl_app 目录的上一级的 chroma_db 目录
+            self.db_path = os.path.normpath(os.path.join(module_dir, '..', 'chroma_db'))
+        else:
+            self.db_path = db_path
+            
         self.model_name = model_name
         self.client = None
         self.collection = None
         self.embedding_model = None
         
         # 确保数据库目录存在
-        os.makedirs(db_path, exist_ok=True)
+        os.makedirs(self.db_path, exist_ok=True)
         
         # 初始化数据库连接
         self._init_database()
@@ -98,24 +110,41 @@ class NewsVectorDB:
             return
             
         try:
-            # 创建持久化客户端
-            self.client = chromadb.PersistentClient(
-                path=self.db_path,
-                settings=Settings(
-                    anonymized_telemetry=False,
-                    allow_reset=True
+            # 尝试使用持久化客户端，如果失败则使用临时目录或内存客户端
+            try:
+                # 确保数据库目录存在且有正确权限
+                os.makedirs(self.db_path, exist_ok=True)
+                os.chmod(self.db_path, 0o755)
+                
+                # 创建持久化客户端（适配0.5.0版本）
+                self.client = chromadb.PersistentClient(
+                    path=self.db_path
                 )
-            )
+                logger.info(f"使用持久化数据库: {self.db_path}")
+            except Exception as persist_error:
+                logger.warning(f"持久化数据库初始化失败: {str(persist_error)}，尝试临时目录")
+                try:
+                    # 使用临时目录作为备选方案
+                    temp_dir = tempfile.mkdtemp(prefix="chromadb_news_")
+                    self.client = chromadb.PersistentClient(path=temp_dir)
+                    logger.info(f"使用临时目录数据库: {temp_dir}")
+                except Exception as temp_error:
+                    logger.warning(f"临时目录数据库初始化失败: {str(temp_error)}，切换到内存模式")
+                    # 使用内存客户端作为最后备选方案
+                    self.client = chromadb.Client()
+                    logger.info("使用内存数据库模式")
             
-            # 获取或创建新闻向量集合
+            # 获取或创建新闻向量集合，使用余弦相似度
             self.collection = self.client.get_or_create_collection(
                 name="news_vectors",
                 metadata={
                     "description": "新闻文本向量存储，用于语义搜索和量化分析",
                     "created_at": datetime.datetime.now().isoformat(),
                     "model": self.model_name,
-                    "dimension": 384
+                    "dimension": 384,
+                    "distance_function": "cosine"
                 }
+                # 注意：ChromaDB会自动使用余弦距离作为默认距离函数
             )
             
             logger.info(f"向量数据库初始化成功，集合大小: {self.collection.count()}")
@@ -251,19 +280,11 @@ class NewsVectorDB:
     
     def add_news(self, news_data: Dict[str, Any]) -> bool:
         """
-        添加新闻到向量数据库
+        【已修复和优化】添加新闻到向量数据库，采用文本切分策略。
+        一篇新闻会被切分成多个语义块(chunks)，每个块独立存储，并包含可过滤的关键词元数据。
         
         Args:
-            news_data: 新闻数据字典，包含以下字段:
-                - news_id: 新闻ID
-                - title: 标题
-                - body: 内容
-                - source: 来源
-                - published_at: 发布时间
-                - category: 分类
-                - sentiment_score: 情感分数
-                - importance_score: 重要性分数
-                - language: 语言
+            news_data: 新闻数据字典。
         
         Returns:
             bool: 是否添加成功
@@ -273,93 +294,131 @@ class NewsVectorDB:
             return False
         
         try:
-            # 必需字段检查
+            # 1. 字段检查和内容哈希
             required_fields = ['news_id', 'title', 'body']
             for field in required_fields:
                 if field not in news_data or not news_data[field]:
                     logger.error(f"缺少必需字段: {field}")
                     return False
             
-            # 生成内容哈希
             content_hash = self._generate_content_hash(news_data['title'], news_data['body'])
             
-            # 检查是否已存在
-            existing = self.collection.get(
-                where={"content_hash": content_hash}
-            )
+            # 2. 检查新闻ID是否已存在
+            existing = self.collection.get(where={"news_id": str(news_data['news_id'])})
             if existing['ids']:
-                logger.info(f"新闻已存在，跳过: {news_data['title'][:50]}...")
+                logger.info(f"新闻ID已存在，跳过: {news_data['title'][:50]}...")
                 return True
+
+            # 3. 使用LangChain进行文本切分
+            full_text = f"标题: {news_data['title']}\n\n内容: {news_data['body']}"
             
-            # 准备文本内容用于向量化
-            full_text = f"{news_data['title']}\n{news_data['body']}"
+            if RecursiveCharacterTextSplitter is None:
+                logger.error("关键组件 LangChain 未安装，无法执行新闻添加。")
+                return False # 直接失败，而不是回退，以保证数据一致性
             
-            # 提取关键词
-            keywords = self._extract_keywords(full_text)
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=512,
+                chunk_overlap=50,
+                separators=["\n\n", "\n", "。", "！", "？", "，", " "]
+            )
+            chunks = text_splitter.split_text(full_text)
             
-            # 计算市场相关性
-            market_relevance = self._calculate_market_relevance(full_text, keywords)
+            if not chunks:
+                logger.warning(f"文本切分后没有产生任何块，跳过新闻: {news_data['title'][:50]}...")
+                return False
+
+            logger.info(f"新闻 '{news_data['title'][:30]}...' 被切分成 {len(chunks)} 个语义块。")
+
+            # 4. 【已修复】为整篇新闻预计算特征
+            # 这是最关键的一步：提取出高质量的、可用于过滤的关键词列表
+            keywords_list = self._extract_keywords(full_text)
+            market_relevance = self._calculate_market_relevance(full_text, keywords_list)
+            # keywords_list to str
+            keywords_list = ','.join(keywords_list)
+            # 准备批量添加的数据
+            ids_to_add = []
+            documents_to_add = []
+            metadatas_to_add = []
             
-            # 中国时区
             china_tz = pytz.timezone('Asia/Shanghai')
             
-            # 准备元数据，确保所有字符串字段不为None，时间统一使用中国时区
-            metadata = {
-                "news_id": str(news_data['news_id']),
-                "title": str(news_data['title'][:500]) if news_data['title'] else '',  # 限制长度并确保非None
-                "source": str(news_data.get('source') or ''),
-                "published_at": self._normalize_datetime(news_data.get('published_at')),
-                "category": str(news_data.get('category') or ''),
-                "sentiment_score": float(news_data.get('sentiment_score', 0.0)),
-                "importance_score": float(news_data.get('importance_score', 0.5)),
-                "market_relevance": market_relevance,
-                "keywords": json.dumps(keywords, ensure_ascii=False),
-                "language": str(news_data.get('language') or 'zh'),
-                "content_hash": content_hash,
-                "created_at": datetime.datetime.now(china_tz).isoformat()
-            }
-            
-            logger.info(f"新闻时间处理 - 原始时间: {news_data.get('published_at')}, 标准化后: {metadata['published_at']}")
-            
-            # 创建嵌入向量
-            embedding = self._create_embedding(full_text)
-            
-            # 添加到集合
-            if embedding is not None:
+            for i, chunk_content in enumerate(chunks):
+                chunk_id = f"{news_data['news_id']}_chunk_{i+1}"
+                
+                # 【已修复】每个列表只添加一次
+                ids_to_add.append(chunk_id)
+                documents_to_add.append(chunk_content) # 只添加纯净的块内容用于向量化
+                
+                # 处理发布时间
+                published_at_iso = self._normalize_datetime(news_data.get('published_at'))
+                try:
+                    published_dt = datetime.datetime.fromisoformat(published_at_iso)
+                    published_at_ts = published_dt.timestamp()
+                except (ValueError, TypeError):
+                    published_dt = datetime.datetime.now(china_tz)
+                    published_at_ts = published_dt.timestamp()
+                    published_at_iso = published_dt.isoformat()
+                
+                # 5. 【已修复】构建正确的元数据
+                #    关键词作为可过滤的列表被添加到元数据中
+                metadata = {
+                    "news_id": str(news_data['news_id']),
+                    "chunk_id": i + 1,
+                    "total_chunks": len(chunks),
+                    "title": str(news_data['title'][:500]) if news_data['title'] else '',
+                    "source": str(news_data.get('source') or ''),
+                    "published_at": published_at_iso,
+                    "published_at_ts": published_at_ts,
+                    "category": str(news_data.get('category') or ''),
+                    "sentiment_score": float(news_data.get('sentiment_score', 0.0)),
+                    "importance_score": float(news_data.get('importance_score', 0.5)),
+                    "market_relevance": market_relevance,
+                    "language": str(news_data.get('language') or 'zh'),
+                    "content_hash": content_hash,
+                    "created_at": datetime.datetime.now(china_tz).isoformat(),
+                    # --- 【核心修复】将关键词作为列表添加到元数据中 ---
+                    "keywords": keywords_list
+                }
+                metadatas_to_add.append(metadata)
+
+            # 6. 【已修复】批量添加到集合，依赖ChromaDB的默认嵌入函数
+            #    这是推荐的做法，除非你有特定的、更优的嵌入模型
+            if ids_to_add:
                 self.collection.add(
-                    ids=[news_data['news_id']],
-                    documents=[full_text],
-                    metadatas=[metadata],
-                    embeddings=[embedding]
+                    ids=ids_to_add,
+                    documents=documents_to_add,
+                    metadatas=metadatas_to_add
                 )
+                logger.info(f"新闻切分向量添加成功: {news_data['title'][:50]}... (共{len(chunks)}个块)")
+                return True
             else:
-                # 使用 ChromaDB 默认嵌入函数
-                self.collection.add(
-                    ids=[news_data['news_id']],
-                    documents=[full_text],
-                    metadatas=[metadata]
-                )
-            
-            logger.info(f"新闻向量添加成功: {news_data['title'][:50]}...")
-            return True
-            
+                logger.warning("没有可添加的数据块。")
+        
         except Exception as e:
-            logger.error(f"添加新闻向量失败: {str(e)}")
+            # 使用 exc_info=True 可以记录完整的堆栈跟踪，便于调试
+            logger.error(f"添加新闻切分向量失败: {str(e)}", exc_info=True)
             return False
     
-    def semantic_search(self, query: str, n_results: int = 10, 
-                       filters: Optional[Dict[str, Any]] = None,
-                       start_date: Optional[str] = None,
-                       end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+    def semantic_search_reimagined(
+        self, 
+        query: str, 
+        n_results: int = 10, 
+        keywords: Optional[List[str]] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
         """
-        语义搜索新闻
+        【已升级】执行混合语义搜索。
+        先用元数据（关键词、时间）进行硬过滤，再在过滤后的结果中进行语义搜索。
         
         Args:
             query: 搜索查询
-            n_results: 返回结果数量
-            filters: 过滤条件
-            start_date: 开始时间 (ISO格式字符串)
-            end_date: 结束时间 (ISO格式字符串)
+            n_results: 返回结果数量 (1-100)
+            keywords: 关键词过滤列表
+            start_date: 开始时间 (ISO格式)
+            end_date: 结束时间 (ISO格式)
+            filters: 额外的过滤条件
         
         Returns:
             List[Dict]: 搜索结果列表
@@ -367,87 +426,303 @@ class NewsVectorDB:
         if self.collection is None:
             logger.error("向量数据库未初始化")
             return []
-
+        
+        # 参数验证
+        
+        if not query or not query.strip():
+            logger.warning("搜索查询为空")
+            return []
+        
+        if n_results < 1 or n_results > 100:
+            logger.warning(f"结果数量超出范围 (1-100): {n_results}，将调整为10")
+            n_results = 10
+        
         try:
-            # 构建时间过滤条件
-            where_conditions = filters.copy() if filters else {}
+            # 1. 构建混合过滤器
+            where_filter, where_document_filter = self._build_hybrid_filter(keywords, start_date, end_date, filters)
             
-            # ChromaDB的时间过滤存在兼容性问题，改为Python层面过滤
-            # 先执行基本查询，然后在Python层面进行时间过滤
-            time_filter_needed = bool(start_date or end_date)
-            start_dt = None
-            end_dt = None
+            # 2. 执行一次高效的数据库查询
+            # 请求更多的结果（例如n*5），因为多个结果可能属于同一篇新闻
+            query_n_results = n_results * 5
+            collection_count = self.collection.count()
             
-            if time_filter_needed:
-                try:
-                    # 中国时区
-                    china_tz = pytz.timezone('Asia/Shanghai')
-                    
-                    if start_date:
-                        # 使用统一的时间标准化方法，确保转换为中国时区
-                        start_dt_str = self._normalize_datetime(start_date)
-                        start_dt = datetime.datetime.fromisoformat(start_dt_str)
-                        
-                    if end_date:
-                        # 使用统一的时间标准化方法，确保转换为中国时区
-                        end_dt_str = self._normalize_datetime(end_date)
-                        end_dt = datetime.datetime.fromisoformat(end_dt_str)
-                        
-                    logger.info(f"应用中国时区时间过滤: {start_date} -> {start_dt_str if start_date else None} 到 {end_date} -> {end_dt_str if end_date else None}")
-                except ValueError as ve:
-                    logger.warning(f"时间格式无效: {ve}")
-                    time_filter_needed = False
+            # 确保查询结果数量至少为1
+            final_n_results = max(1, min(query_n_results, collection_count))
             
-            # 执行语义搜索，如果需要时间过滤则获取更多结果以便后续过滤
-            query_n_results = n_results * 3 if time_filter_needed else n_results
+            logger.info(f"执行混合搜索: 查询='{query}...', where={where_filter}, where_document={where_document_filter}, collection_count={collection_count}, final_n_results={final_n_results}")
+            
+            # 如果集合为空，直接返回空结果
+            if collection_count == 0:
+                logger.info("向量数据库为空，返回空结果")
+                return []
             
             results = self.collection.query(
                 query_texts=[query],
-                n_results=query_n_results,
-                where=where_conditions if where_conditions else None
+                n_results=final_n_results,
+                where=where_filter,
+                where_document=where_document_filter
             )
             
-            # 格式化结果并应用时间过滤
-            formatted_results = []
-            for i, doc_id in enumerate(results['ids'][0]):
-                metadata = results['metadatas'][0][i]
-                
-                # 应用时间过滤（文档时间已经是中国时区格式）
-                if time_filter_needed:
-                    try:
-                        doc_time_str = metadata.get('published_at', '')
-                        if doc_time_str:
-                            # 文档时间已经是标准化的中国时区格式，直接解析
-                            doc_time = datetime.datetime.fromisoformat(doc_time_str)
-                            
-                            # 检查时间范围（都是中国时区时间，可以直接比较）
-                            if start_dt and doc_time < start_dt:
-                                continue
-                            if end_dt and doc_time > end_dt:
-                                continue
-                    except (ValueError, TypeError) as e:
-                        # 时间解析失败，记录警告并跳过该文档
-                        logger.warning(f"文档时间解析失败: {doc_time_str}, 错误: {e}")
-                        continue
-                
-                result = {
-                    'id': doc_id,
-                    'document': results['documents'][0][i],
-                    'metadata': metadata,
-                    'distance': results['distances'][0][i] if 'distances' in results else None
-                }
-                formatted_results.append(result)
-                
-                # 如果已经获得足够的结果，停止处理
-                if len(formatted_results) >= n_results:
-                    break
+            if not results or not results['ids'] or not results['ids'][0]:
+                logger.info(f"在过滤条件下未找到匹配结果: 查询='{query}'")
+                return []
             
-            logger.info(f"语义搜索完成: 查询='{query}', 返回{len(formatted_results)}个结果")
-            return formatted_results
+            # 3. 格式化和合并
+            # 将原始的ChromaDB结果转换为更易于处理的字典列表
+            formatted_chunks = [
+                {
+                    'id': results['ids'][0][i],
+                    'document': results['documents'][0][i],
+                    'metadata': results['metadatas'][0][i],
+                    'distance': results['distances'][0][i]
+                }
+                for i in range(len(results['ids'][0]))
+            ]
+            
+            # 4. 使用新的智能合并和评分方法
+            final_results = self._merge_and_score_chunks(formatted_chunks, n_results)
+            
+            logger.info(f"混合搜索完成: 返回{len(final_results)}条结果")
+            return final_results
             
         except Exception as e:
-            logger.error(f"语义搜索失败: {str(e)}")
+            logger.error(f"混合语义搜索失败: {e}")
             return []
+    
+    def semantic_search(self, query: str, n_results: int = 10, 
+                       filters: Optional[Dict[str, Any]] = None,
+                       start_date: Optional[str] = None,
+                       end_date: Optional[str] = None,
+                       keywords: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """
+        语义搜索新闻
+        【兼容性方法】内部调用新的混合搜索实现
+        
+        Args:
+            query: 搜索查询
+            n_results: 返回结果数量
+            filters: 过滤条件
+            start_date: 开始时间 (ISO格式字符串)
+            end_date: 结束时间 (ISO格式字符串)
+            keywords: 关键词过滤列表
+        
+        Returns:
+            List[Dict]: 搜索结果列表
+        """
+        # 直接调用新的混合搜索方法
+        return self.semantic_search_reimagined(
+            query=query,
+            n_results=n_results,
+            keywords=keywords,
+            start_date=start_date,
+            end_date=end_date,
+            filters=filters
+        )
+    
+    def _build_hybrid_filter(
+        self, 
+        keywords: Optional[List[str]] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
+        """
+        构建用于ChromaDB的混合元数据和文档内容过滤器。
+        
+        Args:
+            keywords: 关键词列表
+            start_date: 开始时间 (ISO格式字符串)
+            end_date: 结束时间 (ISO格式字符串)
+            filters: 额外的元数据过滤条件
+        
+        Returns:
+            Tuple[Optional[Dict], Optional[Dict]]: (where_filter, where_document_filter)
+        """
+        where_conditions = []
+        where_document_conditions = []
+
+        # 1. 处理元数据过滤 - 时间戳
+        if start_date or end_date:
+            try:
+                if start_date:
+                    start_dt = datetime.datetime.fromisoformat(start_date)
+                    where_conditions.append({"published_at_ts": {"$gte": start_dt.timestamp()}})
+                if end_date:
+                    end_dt = datetime.datetime.fromisoformat(end_date)
+                    where_conditions.append({"published_at_ts": {"$lte": end_dt.timestamp()}})
+            except ValueError as e:
+                logger.warning(f"无效的时间格式，将忽略时间过滤: {e}")
+
+        # 2. 处理额外的元数据过滤条件
+        if filters:
+            for key, value in filters.items():
+                if key not in ['published_at_ts']:
+                    where_conditions.append({key: value})
+
+        # 3. 【核心变更】处理文档内容过滤 - 关键词
+        if keywords:
+            keyword_conditions = [{"$contains": kw} for kw in keywords]
+            if len(keyword_conditions) > 1:
+                where_document_conditions.append({"$or": keyword_conditions})
+            elif keyword_conditions:
+                where_document_conditions.append(keyword_conditions[0])
+
+        # 组合最终的过滤器
+        where_filter = {"$and": where_conditions} if len(where_conditions) > 1 else (where_conditions[0] if where_conditions else None)
+        where_document_filter = {"$and": where_document_conditions} if len(where_document_conditions) > 1 else (where_document_conditions[0] if where_document_conditions else None)
+
+        return where_filter, where_document_filter
+    
+    def _merge_and_score_chunks(self, search_results: List[Dict], n_results: int) -> List[Dict]:
+        """
+        合并属于同一新闻的块，并基于检索到的块重新计算新闻的综合分数。
+        采用更智能的评分策略：最大相似度 + 平均相似度 + 匹配块数量加成。
+        
+        Args:
+            search_results: 块级搜索结果
+            n_results: 最大返回结果数
+        
+        Returns:
+            List[Dict]: 合并后的新闻级结果
+        """
+        news_aggregator = {}
+        
+        for result in search_results:
+            metadata = result.get('metadata', {})
+            news_id = metadata.get('news_id')
+            if not news_id:
+                continue
+            
+            distance = result.get('distance', 1.0)
+            similarity_score = max(0.0, 1.0 - distance)  # 距离越小，相似度越高
+            
+            if news_id not in news_aggregator:
+                news_aggregator[news_id] = {
+                    "news_id": news_id,
+                    "metadata": metadata,  # 使用第一个检索到的块的元数据作为基础
+                    "total_similarity": 0.0,
+                    "max_similarity": 0.0,
+                    "matched_chunks_count": 0,
+                    "content_chunks": [],
+                    "chunk_details": []
+                }
+            
+            agg = news_aggregator[news_id]
+            agg["total_similarity"] += similarity_score
+            agg["max_similarity"] = max(agg["max_similarity"], similarity_score)
+            agg["matched_chunks_count"] += 1
+            agg["content_chunks"].append(result.get('document', ''))
+            agg["chunk_details"].append({
+                'chunk_id': metadata.get('chunk_id', 1),
+                'content': result.get('document', ''),
+                'score': similarity_score
+            })
+        
+        # 计算每条新闻的综合分数
+        for news_id, agg in news_aggregator.items():
+            # 智能评分模型：
+            # - 最大相似度占70%权重（确保至少有一个高度相关的块）
+            # - 平均相似度占20%权重（整体相关性）
+            # - 匹配块数量加成占10%权重（覆盖度奖励）
+            avg_similarity = agg['total_similarity'] / agg['matched_chunks_count']
+            chunk_bonus = min(0.1, agg['matched_chunks_count'] * 0.02)  # 最多10%加成
+            
+            agg['composite_score'] = (
+                agg['max_similarity'] * 0.7 + 
+                avg_similarity * 0.2 + 
+                chunk_bonus
+            )
+            
+            # 合并内容：优先显示最相关的前3个块
+            sorted_chunks = sorted(agg['chunk_details'], key=lambda x: x['score'], reverse=True)
+            top_chunks = sorted_chunks[:3]
+            agg['full_content'] = "\n---\n".join([chunk['content'] for chunk in top_chunks])
+        
+        # 按综合分数排序
+        sorted_news = sorted(news_aggregator.values(), key=lambda x: x['composite_score'], reverse=True)
+        
+        # 格式化为最终输出
+        final_results = []
+        for news in sorted_news[:n_results]:
+            final_results.append({
+                'id': news['news_id'],
+                'document': news['full_content'],
+                'metadata': news['metadata'],
+                'distance': 1.0 - news['composite_score'],  # 将综合分转换回距离概念
+                'score': news['composite_score'],
+                'matched_chunks': news['matched_chunks_count']
+            })
+        
+        return final_results
+    
+    def _merge_chunks_by_news_id(self, chunk_results: List[Dict[str, Any]], max_results: int) -> List[Dict[str, Any]]:
+        """
+        将同一新闻的多个块合并为一个结果
+        
+        Args:
+            chunk_results: 块级搜索结果
+            max_results: 最大返回结果数
+        
+        Returns:
+            List[Dict]: 合并后的新闻级结果
+        """
+        news_groups = {}
+        
+        # 按news_id分组
+        for result in chunk_results:
+            metadata = result.get('metadata', {})
+            news_id = metadata.get('news_id')
+            
+            if news_id not in news_groups:
+                news_groups[news_id] = {
+                    'chunks': [],
+                    'best_score': 0,
+                    'metadata': metadata  # 使用第一个块的元数据作为基础
+                }
+            
+            # 计算相似度分数（ChromaDB使用平方欧几里得距离）
+            distance = result.get('distance', float('inf'))
+            if distance is not None and distance != float('inf'):
+                # 将距离转换为相似度分数，使用倒数函数
+                # 距离越小，相似度越高
+                score = 1.0 / (1.0 + distance)
+            else:
+                score = 0.0
+            
+            news_groups[news_id]['chunks'].append({
+                'chunk_id': metadata.get('chunk_id', 1),
+                'content': result.get('document', ''),
+                'score': score
+            })
+            
+            # 更新最佳匹配分数
+            if score > news_groups[news_id]['best_score']:
+                news_groups[news_id]['best_score'] = score
+        
+        # 构建合并结果
+        merged_results = []
+        for news_id, group in news_groups.items():
+            # 按块编号排序
+            group['chunks'].sort(key=lambda x: x['chunk_id'])
+            
+            # 合并内容（取最相关的前3个块）
+            top_chunks = sorted(group['chunks'], key=lambda x: x['score'], reverse=True)[:3]
+            merged_content = '\n\n'.join([chunk['content'] for chunk in top_chunks])
+            
+            merged_result = group['metadata'].copy()
+            merged_result.update({
+                'content': merged_content,
+                'score': group['best_score'],
+                'total_chunks': len(group['chunks']),
+                'matched_chunks': len(top_chunks),
+                'chunk_details': group['chunks']  # 保留所有块的详细信息
+            })
+            
+            merged_results.append(merged_result)
+        
+        # 按分数排序并限制结果数量
+        merged_results.sort(key=lambda x: x['score'], reverse=True)
+        return merged_results[:max_results]
     
     def get_similar_news(self, news_id: str, n_results: int = 5) -> List[Dict[str, Any]]:
         """
@@ -464,18 +739,34 @@ class NewsVectorDB:
             return []
         
         try:
-            # 获取原新闻
-            original = self.collection.get(ids=[news_id])
-            if not original['documents']:
+            # 通过metadata查找该新闻的所有块
+            original_chunks = self.collection.get(
+                where={"news_id": news_id}
+            )
+            
+            if not original_chunks['documents']:
                 logger.warning(f"未找到新闻: {news_id}")
                 return []
             
-            # 使用原新闻文档进行搜索
-            return self.semantic_search(
-                query=original['documents'][0],
-                n_results=n_results + 1,  # +1 因为会包含自己
-                filters={"news_id": {"$ne": news_id}}  # 排除自己
+            # 使用第一个块的内容进行搜索（通常是标题+开头内容，最具代表性）
+            query_text = original_chunks['documents'][0]
+            
+            # 进行语义搜索，排除自己
+            results = self.semantic_search(
+                query=query_text,
+                n_results=n_results * 2,  # 多获取一些，因为可能包含自己的块
+                filters=None  # 不使用过滤器，在后处理中排除
             )
+            
+            # 过滤掉自己的新闻
+            filtered_results = []
+            for result in results:
+                if result.get('news_id') != news_id:
+                    filtered_results.append(result)
+                    if len(filtered_results) >= n_results:
+                        break
+            
+            return filtered_results
             
         except Exception as e:
             logger.error(f"获取相似新闻失败: {str(e)}")
@@ -497,27 +788,45 @@ class NewsVectorDB:
             return []
         
         try:
+            # 获取所有符合条件的块
             results = self.collection.get(
                 where={"market_relevance": {"$gte": min_relevance}},
-                limit=limit
+                limit=limit * 3  # 获取更多块，因为需要按新闻ID合并
             )
             
-            formatted_results = []
+            if not results['ids']:
+                return []
+            
+            # 格式化块结果
+            chunk_results = []
             for i, doc_id in enumerate(results['ids']):
-                result = {
+                chunk_result = {
                     'id': doc_id,
                     'document': results['documents'][i],
-                    'metadata': results['metadatas'][i]
+                    'metadata': results['metadatas'][i],
+                    'distance': 0.0  # 这里不是搜索结果，设为0
                 }
-                formatted_results.append(result)
+                chunk_results.append(chunk_result)
+            
+            # 使用现有的合并方法按新闻ID合并块
+            merged_results = self._merge_chunks_by_news_id(chunk_results, limit)
+            
+            # 为每个结果添加市场相关度信息
+            for result in merged_results:
+                # 从metadata中获取市场相关度（使用最高的相关度）
+                max_relevance = 0.0
+                for chunk in result.get('chunk_details', []):
+                    chunk_relevance = chunk.get('metadata', {}).get('market_relevance', 0.0)
+                    max_relevance = max(max_relevance, chunk_relevance)
+                result['market_relevance'] = max_relevance
             
             # 按市场相关性排序
-            formatted_results.sort(
-                key=lambda x: x['metadata']['market_relevance'], 
+            merged_results.sort(
+                key=lambda x: x.get('market_relevance', 0.0), 
                 reverse=True
             )
             
-            return formatted_results
+            return merged_results
             
         except Exception as e:
             logger.error(f"获取市场相关新闻失败: {str(e)}")
@@ -605,7 +914,7 @@ class NewsVectorDB:
     
     def delete_news(self, news_id: str) -> bool:
         """
-        删除新闻向量
+        删除新闻的所有块
         
         Args:
             news_id: 新闻ID
@@ -617,9 +926,18 @@ class NewsVectorDB:
             return False
         
         try:
-            self.collection.delete(ids=[news_id])
-            logger.info(f"新闻向量删除成功: {news_id}")
+            # 查找该新闻的所有块
+            existing_chunks = self.collection.get(where={"news_id": str(news_id)})
+            
+            if not existing_chunks['ids']:
+                logger.info(f"未找到新闻ID为 {news_id} 的任何块")
+                return True
+            
+            # 删除所有找到的块
+            self.collection.delete(ids=existing_chunks['ids'])
+            logger.info(f"新闻 {news_id} 的 {len(existing_chunks['ids'])} 个块已删除成功")
             return True
+            
         except Exception as e:
             logger.error(f"删除新闻向量失败: {str(e)}")
             return False

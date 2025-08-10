@@ -430,18 +430,20 @@
     function search_news_by_code(market, code) {
       // 构建搜索查询，包含股票代码和市场信息
       var searchQuery = code;
-      if (market === 'a') {
-        searchQuery += ' 股票 A股';
-      } else if (market === 'hk') {
-        searchQuery += ' 港股 香港';
-      } else if (market === 'us') {
-        searchQuery += ' 美股 美国';
-      } else if (market === 'currency') {
-        searchQuery += ' 外汇 汇率';
-      } else if (market === 'futures') {
-        searchQuery += ' 期货';
-      }
-      
+      // if (market === 'a') {
+      //   searchQuery += ' 股票 A股';
+      // } else if (market === 'hk') {
+      //   searchQuery += ' 港股 香港';
+      // } else if (market === 'us') {
+      //   searchQuery += ' 美股 美国';
+      // } else if (market === 'currency') {
+      //   searchQuery += ' 外汇 汇率';
+      // } else if (market === 'futures') {
+      //   searchQuery += ' 期货';
+      // }
+      searchQuery = {'query': code, 'market': market}
+
+
       console.log('搜索相关新闻:', searchQuery);
       
       // 发送语义搜索请求
@@ -1068,37 +1070,70 @@
       generate_market_summary: function() {
         var self = this;
         
-        // 检查是否有新闻数据
-        if (!this.currentNewsList || this.currentNewsList.length === 0) {
-          layui.layer.msg('请先加载新闻数据');
+        // 获取当前标的信息
+        var currentMarket = Utils.get_market();
+        var currentCode = Utils.get_code();
+        
+        // 构建查询参数
+        var query = '';
+        var productCode = '';
+        
+        // 根据市场和代码构建查询
+        if (currentCode) {
+          if (currentMarket === 'fx') {
+            // 外汇市场，使用代码作为产品代码
+            productCode = currentCode;
+            query = currentCode;
+          } else if (currentMarket === 'futures') {
+            // 期货市场
+            productCode = currentCode;
+            query = currentCode;
+          } else {
+            // 股票市场，使用代码查询
+            query = currentCode;
+          }
+        }
+        
+        // 如果没有有效的查询条件，提示用户
+        if (!query && !productCode && !currentCode) {
+          layui.layer.msg('请先选择具体的标的或产品');
           return;
         }
         
         // 显示加载提示
         var loadingIndex = layui.layer.load(1, {
-          content: '正在生成市场总结，请稍候...',
+          content: '正在从向量数据库搜索相关新闻并生成市场总结，请稍候...',
           success: function(layero) {
             layero.find('.layui-layer-content').css({
               'padding-top': '40px',
-              'width': '200px'
+              'width': '300px'
             });
           }
         });
         
-        // 获取当前标的信息
-        var currentMarket = Utils.get_market();
-        var currentCode = Utils.get_code();
+        // 构建请求数据
+        var requestData = {
+          current_market: currentMarket,
+          current_code: currentCode,
+          n_results: 20,  // 搜索20条相关新闻
+          days: 7         // 搜索最近7天的新闻
+        };
+        
+        // 添加查询参数
+        if (query) {
+          requestData.query = query;
+        }
+        if (productCode) {
+          requestData.product_code = productCode;
+        }
         
         // 发送请求生成市场总结
         $.ajax({
           url: '/api/news/market_summary',
           type: 'POST',
           contentType: 'application/json',
-          data: JSON.stringify({
-            news_list: this.currentNewsList,
-            current_market: currentMarket,
-            current_code: currentCode
-          }),
+          data: JSON.stringify(requestData),
+          timeout: 120000,  // 增加超时时间到2分钟
           success: function(response) {
             layui.layer.close(loadingIndex);
             
@@ -1110,7 +1145,11 @@
           },
           error: function(xhr, status, error) {
             layui.layer.close(loadingIndex);
-            layui.layer.msg('网络错误，请稍后重试');
+            if (status === 'timeout') {
+              layui.layer.msg('请求超时，AI生成需要较长时间，请稍后重试');
+            } else {
+              layui.layer.msg('网络错误，请稍后重试');
+            }
           }
         });
       },
