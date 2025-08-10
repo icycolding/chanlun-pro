@@ -1487,7 +1487,7 @@ def register_vector_api_routes(app):
             days_ago=days,
             n_results=n_results
         )
-        print('search_results', search_results)
+        # print('search_results', search_results)
         logger.info(f"为 {code} 检索到 {len(search_results)} 条相关新闻。")
         return search_results
 
@@ -1531,6 +1531,7 @@ def register_vector_api_routes(app):
             current_market = data.get('current_market', '')
             current_code = data.get('current_code', '')
             product_code = data.get('product_code', '')
+            print('product_code',product_code)
             n_results = 50
             days = data.get('days', 1)
             days = 7
@@ -1555,6 +1556,7 @@ def register_vector_api_routes(app):
             name = product_info.get('name_en')
             # query = '美联储或欧洲央行的货币政策、利率决定、通胀和就业数据对欧元兑美元汇率的影响'
             # 计算日期范围
+            print('name',name)
             query = 'eur'
             required_keywords = [
                 "EUR/USD", "EURUSD", "欧元美元", "欧美", 
@@ -1615,12 +1617,21 @@ def register_vector_api_routes(app):
                 limit=1000
             )
             print('economic_data_list',len(economic_data_list))
-            # economic_data_list = json.dumps(economic_data_list)
+            # # economic_data_list = json.dumps(economic_data_list)
+            # market_map = {'SH': 'a', 'SZ': 'a', 'BJ': 'a', 'HK': 'hk', 'US': 'us'}
+            # market_prefix = product_code_clean.split('.')[0]
+            # market_type = market_map.get(market_prefix, 'futures' if '.' in product_code_clean else 'a')
+            # ex = get_exchange(Market(market_type))
+            # stock_info = ex.stock_info(current_code)
+            ex = get_exchange(Market(current_market))
+            stock_info = ex.stock_info(current_code)
+            name = stock_info.get('name')
 
+            print('name1111',name)
             # 调用大模型生成研究报告
             print('current_market:', current_market, 'current_code:', current_code)
             print(f'使用向量搜索获取到 {len(formatted_news_list)} 条新闻')
-            summary = _generate_ai_market_summary(economic_data_list,formatted_news_list, current_market, current_code)
+            summary = _generate_ai_market_summary(economic_data_list,formatted_news_list, current_market, current_code,name)
             
             # 保存研究报告到数据库
             summary_id = None
@@ -2095,12 +2106,12 @@ def _generate_technical_indicators_analysis(code: str, market: str) -> str:
             'currency': Market.CURRENCY
         }
         
-        if market not in market_enum_map:
-            return "不支持的市场类型"
+        # if market not in market_enum_map:
+        #     return "不支持的市场类型"
         
-        # 获取交易所和K线数据
-        exchange = get_exchange(market_enum_map[market])
-        print('code_tec',code,exchange)
+        # # 获取交易所和K线数据
+        # exchange = get_exchange(market_enum_map[market])
+        # print('code_tec',code,exchange)
         market = market
         ex = get_exchange(market=Market(market))
         klines = ex.klines(code, 'd')  # 获取日线数据
@@ -2842,7 +2853,7 @@ class ReportGenerationState(TypedDict):
     economic_data: List[Dict]   # 经济数据输入
     current_market: str         # 当前市场
     current_code: str           # 当前代码
-    
+    name: str                   # 股票名称
     # 各个节点分析后生成的结果
     macro_analysis: Optional[str]
     economic_analysis: Optional[str]  # 经济数据分析结果
@@ -3208,6 +3219,9 @@ def economic_data_analyst_node(state: ReportGenerationState) -> Dict:
         
         economic_data = state.get('economic_data', [])
         current_code = state['current_code']
+        current_market = state['current_market']
+        name = state['name']
+
         ai_client = AIAnalyse(state['current_market'] or "fx")
         
         if not economic_data:
@@ -3215,9 +3229,9 @@ def economic_data_analyst_node(state: ReportGenerationState) -> Dict:
         print('economic_data',economic_data)
         # 构建经济数据分析提示词
         economic_prompt = f"""
-你是一位资深的宏观经济分析师，专注于外汇市场分析。请基于以下两国经济数据，进行深入的经济分析。
+你是一位资深的宏观经济分析师，专注于{name}市场分析。请基于以下两国经济数据，进行深入的经济分析。
 
-**分析标的**: {current_code}
+**分析标的**: {name}
 
 **经济数据概览**:
 {_format_economic_data_for_analysis(economic_data)}
@@ -3246,9 +3260,9 @@ def economic_data_analyst_node(state: ReportGenerationState) -> Dict:
    - 识别关键的经济分化点和汇率驱动因素
 
 5. **对汇率影响的综合判断**:
-   - 基于经济数据分析，判断汇率的可能走向
+   - 基于经济数据分析，判断{name}的可能走向
    - 识别关键的经济数据发布时点和市场关注焦点
-   - 提供基于经济基本面的汇率交易建议
+   - 提供基于经济基本面的{name}交易建议
 
 **输出格式要求**:
 - 使用清晰的标题和子标题组织内容
@@ -3469,7 +3483,7 @@ def _get_economic_data_by_product(product_info: Optional[Dict[str, Any]] = None,
     return economic_data_list
 
 
-def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[Dict], current_market: str = '', current_code: str = '') -> str:
+def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[Dict], current_market: str = '', current_code: str = '',name: str = '') -> str:
     """
     使用LangGraph工作流生成高质量、逻辑性强的研究报告
     
@@ -3529,6 +3543,7 @@ def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[D
             economic_data=economic_data_list,
             current_market=current_market,
             current_code=current_code,
+            name=name,
             macro_analysis=None,
             economic_analysis=None,
             technical_analysis=None,
@@ -3638,7 +3653,7 @@ def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[D
             price_info = "\n\n## 关注产品价格\n暂时无法获取价格信息，请稍后重试。\n"
         
         # 将价格信息添加到基础报告
-        market_summary = base_report + price_info
+        market_summary = market_summary + price_info
         
         
         logger.info("LangGraph工作流执行完成，报告生成成功")
