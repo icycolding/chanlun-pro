@@ -8,14 +8,17 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import (
     Column,
+    Date,
     DateTime,
     Float,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     create_engine,
     func,
+    inspect,
 )
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -30,6 +33,29 @@ warnings.filterwarnings("ignore")
 # https://docs.sqlalchemy.org/en/20/core/types.html
 
 Base = declarative_base()
+
+
+class TableByCompanyFinancials(Base):
+    """
+    公司财务数据
+    """
+    __tablename__ = 'company_financials'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(10), nullable=False, comment='公司代码')
+    name = Column(String(100), nullable=False, comment='公司名称')
+    report_date = Column(Date, nullable=False, comment='报告期')
+    statement_type = Column(String(50), nullable=False, comment='报表类型')
+    item_name = Column(String(255), nullable=False, comment='项目名称')
+    item_value = Column(Float, nullable=True, comment='项目值')
+
+    __table_args__ = (
+        UniqueConstraint('code', 'report_date', 'statement_type', 'item_name', name='_code_report_date_statement_item_uc'),
+        Index('ix_code_report_date', 'code', 'report_date'),
+    )
+
+    def __repr__(self):
+        return f'<TableByCompanyFinancials(code={self.code}, report_date={self.report_date}, statement_type={self.statement_type}, item_name={self.item_name})>'
+
 
 
 class TableByCache(Base):
@@ -1636,6 +1662,77 @@ class DB(object):
                 query = query.filter(TableByEconomicData.indicator_name.like(f'%{indicator_name}%'))
             
             return query.count()
+
+    def company_financials_insert(self, code: str, name: str, statement_type: str, report_date: datetime.date, financials: List[dict]) -> bool:
+        """
+        批量插入公司财务数据
+        :param code: 公司代码
+        :param name: 公司名称
+        :param statement_type: 报表类型
+        :param report_date: 报告期
+        :param financials: 财务数据列表，每个元素是一个包含 item_name 和 item_value 的字典
+        :return: 是否成功
+        """
+        with self.Session() as session:
+            try:
+                records = []
+                for financial in financials:
+                    # 检查是否已存在相同记录
+                    print('financial',financial)
+                    exists = session.query(TableByCompanyFinancials).filter_by(
+                        code=code,
+                        report_date=report_date,
+                        statement_type=statement_type,
+                        item_name=financial['item_name']
+                    ).first()
+
+                    if not exists:
+                        record = TableByCompanyFinancials(
+                            code=code,
+                            name=name,
+                            report_date=report_date,
+                            statement_type=statement_type,
+                            item_name=financial['item_name'],
+                            item_value=financial['item_value']
+                        )
+                        records.append(record)
+                print('records',records)
+                if records:
+                    session.bulk_save_objects(records)
+                session.commit()
+                return True
+            except Exception as e:
+                session.rollback()
+                print(f"Error inserting company financials: {e}")
+                return False
+
+
+
+    def company_financials_query(self, code: str = None, name: str = None, statement_type: str = None, report_date_start: datetime.date = None, report_date_end: datetime.date = None, limit: int = 1000) -> List[TableByCompanyFinancials]:
+        """
+        查询公司财务数据
+        :param code: 公司代码
+        :param name: 公司名称
+        :param statement_type: 报表类型
+        :param report_date_start: 报告期开始
+        :param report_date_end: 报告期结束
+        :param limit: 返回数量限制
+        :return: 财务数据列表
+        """
+        with self.Session() as session:
+            query = session.query(TableByCompanyFinancials)
+            if code:
+                query = query.filter(TableByCompanyFinancials.code == code)
+            if name:
+                query = query.filter(TableByCompanyFinancials.name == name)
+            if statement_type:
+                query = query.filter(TableByCompanyFinancials.statement_type == statement_type)
+            if report_date_start:
+                query = query.filter(TableByCompanyFinancials.report_date >= report_date_start)
+            if report_date_end:
+                query = query.filter(TableByCompanyFinancials.report_date <= report_date_end)
+            
+            return query.order_by(TableByCompanyFinancials.report_date.desc(), TableByCompanyFinancials.item_name).limit(limit).all()
 
 
 db: DB = DB()

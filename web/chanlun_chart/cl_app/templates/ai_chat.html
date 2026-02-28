@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI Market Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280; 
+        }
+
+        /* Markdown Styles */
+        .prose p {
+            margin-bottom: 0.5em;
+        }
+        .prose ul {
+            list-style-type: disc;
+            padding-left: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .prose ol {
+            list-style-type: decimal;
+            padding-left: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .prose pre {
+            background-color: #111827;
+            padding: 1em;
+            border-radius: 0.5em;
+            overflow-x: auto;
+            margin-bottom: 0.5em;
+        }
+        .prose code {
+            font-family: monospace;
+            background-color: #374151;
+            padding: 0.2em 0.4em;
+            border-radius: 0.3em;
+        }
+        .prose pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .prose a {
+            color: #60a5fa;
+            text-decoration: underline;
+        }
+        .prose blockquote {
+            border-left: 4px solid #4b5563;
+            padding-left: 1em;
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        /* Typing Indicator */
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased h-screen flex overflow-hidden">
+
+    <!-- Left Sidebar (History/Nav) -->
+    <div class="w-16 md:w-64 bg-gray-950 border-r border-gray-800 flex flex-col">
+        <div class="p-4 border-b border-gray-800 flex items-center justify-center md:justify-start">
+            <a href="/" class="text-xl font-bold text-blue-500 tracking-wider">AGI<span class="hidden md:inline text-gray-400 text-sm ml-2">Market Intel</span></a>
+        </div>
+        <div class="flex-1 overflow-y-auto p-2">
+            <!-- New Chat Button -->
+            <button onclick="window.location.reload()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded mb-4 flex items-center justify-center transition-colors">
+                <svg class="w-5 h-5 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span class="hidden md:inline">New Chat</span>
+            </button>
+            
+            <div class="text-xs text-gray-500 uppercase font-semibold mb-2 px-2 hidden md:block">Recent</div>
+            <!-- History Items (Placeholder) -->
+            <div class="space-y-1">
+                <div class="p-2 rounded hover:bg-gray-800 cursor-pointer text-sm text-gray-400 truncate hidden md:block">
+                    Market Outlook 2024
+                </div>
+            </div>
+        </div>
+        <div class="p-4 border-t border-gray-800">
+            <div class="flex items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs">U</div>
+                <div class="ml-2 hidden md:block">
+                    <div class="text-sm font-medium">User</div>
+                    <div class="text-xs text-gray-500">Pro Plan</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col min-w-0 bg-gray-900">
+        <!-- Header -->
+        <div class="h-14 border-b border-gray-800 flex items-center px-6 justify-between">
+            <h2 class="text-lg font-medium text-gray-200">Market Assistant</h2>
+            <div class="text-xs text-gray-500">Model: Gemini-Pro-Preview</div>
+        </div>
+
+        <!-- Messages -->
+        <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-6">
+            <!-- Welcome Message -->
+            <div class="flex flex-col space-y-2">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">AI</div>
+                    <div class="text-sm font-medium text-gray-300">Market Intelligence</div>
+                </div>
+                <div class="ml-10 bg-gray-800 rounded-lg p-4 text-gray-200 shadow-sm max-w-3xl">
+                    <p>你好！我是你的专业市场助手。我可以帮你：</p>
+                    <ul class="list-disc ml-4 mt-2 text-sm text-gray-400 space-y-1">
+                        <li>追踪市场新闻和宏观事件 ("最近黄金为什么跌？")</li>
+                        <li>挖掘投资标的和机会 ("看涨美元买什么？")</li>
+                        <li>分析特定资产的基本面逻辑</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 bg-gray-900 border-t border-gray-800">
+            <div class="max-w-4xl mx-auto relative">
+                <div class="absolute bottom-12 left-0 right-0 flex justify-center space-x-2 pointer-events-none" id="suggestions">
+                    <!-- Suggestions will be injected here -->
+                </div>
+                <textarea id="user-input" rows="1" class="w-full bg-gray-800 text-gray-200 border border-gray-700 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden" placeholder="Ask anything about the market..." style="min-height: 50px; max-height: 200px;"></textarea>
+                <button id="send-btn" class="absolute right-2 bottom-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+            <div class="text-center text-xs text-gray-600 mt-2">
+                AI can make mistakes. Please verify important information.
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Context Panel -->
+    <div class="w-80 bg-gray-950 border-l border-gray-800 flex flex-col hidden lg:flex">
+        <div class="p-4 border-b border-gray-800 font-medium text-sm text-gray-400 uppercase tracking-wider">Context / Citations</div>
+        <div id="context-panel" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <!-- Empty State -->
+            <div id="context-empty" class="text-center text-gray-600 mt-10 text-sm">
+                No citations yet.<br>Ask a question to search knowledge base.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const contextPanel = document.getElementById('context-panel');
+        const contextEmpty = document.getElementById('context-empty');
+        
+        let messageHistory = [];
+        let isGenerating = false;
+
+        // Auto-resize textarea
+        userInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        userInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        sendBtn.addEventListener('click', sendMessage);
+
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text || isGenerating) return;
+
+            // UI Updates
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            isGenerating = true;
+            sendBtn.disabled = true;
+
+            // Add User Message
+            addMessage('user', text);
+            messageHistory.push({ role: 'user', content: text });
+
+            // Add AI Placeholder
+            const aiMsgId = addMessage('ai', '', true); // true for loading state
+
+            try {
+                const response = await fetch('/api/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: messageHistory })
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let aiContent = '';
+                let currentAiMsgDiv = document.getElementById(aiMsgId).querySelector('.prose');
+                
+                // Remove loading indicator
+                currentAiMsgDiv.innerHTML = ''; 
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const dataStr = line.slice(6);
+                            if (dataStr === '[DONE]') break;
+
+                            try {
+                                const data = JSON.parse(dataStr);
+                                
+                                if (data.type === 'content') {
+                                    aiContent += data.content;
+                                    currentAiMsgDiv.innerHTML = marked.parse(aiContent);
+                                    hljs.highlightAll();
+                                    scrollToBottom();
+                                } else if (data.type === 'thinking') {
+                                    // Show thinking status (optional)
+                                    // Could add a small status indicator
+                                } else if (data.type === 'citation') {
+                                    renderCitation(data);
+                                } else if (data.type === 'error') {
+                                    currentAiMsgDiv.innerHTML += `<br><span class="text-red-500 text-sm">[Error: ${data.content}]</span>`;
+                                }
+                            } catch (e) {
+                                console.error('Error parsing SSE data', e);
+                            }
+                        }
+                    }
+                }
+
+                messageHistory.push({ role: 'assistant', content: aiContent });
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                const currentAiMsgDiv = document.getElementById(aiMsgId).querySelector('.prose');
+                currentAiMsgDiv.innerHTML += `<br><span class="text-red-500">Connection failed. Please try again.</span>`;
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                scrollToBottom();
+            }
+        }
+
+        function addMessage(role, content, isLoading = false) {
+            const id = 'msg-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex flex-col space-y-2 fade-in';
+            
+            const avatar = role === 'user' 
+                ? '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs">U</div>'
+                : '<div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">AI</div>';
+            
+            const name = role === 'user' ? 'User' : 'Market Intelligence';
+            
+            let contentHtml = '';
+            if (isLoading) {
+                contentHtml = `<div class="flex space-x-1 items-center h-6">
+                    <div class="w-2 h-2 bg-gray-500 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 bg-gray-500 rounded-full typing-dot"></div>
+                    <div class="w-2 h-2 bg-gray-500 rounded-full typing-dot"></div>
+                </div>`;
+            } else {
+                contentHtml = role === 'user' ? `<p>${content}</p>` : marked.parse(content);
+            }
+
+            div.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    ${avatar}
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-300 mb-1">${name}</div>
+                        <div class="prose prose-invert prose-sm max-w-none text-gray-200">
+                            ${contentHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(div);
+            scrollToBottom();
+            return id;
+        }
+
+        function renderCitation(data) {
+            if (contextEmpty) contextEmpty.style.display = 'none';
+            
+            const card = document.createElement('div');
+            card.className = 'bg-gray-900 border border-gray-800 rounded-lg p-3 text-sm hover:border-blue-900 transition-colors animate-fade-in';
+            
+            if (data.tool === 'search_investment_products') {
+                // Product Card
+                const products = data.data;
+                products.forEach(p => {
+                    const pCard = document.createElement('div');
+                    pCard.className = 'mb-3 pb-3 border-b border-gray-800 last:border-0 last:mb-0 last:pb-0';
+                    pCard.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-bold text-blue-400">${p.symbol}</span>
+                            <span class="text-xs bg-gray-800 px-2 py-0.5 rounded text-gray-400">${(p.score || 0).toFixed(2)}</span>
+                        </div>
+                        <div class="font-medium text-gray-200 mb-1">${p.name || ''}</div>
+                        <div class="text-xs text-gray-500 line-clamp-3">${p.description}</div>
+                    `;
+                    contextPanel.prepend(pCard);
+                });
+            } else if (data.tool === 'search_market_news') {
+                // News Card
+                const news = data.data;
+                news.forEach(n => {
+                    const nCard = document.createElement('div');
+                    nCard.className = 'mb-3 pb-3 border-b border-gray-800 last:border-0 last:mb-0 last:pb-0';
+                    nCard.innerHTML = `
+                        <div class="text-xs text-gray-500 mb-1 flex justify-between">
+                            <span>${n.source || 'News'}</span>
+                            <span>${n.time ? new Date(n.time).toLocaleDateString() : ''}</span>
+                        </div>
+                        <div class="font-medium text-gray-200 hover:text-blue-400 cursor-pointer mb-1 leading-snug">
+                            <a href="#" class="no-underline">${n.title}</a>
+                        </div>
+                        <div class="text-xs text-gray-500 line-clamp-3">${n.content}</div>
+                    `;
+                    contextPanel.prepend(nCard);
+                });
+            }
+        }
+
+        function scrollToBottom() {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

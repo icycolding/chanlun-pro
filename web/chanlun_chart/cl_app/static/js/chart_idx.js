@@ -2978,3 +2978,85 @@ var TvIdx = (function () {
     },
   };
 })();
+
+// 自定义波动率指标
+TvIdx.idx_volatility = function (PineJS) {
+  return {
+    name: "波动率",
+      metainfo: {
+        _metainfoVersion: 53,
+        id: "CustomIndicatorsVOLTY@tv-basicstudies-1",
+        description: "自定义波动率",
+        shortDescription: "波动率",
+        is_overlay: true,
+        is_price_study: false,
+        isCustomIndicator: true,
+        plots: [
+          { id: "plot_volty", type: "line" }
+        ],
+      defaults: {
+        palettes: {},
+        styles: {
+          plot_volty: {
+            linestyle: 0,
+            linewidth: 1,
+            plottype: 0,
+            trackPrice: false,
+            transparency: 0,
+            visible: true,
+            color: "#3399FF",
+          }
+        },
+        inputs: {
+          N: 20,
+          scale: 1.0
+        },
+        precision: 6
+      },
+      palettes: {},
+      styles: {
+        plot_volty: { title: "Volatility", histogramBase: 0 }
+      },
+      inputs: [
+        { id: "N", name: "周期", type: "integer", defval: 20, min: 1, max: 500 },
+        { id: "scale", name: "缩放因子", type: "float", defval: 1.0, min: 0 }
+      ],
+      format: { type: "price", precision: 6 }
+    },
+    constructor: function () {
+      this.init = function (context, inputCallback) {};
+      this.main = function (context, inputCallback) {
+        this._context = context;
+        this._input = inputCallback;
+
+        var N = this._input(0);
+        var scale = this._input(1);
+
+        const c = this._context.new_var(PineJS.Std.close(this._context));
+        const prev = c.get(1);
+        const ret = this._context.new_var((c - prev) / prev);
+        const mean_r = PineJS.Std.sma(ret, N, this._context);
+        const diff = this._context.new_var(ret - mean_r);
+        const sq = this._context.new_var(diff * diff);
+        const varN = PineJS.Std.sum(sq, N, this._context) / N;
+        // const vol = Math.sqrt(varN) * (scale || 1.0);
+        vol = ''
+        fetch('/api/get_indicator_data', {
+          method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ indicator: 'vol' })   // 根据实际需求传参
+         })
+         .then(res => res.json())
+         .then(data => {
+           // 假设后端返回 { values: [/* 数组 */] }
+           console.log('data.values',data.values)
+           vol =  data.values;
+           
+          return [vol];
+
+         })
+        console.log('vol',vol)
+      };
+    }
+  };
+};

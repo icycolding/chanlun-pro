@@ -62,17 +62,33 @@ except Exception as e:
 if __name__ == "__main__":
     try:
         app = create_app()
+        # 支持通过参数或环境变量自定义端口
+        port = 9901
+        nobrowser = False
+        try:
+            # 优先读取环境变量 WEB_PORT
+            import os
+            env_port = os.getenv("WEB_PORT")
+            if env_port and env_port.isdigit():
+                port = int(env_port)
+        except Exception:
+            pass
+
+        # 解析命令行参数：例如 `python app.py 9902 nobrowser`
+        for arg in sys.argv[1:]:
+            if isinstance(arg, str) and arg.isdigit():
+                port = int(arg)
+            elif arg == "nobrowser":
+                nobrowser = True
 
         s = HTTPServer(WSGIContainer(app))
-        s.bind(9900, config.WEB_HOST)
+        s.bind(port, config.WEB_HOST)
 
         print("启动成功")
         s.start(1)
 
-        if len(sys.argv) >= 2 and sys.argv[1] == "nobrowser":
-            pass
-        else:
-            webbrowser.open("http://127.0.0.1:9900")
+        if not nobrowser:
+            webbrowser.open(f"http://127.0.0.1:{port}")
         IOLoop.instance().start()
 
     except Exception as e:

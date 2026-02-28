@@ -220,6 +220,7 @@ class ChartManager {
       TvIdx.idx_ltqs(PineJS),
       TvIdx.idx_heima(PineJS),
       TvIdx.idx_cdbb(PineJS),
+      TvIdx.idx_volatility(PineJS),
       TvIdx.idx_vol(PineJS),
       TvIdx.idx_hlftx(PineJS),
       TvIdx.idx_ma(PineJS),

@@ -99,6 +99,7 @@ class ExchangeTq(Exchange):
             kline = await self.get_api().get_kline_serial(
                 code, duration_seconds=frequency, data_length=8000
             )
+            print(f"天勤 : 获取K线 {code} {frequency} 数据 {len(kline)} 条")
             self.res_klines[f"{code}_{frequency}"] = kline
             async with self.get_api().register_update_notify() as update_chan:
                 async for _ in update_chan:

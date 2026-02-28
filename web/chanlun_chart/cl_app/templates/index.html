@@ -326,9 +326,9 @@
           </div>
         </div>
       </div>
-      <!-- 新闻资讯区域 - 占用屏幕底部1/4 -->
+      <!-- 新闻资讯区域 - 占用屏幕底部1/4，只占用左侧10列避免遮挡右侧菜单 -->
       <div class="layui-row" style="flex: 1; min-height: 0; background-color: #f8f8f8; border-top: 1px solid #e6e6e6;">
-        <div class="layui-col-xs12" style="height: 100%; padding: 10px;">
+        <div class="layui-col-xs10 layui-col-sm10 layui-col-md10" style="height: 100%; padding: 10px;">
           <div style="height: 100%; display: flex; flex-direction: column;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
               <h3 id="news_section_title" style="margin: 0; color: #333;">新闻资讯</h3>
@@ -338,6 +338,12 @@
                   id="market_summary_btn"
                   class="layui-btn layui-btn-normal layui-btn-sm">
                   <i class="layui-icon layui-icon-chart"></i> 市场总结
+                </button>
+                <button
+                  type="button"
+                  id="daily_news_summary_btn"
+                  class="layui-btn layui-btn-warm layui-btn-sm">
+                  <i class="layui-icon layui-icon-survey"></i> 每日新闻总结
                 </button>
                 <button
                   type="button"
@@ -916,6 +922,11 @@
         $('#market_summary_btn').click(function() {
           self.generate_market_summary();
         });
+        
+        // 绑定每日新闻总结按钮事件
+        $('#daily_news_summary_btn').click(function() {
+          self.generate_daily_news_summary();
+        });
       },
 
       // 加载新闻数据
@@ -1100,6 +1111,146 @@
           return;
         }
         
+        // 显示参数选择弹窗
+        this.show_market_summary_params_dialog(currentMarket, currentCode, query, productCode);
+      },
+      
+      // 显示市场总结参数选择弹窗
+      show_market_summary_params_dialog: function(currentMarket, currentCode, query, productCode) {
+        var self = this;
+        
+        var dialogContent = `
+          <div style="padding: 20px;">
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">📅 新闻日期范围：</label>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="1" style="margin-right: 5px;"> 1天
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="3" style="margin-right: 5px;"> 3天
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="7" checked style="margin-right: 5px;"> 7天
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="15" style="margin-right: 5px;"> 15天
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                  <input type="radio" name="days" value="30" style="margin-right: 5px;"> 30天
+                </label>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">📈 缠论分析周期：</label>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="frequency" value="1m" style="margin-right: 5px;"> 1分钟
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="frequency" value="5m" style="margin-right: 5px;"> 5分钟
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="frequency" value="15m" style="margin-right: 5px;"> 15分钟
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="frequency" value="30m" style="margin-right: 5px;"> 30分钟
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="frequency" value="60m" style="margin-right: 5px;"> 1小时
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="frequency" value="d" checked style="margin-right: 5px;"> 日线
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="frequency" value="w" style="margin-right: 5px;"> 周线
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                  <input type="radio" name="frequency" value="M" style="margin-right: 5px;"> 月线
+                </label>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">🤖 AI分析节点选择：</label>
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                  <input type="checkbox" name="ai_nodes" value="macro_analyst" checked style="margin-right: 8px;"> 📊 宏观分析师
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                  <input type="checkbox" name="ai_nodes" value="economic_data_analyst" checked style="margin-right: 8px;"> 📈 经济数据分析师
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                  <input type="checkbox" name="ai_nodes" value="technical_analyst" checked style="margin-right: 8px;"> 📉 技术分析师
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                  <input type="checkbox" name="ai_nodes" value="chanlun_expert" checked style="margin-right: 8px;"> 🔄 缠论专家
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                  <input type="checkbox" name="ai_nodes" value="financial_analyst" checked style="margin-right: 8px;"> 💰 财务分析师
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                  <input type="checkbox" name="ai_nodes" value="geopolitical_analyst" checked style="margin-right: 8px;"> 🌍 地缘政治分析师
+                </label>
+              </div>
+              <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="button" onclick="$(this).closest('.layui-layer-content').find('input[name=\"ai_nodes\"]').prop('checked', true)" style="padding: 4px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">全选</button>
+                <button type="button" onclick="$(this).closest('.layui-layer-content').find('input[name=\"ai_nodes\"]').prop('checked', false)" style="padding: 4px 12px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">全不选</button>
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 4px; border-left: 4px solid #17a2b8;">
+              <p style="margin: 0; color: #666; font-size: 13px;">
+                💡 <strong>提示：</strong>新闻日期范围决定搜索多少天内的相关新闻，缠论分析周期决定技术分析的时间维度。选择的AI节点越多，分析越全面但耗时越长。
+              </p>
+            </div>
+          </div>
+        `;
+        
+        layui.layer.open({
+          type: 1,
+          title: '📊 市场总结参数设置',
+          area: ['600px', '450px'],
+          content: dialogContent,
+          btn: ['开始生成', '取消'],
+          btnAlign: 'c',
+          yes: function(index, layero) {
+            // 获取用户选择的参数
+            var selectedDays = layero.find('input[name="days"]:checked').val();
+            var selectedFrequency = layero.find('input[name="frequency"]:checked').val();
+            var selectedNodes = [];
+            layero.find('input[name="ai_nodes"]:checked').each(function() {
+              selectedNodes.push($(this).val());
+            });
+            
+            if (!selectedDays || !selectedFrequency) {
+              layui.layer.msg('请选择新闻日期范围和缠论分析周期');
+              return false;
+            }
+            
+            if (selectedNodes.length === 0) {
+              layui.layer.msg('请至少选择一个AI分析节点');
+              return false;
+            }
+            
+            // 关闭参数选择弹窗
+            layui.layer.close(index);
+            
+            // 调用实际的生成函数
+            self.do_generate_market_summary(currentMarket, currentCode, query, productCode, parseInt(selectedDays), selectedFrequency, selectedNodes);
+          },
+          btn2: function(index) {
+            layui.layer.close(index);
+          },
+          shadeClose: false
+        });
+      },
+      
+      // 执行市场总结生成
+      do_generate_market_summary: function(currentMarket, currentCode, query, productCode, days, frequency, selectedNodes) {
+        var self = this;
+        
         // 显示加载提示
         var loadingIndex = layui.layer.load(1, {
           content: '正在从向量数据库搜索相关新闻并生成市场总结，请稍候...',
@@ -1116,7 +1267,9 @@
           current_market: currentMarket,
           current_code: currentCode,
           n_results: 20,  // 搜索20条相关新闻
-          days: 7         // 搜索最近7天的新闻
+          days: days,     // 用户选择的新闻日期范围
+          frequency: frequency,  // 用户选择的缠论分析周期
+          selected_nodes: selectedNodes || []  // 用户选择的AI分析节点
         };
         
         // 添加查询参数
@@ -1170,6 +1323,150 @@
         layui.layer.open({
           type: 1,
           title: '市场总结',
+          area: ['85%', '85%'],
+          content: content,
+          shadeClose: true,
+          maxmin: true,
+          btn: ['关闭'],
+          btnAlign: 'c'
+        });
+      },
+      
+      // 生成每日新闻总结
+      generate_daily_news_summary: function() {
+        var self = this;
+        
+        // 显示参数选择弹窗
+        this.show_daily_news_summary_params_dialog();
+      },
+      
+      // 显示每日新闻总结参数选择弹窗
+      show_daily_news_summary_params_dialog: function() {
+        var self = this;
+        
+        var dialogContent = `
+          <div style="padding: 20px;">
+            <div style="margin-bottom: 20px;">
+              <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">📅 新闻日期范围：</label>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="1" checked style="margin-right: 5px;"> 1天
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="3" style="margin-right: 5px;"> 3天
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="7" style="margin-right: 5px;"> 7天
+                </label>
+                <label style="display: flex; align-items: center; margin-right: 15px; cursor: pointer;">
+                  <input type="radio" name="days" value="15" style="margin-right: 5px;"> 15天
+                </label>
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                  <input type="radio" name="days" value="30" style="margin-right: 5px;"> 30天
+                </label>
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 4px; border-left: 4px solid #ff9800;">
+              <p style="margin: 0; color: #666; font-size: 13px;">
+                💡 <strong>提示：</strong>每日新闻总结将分析指定日期范围内的所有新闻，自动识别重要标的并生成综合分析报告。
+              </p>
+            </div>
+          </div>
+        `;
+        
+        layui.layer.open({
+          type: 1,
+          title: '📰 每日新闻总结参数设置',
+          area: ['500px', '350px'],
+          content: dialogContent,
+          btn: ['开始生成', '取消'],
+          btnAlign: 'c',
+          yes: function(index, layero) {
+            // 获取用户选择的参数
+            var selectedDays = layero.find('input[name="days"]:checked').val();
+            
+            if (!selectedDays) {
+              layui.layer.msg('请选择新闻日期范围');
+              return false;
+            }
+            
+            // 关闭参数选择弹窗
+            layui.layer.close(index);
+            
+            // 调用实际的生成函数
+            self.do_generate_daily_news_summary(parseInt(selectedDays));
+          },
+          btn2: function(index) {
+            layui.layer.close(index);
+          },
+          shadeClose: false
+        });
+      },
+      
+      // 执行每日新闻总结生成
+      do_generate_daily_news_summary: function(days) {
+        var self = this;
+        
+        // 显示加载提示
+        var loadingIndex = layui.layer.load(1, {
+          content: '正在分析' + days + '天内的新闻数据并生成每日总结，请稍候...',
+          success: function(layero) {
+            layero.find('.layui-layer-content').css({
+              'padding-top': '40px',
+              'width': '300px'
+            });
+          }
+        });
+        
+        // 构建请求数据
+        var requestData = {
+          days: days
+        };
+        
+        // 发送请求生成每日新闻总结
+        $.ajax({
+          url: '/api/news/daily_summary',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(requestData),
+          timeout: 120000,  // 增加超时时间到2分钟
+          success: function(response) {
+            layui.layer.close(loadingIndex);
+            
+            if (response.code === 0 && response.data && response.data.summary) {
+              self.show_daily_news_summary(response.data.summary);
+            } else {
+              layui.layer.msg('生成每日新闻总结失败: ' + (response.msg || '未知错误'));
+            }
+          },
+          error: function(xhr, status, error) {
+            layui.layer.close(loadingIndex);
+            if (status === 'timeout') {
+              layui.layer.msg('请求超时，AI生成需要较长时间，请稍后重试');
+            } else {
+              layui.layer.msg('网络错误，请稍后重试');
+            }
+          }
+        });
+      },
+      
+      // 显示每日新闻总结弹窗
+      show_daily_news_summary: function(summary) {
+        var currentDate = new Date().toLocaleDateString('zh-CN');
+        var content = '<div style="padding: 20px;">';
+        content += '<div style="margin-bottom: 20px; padding: 15px; background-color: #fff3e0; border-left: 4px solid #ff9800; border-radius: 4px;">';
+        content += '<h4 style="margin: 0 0 10px 0; color: #333;">📰 ' + currentDate + ' 每日新闻总结</h4>';
+        content += '<p style="margin: 0; color: #666; font-size: 12px;">基于新闻数据分析，由AI大模型生成</p>';
+        content += '</div>';
+        // 使用marked.js将Markdown转换为HTML
+        var htmlContent = marked.parse ? marked.parse(summary) : (marked(summary) || summary);
+        content += '<div style="line-height: 1.8; color: #333;">' + htmlContent + '</div>';
+        content += '</div>';
+        
+        layui.layer.open({
+          type: 1,
+          title: '每日新闻总结',
           area: ['85%', '85%'],
           content: content,
           shadeClose: true,

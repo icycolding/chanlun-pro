@@ -1,0 +1,311 @@
+{
+  "version": "1.0",
+  "last_updated": "2024-01-20",
+  "description": "股票代码到公司名称的映射配置文件",
+  "mappings": {
+    "hk_stocks": {
+      "02015": {
+        "name": "理想汽车",
+        "name_en": "Li Auto Inc",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["理想汽车", "Li Auto", "LI", "理想", "Li Auto Inc", "理想汽车-W"],
+        "sector": "汽车制造",
+        "industry": "新能源汽车"
+      },
+      "00700": {
+        "name": "腾讯控股",
+        "name_en": "Tencent Holdings Ltd",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["腾讯", "Tencent", "腾讯控股", "TCEHY", "腾讯控股有限公司"],
+        "sector": "科技",
+        "industry": "互联网服务"
+      },
+      "09988": {
+        "name": "阿里巴巴",
+        "name_en": "Alibaba Group Holding Ltd",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["阿里巴巴", "Alibaba", "BABA", "阿里", "阿里巴巴集团", "阿里巴巴-SW"],
+        "sector": "科技",
+        "industry": "电子商务"
+      },
+      "01024": {
+        "name": "快手",
+        "name_en": "Kuaishou Technology",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["快手", "Kuaishou", "快手科技", "快手-W"],
+        "sector": "科技",
+        "industry": "短视频平台"
+      },
+      "09618": {
+        "name": "京东集团",
+        "name_en": "JD.com Inc",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["京东", "JD.com", "JD", "京东集团", "京东-SW"],
+        "sector": "科技",
+        "industry": "电子商务"
+      },
+      "03690": {
+        "name": "美团",
+        "name_en": "Meituan",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["美团", "Meituan", "美团-W", "美团点评"],
+        "sector": "科技",
+        "industry": "本地生活服务"
+      },
+      "01810": {
+        "name": "小米集团",
+        "name_en": "Xiaomi Corp",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["小米", "Xiaomi", "小米集团", "小米-W"],
+        "sector": "科技",
+        "industry": "智能手机"
+      },
+      "09961": {
+        "name": "携程集团",
+        "name_en": "Trip.com Group Ltd",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["携程", "Trip.com", "携程集团", "携程-S"],
+        "sector": "消费",
+        "industry": "在线旅游"
+      },
+      "02269": {
+        "name": "药明生物",
+        "name_en": "WuXi Biologics",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["药明生物", "WuXi Biologics", "药明"],
+        "sector": "医疗健康",
+        "industry": "生物制药"
+      },
+      "01211": {
+        "name": "比亚迪股份",
+        "name_en": "BYD Co Ltd",
+        "exchange": "HKEX",
+        "market_type": "HK",
+        "aliases": ["比亚迪", "BYD", "比亚迪股份"],
+        "sector": "汽车制造",
+        "industry": "新能源汽车"
+      }
+    },
+    "us_stocks": {
+      "TSLA": {
+        "name": "特斯拉",
+        "name_en": "Tesla Inc",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["特斯拉", "Tesla", "Tesla Inc", "Tesla Motors"],
+        "sector": "汽车制造",
+        "industry": "电动汽车"
+      },
+      "AAPL": {
+        "name": "苹果公司",
+        "name_en": "Apple Inc",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["苹果", "Apple", "Apple Inc", "苹果公司"],
+        "sector": "科技",
+        "industry": "消费电子"
+      },
+      "GOOGL": {
+        "name": "谷歌",
+        "name_en": "Alphabet Inc",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["谷歌", "Google", "Alphabet", "Alphabet Inc"],
+        "sector": "科技",
+        "industry": "互联网服务"
+      },
+      "MSFT": {
+        "name": "微软",
+        "name_en": "Microsoft Corp",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["微软", "Microsoft", "Microsoft Corp"],
+        "sector": "科技",
+        "industry": "软件服务"
+      },
+      "AMZN": {
+        "name": "亚马逊",
+        "name_en": "Amazon.com Inc",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["亚马逊", "Amazon", "Amazon.com"],
+        "sector": "科技",
+        "industry": "电子商务"
+      },
+      "META": {
+        "name": "Meta平台",
+        "name_en": "Meta Platforms Inc",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["Meta", "Facebook", "Meta平台", "脸书"],
+        "sector": "科技",
+        "industry": "社交媒体"
+      },
+      "NVDA": {
+        "name": "英伟达",
+        "name_en": "NVIDIA Corp",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["英伟达", "NVIDIA", "英伟达公司"],
+        "sector": "科技",
+        "industry": "半导体"
+      },
+      "NFLX": {
+        "name": "奈飞",
+        "name_en": "Netflix Inc",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["奈飞", "Netflix", "网飞"],
+        "sector": "媒体",
+        "industry": "流媒体"
+      },
+      "BABA": {
+        "name": "阿里巴巴",
+        "name_en": "Alibaba Group Holding Ltd",
+        "exchange": "NYSE",
+        "market_type": "US",
+        "aliases": ["阿里巴巴", "Alibaba", "阿里", "阿里巴巴集团"],
+        "sector": "科技",
+        "industry": "电子商务"
+      },
+      "JD": {
+        "name": "京东",
+        "name_en": "JD.com Inc",
+        "exchange": "NASDAQ",
+        "market_type": "US",
+        "aliases": ["京东", "JD.com", "京东集团"],
+        "sector": "科技",
+        "industry": "电子商务"
+      }
+    },
+    "cn_stocks": {
+      "000001": {
+        "name": "平安银行",
+        "name_en": "Ping An Bank Co Ltd",
+        "exchange": "SZSE",
+        "market_type": "CN",
+        "aliases": ["平安银行", "平安", "平安银行股份有限公司"],
+        "sector": "金融",
+        "industry": "银行"
+      },
+      "000002": {
+        "name": "万科A",
+        "name_en": "China Vanke Co Ltd",
+        "exchange": "SZSE",
+        "market_type": "CN",
+        "aliases": ["万科", "万科A", "万科集团"],
+        "sector": "房地产",
+        "industry": "房地产开发"
+      },
+      "000858": {
+        "name": "五粮液",
+        "name_en": "Wuliangye Yibin Co Ltd",
+        "exchange": "SZSE",
+        "market_type": "CN",
+        "aliases": ["五粮液", "五粮液集团"],
+        "sector": "消费",
+        "industry": "白酒"
+      },
+      "600036": {
+        "name": "招商银行",
+        "name_en": "China Merchants Bank Co Ltd",
+        "exchange": "SSE",
+        "market_type": "CN",
+        "aliases": ["招商银行", "招行", "招商"],
+        "sector": "金融",
+        "industry": "银行"
+      },
+      "600519": {
+        "name": "贵州茅台",
+        "name_en": "Kweichow Moutai Co Ltd",
+        "exchange": "SSE",
+        "market_type": "CN",
+        "aliases": ["茅台", "贵州茅台", "茅台酒"],
+        "sector": "消费",
+        "industry": "白酒"
+      },
+      "000858": {
+        "name": "五粮液",
+        "name_en": "Wuliangye Yibin Co Ltd",
+        "exchange": "SZSE",
+        "market_type": "CN",
+        "aliases": ["五粮液", "五粮液集团"],
+        "sector": "消费",
+        "industry": "白酒"
+      },
+      "002415": {
+        "name": "海康威视",
+        "name_en": "Hangzhou Hikvision Digital Technology Co Ltd",
+        "exchange": "SZSE",
+        "market_type": "CN",
+        "aliases": ["海康威视", "海康"],
+        "sector": "科技",
+        "industry": "安防监控"
+      },
+      "300059": {
+        "name": "东方财富",
+        "name_en": "East Money Information Co Ltd",
+        "exchange": "SZSE",
+        "market_type": "CN",
+        "aliases": ["东方财富", "东财"],
+        "sector": "金融",
+        "industry": "证券服务"
+      }
+    }
+  },
+  "code_patterns": {
+    "hk_patterns": [
+      "^\\d{1,5}$",
+      "^\\d{1,5}\\.HK$",
+      "^R:\\d{1,5}$",
+      "^R:\\d{1,5}\\.HK$"
+    ],
+    "us_patterns": [
+      "^[A-Z]{1,5}$"
+    ],
+    "cn_patterns": [
+      "^\\d{6}$"
+    ]
+  },
+  "exchange_info": {
+    "HKEX": {
+      "name": "香港交易所",
+      "name_en": "Hong Kong Stock Exchange",
+      "timezone": "Asia/Hong_Kong",
+      "currency": "HKD"
+    },
+    "NASDAQ": {
+      "name": "纳斯达克",
+      "name_en": "NASDAQ",
+      "timezone": "America/New_York",
+      "currency": "USD"
+    },
+    "NYSE": {
+      "name": "纽约证券交易所",
+      "name_en": "New York Stock Exchange",
+      "timezone": "America/New_York",
+      "currency": "USD"
+    },
+    "SSE": {
+      "name": "上海证券交易所",
+      "name_en": "Shanghai Stock Exchange",
+      "timezone": "Asia/Shanghai",
+      "currency": "CNY"
+    },
+    "SZSE": {
+      "name": "深圳证券交易所",
+      "name_en": "Shenzhen Stock Exchange",
+      "timezone": "Asia/Shanghai",
+      "currency": "CNY"
+    }
+  }
+}

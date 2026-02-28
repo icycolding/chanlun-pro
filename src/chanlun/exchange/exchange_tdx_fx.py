@@ -188,6 +188,9 @@ class ExchangeTDXFX(Exchange):
                 multithread=True, raise_exception=True, auto_retry=True
             )
             with client.connect(self.connect_info["ip"], self.connect_info["port"]):
+                print(f"获取 {code} {frequency} 数据")
+                print(f"market: {market}")
+                print(f"tdx_code: {tdx_code}")
                 klines: pd.DataFrame = self.fdb.get_tdx_klines(
                     Market.FX.value, code, frequency
                 )
@@ -276,12 +279,19 @@ class ExchangeTDXFX(Exchange):
         """
         ticks = {}
         client = TdxExHq_API(multithread=True, raise_exception=True, auto_retry=True)
+        print('self.connect_info["port"]',self.connect_info["port"])
+        print('self.connect_info["ip"]',self.connect_info["ip"])
         with client.connect(self.connect_info["ip"], self.connect_info["port"]):
             for _code in codes:
                 _market, _tdx_code = self.to_tdx_code(_code)
                 if _market is None:
                     continue
+                print('_code',_code)
+                print('_market, _tdx_code',_market,_market.__class__, _tdx_code)
                 _quote = client.get_instrument_quote(_market, _tdx_code)
+                print('_quote',_quote)
+                # quote1 = client.get_instrument_quote(10, 'EURUSD')
+
                 if len(_quote) > 0:
                     _quote = _quote[0]
                     ticks[_code] = Tick(

@@ -263,7 +263,7 @@ class AIAnalyse:
                 model=config.OPENROUTER_AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
             )
-            print('response', response)
+            # print('response', response)
             if (
                 response.choices[0].message.content == ""
                 and response.choices[0].message.refusal is not None

@@ -97,11 +97,11 @@ class NewsVectorDB:
         # 确保数据库目录存在
         os.makedirs(self.db_path, exist_ok=True)
         
-        # 初始化数据库连接
-        self._init_database()
+        # 初始化数据库连接 #重新加载数据库
+        # self._init_database()
         
         # 初始化嵌入模型
-        self._init_embedding_model()
+        # self._init_embedding_model()
     
     def _init_database(self):
         """初始化 Chroma 数据库连接"""
@@ -435,10 +435,11 @@ class NewsVectorDB:
         
         if n_results < 1 or n_results > 100:
             logger.warning(f"结果数量超出范围 (1-100): {n_results}，将调整为10")
-            n_results = 10
+            n_results = 50
         
         try:
             # 1. 构建混合过滤器
+            keywords = ''
             where_filter, where_document_filter = self._build_hybrid_filter(keywords, start_date, end_date, filters)
             
             # 2. 执行一次高效的数据库查询
@@ -455,9 +456,9 @@ class NewsVectorDB:
             if collection_count == 0:
                 logger.info("向量数据库为空，返回空结果")
                 return []
-            
+            print('query-ff:',query)
             results = self.collection.query(
-                query_texts=[query],
+                query_texts=query,
                 n_results=final_n_results,
                 where=where_filter,
                 where_document=where_document_filter
@@ -576,7 +577,7 @@ class NewsVectorDB:
     def _merge_and_score_chunks(self, search_results: List[Dict], n_results: int) -> List[Dict]:
         """
         合并属于同一新闻的块，并基于检索到的块重新计算新闻的综合分数。
-        采用更智能的评分策略：最大相似度 + 平均相似度 + 匹配块数量加成。
+        采用优化的评分策略：指数衰减相似度 + 内容质量评估 + 时效性权重。
         
         Args:
             search_results: 块级搜索结果
@@ -585,6 +586,9 @@ class NewsVectorDB:
         Returns:
             List[Dict]: 合并后的新闻级结果
         """
+        import math
+        from datetime import datetime, timedelta
+        
         news_aggregator = {}
         
         for result in search_results:
@@ -594,7 +598,8 @@ class NewsVectorDB:
                 continue
             
             distance = result.get('distance', 1.0)
-            similarity_score = max(0.0, 1.0 - distance)  # 距离越小，相似度越高
+            # 优化的距离到相似度转换：使用指数衰减函数
+            similarity_score = max(0.0, math.exp(-distance * 2.0))  # 指数衰减，更好地区分高质量匹配
             
             if news_id not in news_aggregator:
                 news_aggregator[news_id] = {
@@ -604,42 +609,133 @@ class NewsVectorDB:
                     "max_similarity": 0.0,
                     "matched_chunks_count": 0,
                     "content_chunks": [],
-                    "chunk_details": []
+                    "chunk_details": [],
+                    "total_content_length": 0,
+                    "has_title_match": False
                 }
             
             agg = news_aggregator[news_id]
+            content = result.get('document', '')
+            
             agg["total_similarity"] += similarity_score
             agg["max_similarity"] = max(agg["max_similarity"], similarity_score)
             agg["matched_chunks_count"] += 1
-            agg["content_chunks"].append(result.get('document', ''))
+            agg["content_chunks"].append(content)
+            agg["total_content_length"] += len(content)
+            
+            # 检查是否包含标题匹配（chunk_id为1通常是标题+开头内容）
+            if metadata.get('chunk_id', 1) == 1:
+                agg["has_title_match"] = True
+            
             agg["chunk_details"].append({
                 'chunk_id': metadata.get('chunk_id', 1),
-                'content': result.get('document', ''),
-                'score': similarity_score
+                'content': content,
+                'score': similarity_score,
+                'content_length': len(content)
             })
         
         # 计算每条新闻的综合分数
         for news_id, agg in news_aggregator.items():
-            # 智能评分模型：
-            # - 最大相似度占70%权重（确保至少有一个高度相关的块）
-            # - 平均相似度占20%权重（整体相关性）
-            # - 匹配块数量加成占10%权重（覆盖度奖励）
+            # 基础评分组件
+            max_similarity = agg['max_similarity']
             avg_similarity = agg['total_similarity'] / agg['matched_chunks_count']
-            chunk_bonus = min(0.1, agg['matched_chunks_count'] * 0.02)  # 最多10%加成
+            chunk_count_bonus = min(0.15, agg['matched_chunks_count'] * 0.03)  # 最多15%加成
             
-            agg['composite_score'] = (
-                agg['max_similarity'] * 0.7 + 
-                avg_similarity * 0.2 + 
-                chunk_bonus
+            # 内容质量评估
+            quality_bonus = 0.0
+            
+            # 1. 标题匹配加成（5%）
+            if agg['has_title_match']:
+                quality_bonus += 0.05
+            
+            # 2. 内容长度质量评估（最多3%）
+            avg_content_length = agg['total_content_length'] / agg['matched_chunks_count']
+            if 100 <= avg_content_length <= 1000:  # 理想长度范围
+                quality_bonus += 0.03
+            elif avg_content_length >= 50:  # 至少有一些内容
+                quality_bonus += 0.015
+            
+            # 3. 时效性权重（最多2%）
+            time_bonus = 0.0
+            published_at = agg['metadata'].get('published_at', '')
+            if published_at:
+                try:
+                    if 'T' in published_at:
+                        pub_time = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
+                    else:
+                        pub_time = datetime.fromisoformat(published_at)
+                    
+                    now = datetime.now(pub_time.tzinfo) if pub_time.tzinfo else datetime.now()
+                    time_diff = now - pub_time
+                    
+                    # 时效性加成：24小时内2%，3天内1%，7天内0.5%
+                    if time_diff <= timedelta(hours=24):
+                        time_bonus = 0.02
+                    elif time_diff <= timedelta(days=3):
+                        time_bonus = 0.01
+                    elif time_diff <= timedelta(days=7):
+                        time_bonus = 0.005
+                except Exception:
+                    pass
+            
+            # 优化的评分权重分配：
+            # - 最大相似度占60%权重（确保至少有一个高度相关的块）
+            # - 平均相似度占25%权重（整体相关性）
+            # - 匹配块数量加成占15%权重（覆盖度奖励）
+            # - 内容质量和时效性作为额外加成
+            base_score = (
+                max_similarity * 0.6 + 
+                avg_similarity * 0.25 + 
+                chunk_count_bonus
             )
             
-            # 合并内容：优先显示最相关的前3个块
-            sorted_chunks = sorted(agg['chunk_details'], key=lambda x: x['score'], reverse=True)
-            top_chunks = sorted_chunks[:3]
-            agg['full_content'] = "\n---\n".join([chunk['content'] for chunk in top_chunks])
+            agg['composite_score'] = min(1.0, base_score + quality_bonus + time_bonus)
+            
+            # 记录评分组件用于调试
+            agg['score_components'] = {
+                'max_similarity': max_similarity,
+                'avg_similarity': avg_similarity,
+                'chunk_bonus': chunk_count_bonus,
+                'quality_bonus': quality_bonus,
+                'time_bonus': time_bonus,
+                'base_score': base_score,
+                'final_score': agg['composite_score']
+            }
+            
+            # 改进的内容合并策略：确保内容连贯性
+            sorted_chunks = sorted(agg['chunk_details'], key=lambda x: (x['chunk_id'], -x['score']))
+            
+            # 选择最相关的块，但保持一定的顺序连贯性
+            top_chunks = []
+            high_score_chunks = sorted(agg['chunk_details'], key=lambda x: x['score'], reverse=True)[:3]
+            
+            # 优先选择高分块，但按chunk_id排序以保持连贯性
+            selected_chunk_ids = set(chunk['chunk_id'] for chunk in high_score_chunks)
+            for chunk in sorted_chunks:
+                if chunk['chunk_id'] in selected_chunk_ids:
+                    top_chunks.append(chunk)
+            
+            # 去重并合并内容
+            unique_contents = []
+            seen_contents = set()
+            for chunk in top_chunks:
+                content = chunk['content'].strip()
+                if content and content not in seen_contents:
+                    unique_contents.append(content)
+                    seen_contents.add(content)
+            
+            agg['full_content'] = "\n\n".join(unique_contents)
+            
+            # 调试日志
+            logger.debug(f"新闻 {news_id} 评分详情: {agg['score_components']}")
         
         # 按综合分数排序
         sorted_news = sorted(news_aggregator.values(), key=lambda x: x['composite_score'], reverse=True)
+        
+        # 输出评分统计信息
+        if sorted_news:
+            scores = [news['composite_score'] for news in sorted_news]
+            logger.info(f"评分分布 - 最高: {max(scores):.4f}, 最低: {min(scores):.4f}, 平均: {sum(scores)/len(scores):.4f}")
         
         # 格式化为最终输出
         final_results = []
@@ -650,7 +746,8 @@ class NewsVectorDB:
                 'metadata': news['metadata'],
                 'distance': 1.0 - news['composite_score'],  # 将综合分转换回距离概念
                 'score': news['composite_score'],
-                'matched_chunks': news['matched_chunks_count']
+                'matched_chunks': news['matched_chunks_count'],
+                'score_components': news['score_components']  # 保留评分详情用于调试
             })
         
         return final_results
@@ -963,12 +1060,103 @@ class NewsVectorDB:
         except Exception as e:
             logger.error(f"获取统计信息失败: {str(e)}")
             return {}
+    
+    def get_news_by_date_range(self, start_date: str, end_date: str, limit: int = 1000) -> List[Dict[str, Any]]:
+        """
+        根据日期范围获取新闻数据
+        
+        Args:
+            start_date: 开始日期 (YYYY-MM-DD格式)
+            end_date: 结束日期 (YYYY-MM-DD格式)
+            limit: 返回结果数量限制
+        
+        Returns:
+            List[Dict]: 新闻列表，每个新闻包含document和metadata字段
+        """
+        if self.collection is None:
+            logger.error("向量数据库未初始化")
+            return []
+        
+        try:
+            # 转换日期格式为ISO格式
+            start_datetime = datetime.datetime.strptime(start_date, '%Y-%m-%d')
+            end_datetime = datetime.datetime.strptime(end_date, '%Y-%m-%d')
+            end_datetime = end_datetime.replace(hour=23, minute=59, second=59)
+            
+            # 构建时间过滤条件
+            where_filter = {
+                "$and": [
+                    {"published_at_ts": {"$gte": start_datetime.timestamp()}},
+                    {"published_at_ts": {"$lte": end_datetime.timestamp()}}
+                ]
+            }
+            
+            logger.info(f"获取日期范围内的新闻: {start_date} 到 {end_date}")
+            
+            # 获取符合时间条件的所有文档
+            collection_count = self.collection.count()
+            query_limit = min(limit * 5, collection_count)  # 获取更多块，因为需要合并
+            
+            if collection_count == 0:
+                logger.info("向量数据库为空")
+                return []
+            
+            # 使用get方法获取所有符合条件的文档
+            results = self.collection.get(
+                where=where_filter,
+                limit=query_limit
+            )
+            
+            if not results or not results['ids']:
+                logger.info(f"在指定日期范围内未找到新闻: {start_date} 到 {end_date}")
+                return []
+            
+            # 格式化块结果
+            chunk_results = []
+            for i, doc_id in enumerate(results['ids']):
+                chunk_result = {
+                    'id': doc_id,
+                    'document': results['documents'][i],
+                    'metadata': results['metadatas'][i],
+                    'distance': 0.0  # 这里不是搜索结果，设为0
+                }
+                chunk_results.append(chunk_result)
+            
+            # 使用现有的合并方法按新闻ID合并块
+            merged_results = self._merge_chunks_by_news_id(chunk_results, limit)
+            
+            # 转换为期望的格式
+            final_results = []
+            for result in merged_results:
+                # merged_results中的每个result已经包含了metadata的所有字段在顶层
+                final_result = {
+                    'document': result.get('content', ''),
+                    'metadata': {
+                        'news_id': result.get('news_id', ''),
+                        'title': result.get('title', ''),
+                        'source': result.get('source', ''),
+                        'published_at': result.get('published_at', ''),
+                        'category': result.get('category', ''),
+                        'sentiment_score': result.get('sentiment_score', 0),
+                        'importance_score': result.get('importance_score', 0),
+                        'market_relevance': result.get('market_relevance', 0),
+                        'published_at_ts': result.get('published_at_ts', 0)
+                    }
+                }
+                final_results.append(final_result)
+            
+            logger.info(f"成功获取{len(final_results)}条新闻")
+            return final_results
+            
+        except Exception as e:
+            logger.error(f"根据日期范围获取新闻失败: {str(e)}")
+            return []
 
 
 # 全局向量数据库实例
 _vector_db_instance = None
 
-def get_vector_db(db_path: str = "./chroma_db") -> NewsVectorDB:
+def get_vector_db(db_path: str = "/Users/jiming/Documents/trae/chanlun-pro/web/chanlun_chart/chroma_db") -> NewsVectorDB:
     """
     获取向量数据库单例实例
     

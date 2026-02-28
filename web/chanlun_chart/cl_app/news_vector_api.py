@@ -20,6 +20,7 @@ from chanlun.tools.ai_analyse import AIAnalyse  # 原始AI分析类
 from .news_vector_db import get_vector_db
 from chanlun.exchange import get_exchange, Market
 from datetime import datetime, timedelta
+from cl_app.enhanced_market_search import EnhancedMarketSearch
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -726,394 +727,81 @@ def register_vector_api_routes(app):
                 "msg": f"下载失败: {str(e)}",
                 "data": None
             })
-            klines = ex.klines(code, frequency)
-            
-            if klines is None or len(klines) == 0:
-                return jsonify({
-                    'error': '无法获取K线数据'
-                })
-            
-            # 获取缠论配置
-            cl_config = query_cl_chart_config(market, code)
-            
-            # 获取缠论数据
-            cd_list = web_batch_get_cl_datas(market, code, {frequency: klines}, cl_config)
-            print(f"获取到缠论数据列表长度: {len(cd_list)}")
-            
-            if not cd_list or len(cd_list) == 0:
-                return jsonify({
-                    'error': '无法获取缠论数据'
-                })
-                
-            cd = cd_list[0]
-            print(f"缠论数据对象类型: {type(cd)}")
-            print(f"缠论数据对象: {cd}")
-            
-            if not cd:
-                return jsonify({
-                    'error': '缠论数据对象为空'
-                })
-            
-            # 获取K线数据用于时间戳转换
-            cd_klines = cd.get_klines()
-            print(f"获取到缠论K线数据数量: {len(cd_klines) if cd_klines else 0}")
-            
-            if not cd_klines:
-                return jsonify({
-                    'error': '无法获取缠论K线数据'
-                })
-            
-            # 创建时间戳到索引的映射
-            time_to_index = {}
-            for i, kline in enumerate(cd_klines):
-                time_to_index[kline.date] = i
-            print(f"时间索引映射创建完成，共 {len(time_to_index)} 个时间点")
-            
-            def convert_to_chart_points(elements, element_type='fx'):
-                """将缠论元素转换为图表坐标点"""
-                chart_elements = []
-                
-                if not elements:
-                    return chart_elements
-                
-                for element in elements:
-                    try:
-                        # 检查元素类型
-                        if isinstance(element, str):
-                            print(f"警告: {element_type}元素是字符串类型: {element}")
-                            continue
-                            
-                        if element_type == 'fx':
-                            # 分型处理 - 检查新格式(k.date)或旧格式(dt)
-                            element_time = None
-                            if hasattr(element, 'k') and hasattr(element.k, 'date'):
-                                element_time = element.k.date
-                            elif hasattr(element, 'dt'):
-                                element_time = element.dt
-                            else:
-                                print(f"警告: FX元素缺少时间属性(k.date或dt): {element}")
-                                continue
-                                
-                            if not hasattr(element, 'val'):
-                                print(f"警告: FX元素缺少val属性: {element}")
-                                continue
-                                
-                            time_idx = time_to_index.get(element_time)
-                            if time_idx is not None:
-                                chart_elements.append({
-                                    'points': [{
-                                        'time': time_idx,
-                                        'price': element.val
-                                    }],
-                                    'text': getattr(element, 'fx', 'FX')
-                                })
-                        
-                        elif element_type in ['bi', 'xd']:
-                            # 笔和线段处理
-                            if not hasattr(element, 'start') or not hasattr(element, 'end'):
-                                print(f"警告: {element_type}元素缺少start/end属性: {element}")
-                                continue
-                                
-                            # BI/XD对象的start和end是FX（分型）对象，时间通过start.k.date访问
-                            start_time = None
-                            start_val = None
-                            end_time = None
-                            end_val = None
-                            
-                            # 获取start时间和价格
-                            if hasattr(element.start, 'k') and hasattr(element.start.k, 'date'):
-                                start_time = element.start.k.date
-                            elif hasattr(element.start, 'dt'):
-                                start_time = element.start.dt
-                            else:
-                                print(f"警告: {element_type}.start缺少时间属性: index: {getattr(element.start, 'index', 'N/A')} type: {getattr(element.start, 'fx', 'N/A')} date : {getattr(element.start, 'k', {}).get('date', 'N/A')} val: {getattr(element.start, 'val', 'N/A')} done: {getattr(element.start, 'done', 'N/A')}")
-                                continue
-                                
-                            if hasattr(element.start, 'val'):
-                                start_val = element.start.val
-                            else:
-                                print(f"警告: {element_type}.start缺少val属性: {element.start}")
-                                continue
-                                
-                            # 获取end时间和价格
-                            if hasattr(element.end, 'k') and hasattr(element.end.k, 'date'):
-                                end_time = element.end.k.date
-                            elif hasattr(element.end, 'dt'):
-                                end_time = element.end.dt
-                            else:
-                                print(f"警告: {element_type}.end缺少时间属性: {element.end}")
-                                continue
-                                
-                            if hasattr(element.end, 'val'):
-                                end_val = element.end.val
-                            else:
-                                print(f"警告: {element_type}.end缺少val属性: {element.end}")
-                                continue
-                                
-                            start_idx = time_to_index.get(start_time)
-                            end_idx = time_to_index.get(end_time)
-                            
-                            if start_idx is not None and end_idx is not None:
-                                chart_elements.append({
-                                    'points': [
-                                        {'time': start_idx, 'price': start_val},
-                                        {'time': end_idx, 'price': end_val}
-                                    ],
-                                    'linestyle': 0
-                                })
-                        
-                        elif element_type == 'zs':
-                            # 中枢处理
-                            if not hasattr(element, 'start') or not hasattr(element, 'end'):
-                                print(f"警告: ZS元素缺少start/end属性: {element}")
-                                continue
-                                
-                            # ZS对象的start和end是FX（分型）对象，时间通过start.k.date访问
-                            start_time = None
-                            end_time = None
-                            
-                            if hasattr(element.start, 'k') and hasattr(element.start.k, 'date'):
-                                start_time = element.start.k.date
-                            elif hasattr(element.start, 'dt'):
-                                start_time = element.start.dt
-                            else:
-                                print(f"警告: ZS元素start缺少时间属性: {element.start}")
-                                continue
-                                
-                            if hasattr(element.end, 'k') and hasattr(element.end.k, 'date'):
-                                end_time = element.end.k.date
-                            elif hasattr(element.end, 'dt'):
-                                end_time = element.end.dt
-                            else:
-                                print(f"警告: ZS元素end缺少时间属性: {element.end}")
-                                continue
-                                
-                            if not hasattr(element, 'zg') or not hasattr(element, 'zd'):
-                                print(f"警告: ZS元素缺少zg/zd属性: {element}")
-                                continue
-                                
-                            start_idx = time_to_index.get(start_time)
-                            end_idx = time_to_index.get(end_time)
-                            
-                            if start_idx is not None and end_idx is not None:
-                                chart_elements.append({
-                                    'points': [
-                                        {'time': start_idx, 'price': element.zg},
-                                        {'time': end_idx, 'price': element.zd}
-                                    ]
-                                })
-                        
-                        elif element_type == 'mmd':
-                            # 买卖点处理 - 现在element是字典格式
-                            if isinstance(element, dict):
-                                if 'dt' not in element or 'line' not in element:
-                                    print(f"警告: MMD元素缺少dt/line属性: {element}")
-                                    continue
-                                    
-                                time_idx = time_to_index.get(element['dt'])
-                                if time_idx is not None:
-                                    # 从line对象获取价格信息
-                                    line = element['line']
-                                    price = line.end.val if hasattr(line.end, 'val') else (line.high if line.type == 'up' else line.low)
-                                    chart_elements.append({
-                                        'points': [{
-                                            'time': time_idx,
-                                            'price': price
-                                        }],
-                                        'text': element.get('name', 'MMD')
-                                    })
-                            else:
-                                # 兼容原有格式
-                                if not hasattr(element, 'dt') or not hasattr(element, 'val'):
-                                    print(f"警告: MMD元素缺少dt/val属性: {element}")
-                                    continue
-                                    
-                                time_idx = time_to_index.get(element.dt)
-                                if time_idx is not None:
-                                    chart_elements.append({
-                                        'points': [{
-                                            'time': time_idx,
-                                            'price': element.val
-                                        }],
-                                        'text': getattr(element, 'name', 'MMD')
-                                    })
-                        
-                        elif element_type == 'bc':
-                            # 背驰处理 - 现在element是字典格式
-                            if isinstance(element, dict):
-                                if 'dt' not in element or 'line' not in element:
-                                    print(f"警告: BC元素缺少dt/line属性: {element}")
-                                    continue
-                                    
-                                time_idx = time_to_index.get(element['dt'])
-                                if time_idx is not None:
-                                    # 从line对象获取价格信息
-                                    line = element['line']
-                                    price = line.end.val if hasattr(line.end, 'val') else (line.high if line.type == 'up' else line.low)
-                                    chart_elements.append({
-                                        'points': [{
-                                            'time': time_idx,
-                                            'price': price
-                                        }],
-                                        'text': f"{element.get('name', 'BC')}背驰"
-                                    })
-                            else:
-                                # 兼容原有格式
-                                if not hasattr(element, 'dt') or not hasattr(element, 'val'):
-                                    print(f"警告: BC元素缺少dt/val属性: {element}")
-                                    continue
-                                    
-                                time_idx = time_to_index.get(element.dt)
-                                if time_idx is not None:
-                                    chart_elements.append({
-                                        'points': [{
-                                            'time': time_idx,
-                                            'price': element.val
-                                        }],
-                                        'text': f"{getattr(element, 'type', 'BC')}背驰"
-                                    })
-                                
-                    except Exception as e:
-                        print(f"转换{element_type}元素时出错: {e}")
-                        continue
-                
-                return chart_elements
-            
-            # 获取各种缠论元素
-            result = {}
-            
-            # 分型
-            try:
-                fxs = cd.get_fxs()
-                print(f"获取到 {len(fxs) if fxs else 0} 个分型")
-                if fxs and len(fxs) > 0:
-                    print(f"第一个分型类型: {type(fxs[0])}, 内容: {fxs[0]}")
-                result['fxs'] = convert_to_chart_points(fxs, 'fx')
-            except Exception as e:
-                print(f"获取分型数据错误: {e}")
-                result['fxs'] = []
-            
-            # 笔
-            try:
-                bis = cd.get_bis()
-                print(f"获取到 {len(bis) if bis else 0} 个笔")
-                if bis and len(bis) > 0:
-                    print(f"第一个笔类型: {type(bis[0])}, 内容: {bis[0]}")
-                result['bis'] = convert_to_chart_points(bis, 'bi')
-            except Exception as e:
-                print(f"获取笔数据错误: {e}")
-                result['bis'] = []
-            
-            # 线段
-            try:
-                xds = cd.get_xds()
-                print(f"获取到 {len(xds) if xds else 0} 个线段")
-                if xds and len(xds) > 0:
-                    print(f"第一个线段类型: {type(xds[0])}, 内容: {xds[0]}")
-                result['xds'] = convert_to_chart_points(xds, 'xd')
-            except Exception as e:
-                print(f"获取线段数据错误: {e}")
-                result['xds'] = []
-            
-            # 笔中枢
-            try:
-                bi_zss = cd.get_bi_zss()
-                print(f"获取到 {len(bi_zss) if bi_zss else 0} 个笔中枢")
-                result['bi_zss'] = convert_to_chart_points(bi_zss, 'zs')
-            except Exception as e:
-                print(f"获取笔中枢数据错误: {e}")
-                result['bi_zss'] = []
-            
-            # 线段中枢
-            try:
-                xd_zss = cd.get_xd_zss()
-                print(f"获取到 {len(xd_zss) if xd_zss else 0} 个线段中枢")
-                result['xd_zss'] = convert_to_chart_points(xd_zss, 'zs')
-            except Exception as e:
-                print(f"获取线段中枢数据错误: {e}")
-                result['xd_zss'] = []
-            
-            # 买卖点 - 从笔和线段中获取
-            try:
-                mmds = []
-                # 从笔中获取买卖点
-                bis = cd.get_bis()
-                for bi in bis:
-                    if hasattr(bi, 'line_mmds'):
-                        bi_mmds = bi.line_mmds()
-                        for mmd_name in bi_mmds:
-                            mmds.append({
-                                'dt': bi.end.k.date,
-                                'name': mmd_name,
-                                'type': 'bi',
-                                'line': bi
-                            })
-                
-                # 从线段中获取买卖点
-                xds = cd.get_xds()
-                for xd in xds:
-                    if hasattr(xd, 'line_mmds'):
-                        xd_mmds = xd.line_mmds()
-                        for mmd_name in xd_mmds:
-                            mmds.append({
-                                'dt': xd.end.k.date,
-                                'name': mmd_name,
-                                'type': 'xd',
-                                'line': xd
-                            })
-                
-                print(f"获取到 {len(mmds)} 个买卖点")
-                result['mmds'] = convert_to_chart_points(mmds, 'mmd')
-            except Exception as e:
-                print(f"获取买卖点数据错误: {e}")
-                result['mmds'] = []
-            
-            # 背驰 - 从笔和线段中获取
-            try:
-                bcs = []
-                # 从笔中获取背驰
-                bis = cd.get_bis()
-                for bi in bis:
-                    if hasattr(bi, 'line_bcs'):
-                        bi_bcs = bi.line_bcs()
-                        for bc_name in bi_bcs:
-                            bcs.append({
-                                'dt': bi.end.k.date,
-                                'name': bc_name,
-                                'type': 'bi',
-                                'line': bi
-                            })
-                
-                # 从线段中获取背驰
-                xds = cd.get_xds()
-                for xd in xds:
-                    if hasattr(xd, 'line_bcs'):
-                        xd_bcs = xd.line_bcs()
-                        for bc_name in xd_bcs:
-                            bcs.append({
-                                'dt': xd.end.k.date,
-                                'name': bc_name,
-                                'type': 'xd',
-                                'line': xd
-                            })
-                
-                print(f"获取到 {len(bcs)} 个背驰")
-                result['bcs'] = convert_to_chart_points(bcs, 'bc')
-            except Exception as e:
-                print(f"获取背驰数据错误: {e}")
-                result['bcs'] = []
-            
-            return jsonify(result)
-            
-        except Exception as e:
-            import traceback
-            error_details = traceback.format_exc()
-            print(f"获取缠论数据失败详细错误: {error_details}")
-            return jsonify({
-                'error': f'获取缠论数据失败: {str(e)}',
-                'details': error_details
-            })
     
+    @app.route("/api/news/market_summary/<int:summary_id>", methods=["DELETE"])
+    @login_required
+    def delete_market_summary(summary_id):
+        """
+        删除市场总结API
+        
+        请求参数:
+        {
+            "code": "验证码"
+        }
+        
+        返回:
+        {
+            "code": 0,
+            "msg": "删除成功",
+            "data": null
+        }
+        """
+        try:
+            from chanlun.db import db
+            
+            # 获取请求参数
+            if not request.is_json:
+                return jsonify({
+                    "code": 400,
+                    "msg": "请求必须是JSON格式",
+                    "data": None
+                })
+            
+            data = request.get_json()
+            verification_code = data.get('code', '')
+            
+            # 验证码校验（默认为'spdb'）
+            if verification_code != 'spdb':
+                return jsonify({
+                    "code": 403,
+                    "msg": "验证码错误，删除失败",
+                    "data": None
+                })
+            
+            # 检查总结是否存在
+            summary = db.market_summary_get_by_id(summary_id)
+            if not summary:
+                return jsonify({
+                    "code": 404,
+                    "msg": "总结不存在",
+                    "data": None
+                })
+            
+            # 执行删除操作
+            success = db.market_summary_delete(summary_id)
+            
+            if success:
+                logger.info(f"市场总结删除成功: ID={summary_id}, 标题={summary.title}")
+                return jsonify({
+                    "code": 0,
+                    "msg": "删除成功",
+                    "data": None
+                })
+            else:
+                return jsonify({
+                    "code": 500,
+                    "msg": "删除失败",
+                    "data": None
+                })
+                
+        except Exception as e:
+            logger.error(f"删除市场总结失败: {str(e)}")
+            return jsonify({
+                "code": 500,
+                "msg": f"删除失败: {str(e)}",
+                "data": None
+            })
+           
     @app.route("/api/news/semantic_search", methods=["POST"])
     @login_required
     def semantic_search_news():
@@ -1157,13 +845,11 @@ def register_vector_api_routes(app):
 
             end_date = datetime.now()
             days = data.get('days', 1)
-            days = 7
+            # days = 7
 
             start_date = end_date - timedelta(days=days)
             # market = data.get('market', '')  # 接收 market 参数
-            print('market', market)
-            print('product_code', product_code)
-            print('query', query)
+          
             if not query:
                 return jsonify({
                     "code": 400,
@@ -1184,7 +870,7 @@ def register_vector_api_routes(app):
             market_type = market_types.get(market, 'a')  # 默认为 stock
 
             product_info = {}
-            print('product_code', product_code)
+            # print('product_code', product_code)
             # if product_code:
             #     # try:
 
@@ -1206,7 +892,7 @@ def register_vector_api_routes(app):
             # # 创建优化的搜索查询
 
             search_results = get_vector_news(product_code, market,days)
-            # print('news',len(news))
+            print('news',len(search_results))
             # optimized_query = _create_optimized_search_query(query, product_code, product_info)
             # n_results = data.get('n_results', 50)
             
@@ -1216,7 +902,7 @@ def register_vector_api_routes(app):
             # start_date = end_date - timedelta(days=days)
             
             # # 执行语义搜索
-            # vector_db = get_vector_db()
+            vector_db = get_vector_db(db_path="./chroma_db")
             # logger.info(f'搜索查询: {optimized_query}, 日期范围: {start_date.strftime("%Y-%m-%d")} 到 {end_date.strftime("%Y-%m-%d")}')
             
             # # 使用向量数据库的时间过滤功能
@@ -1230,20 +916,20 @@ def register_vector_api_routes(app):
             # )
             
             # 按发布时间排序，最新的新闻优先（降序排列）
-            filtered_results = sorted(
-                search_results,
-                key=lambda x: x.get('metadata', {}).get('published_at', ''), 
-                reverse=True
-            )
+            # filtered_results = sorted(
+            #     search_results,
+            #     key=lambda x: x.get('metadata', {}).get('published_at', ''), 
+            #     reverse=True
+            # )
           
-            logger.info(f"搜索完成，返回{len(filtered_results)}条结果")
-            logger.info(f"query: {query}")
+            # logger.info(f"搜索完成，返回{len(filtered_results)}条结果")
+            # logger.info(f"query: {query}")
             return jsonify({
                 "code": 0,
                 "msg": "搜索成功",
                 "data": {
-                    "results": filtered_results,
-                    "total": len(filtered_results),
+                    "results": search_results,
+                    "total": len(search_results),
                     "query": query,
                     "date_range": f"最近{days}天",
                     "search_period": {
@@ -1385,74 +1071,35 @@ def register_vector_api_routes(app):
         
     
 
-    # --- 辅助函数 2: 混合搜索执行器 ---
+    # --- 智能评分辅助函数 ---
 
-    def _execute_hybrid_search(
-        query: str,
-        vector_db: Any,
-        search_plan,
-        days_ago: int = 7,
-        n_results: int = 50
-    ) -> List[Dict]:
-        """
-        使用AI生成的搜索计划，执行高级的混合搜索。
-        这是之前设计的 `semantic_search_reimagined` 函数的内部版本。
-        """
-        from datetime import datetime, timedelta
-
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days_ago)
-        
-        # 【修正点3】合并中英文关键词用于过滤
-        # all_keywords = list(set(search_plan.get('keywords_zh', []) + search_plan.get('keywords_en', [])))
-        
-        # logger.info(f"执行混合搜索: 查询='{search_plan['primary_semantic_query']}', 关键词={all_keywords}")
-        # print('all_keywords', all_keywords)
-        # 【修正点4】调用你之前重构好的、支持混合搜索的 `semantic_search` 方法
-        # 我们假设它现在接收 `keywords` 参数
-        search_results = vector_db.semantic_search(
-            query=query,
-            n_results=n_results,
-            start_date=start_date.isoformat(),
-            end_date=end_date.isoformat(),
-            keywords=search_plan,
-        )
-        
-        return search_results
-
+    # _calculate_smart_relevance_score函数已移除，直接使用semantic_search返回的score
 
     # --- 主函数 (重构版) ---
 
     def get_vector_news(code: str, market: str, days: int = 7, n_results: int = 50) -> List[Dict]:
         """
-        【已升级】根据资产代码，智能地获取相关向量数据库新闻。
-
-        流程:
-        1. 获取资产基本信息。
-        2. 调用LLM生成最优化的搜索计划（语义查询+关键词）。
-        3. 使用该计划执行混合搜索，获取最相关的新闻。
+        根据资产代码，从向量数据库获取相关新闻。
+        
+        优化版本特点：
+        1. 单次综合搜索替代多次分别搜索
+        2. 智能查询扩展，包含市场术语
+        3. 基于匹配类型的智能评分
+        4. 详细的调试日志和score分布统计
 
         Args:
-            code (str): 资产代码 (e.g., "FE.EURUSD").
-            market (str): 市场代码 (e.g., "fx").
-            days (int): 检索最近N天的新闻。
-            n_results (int): 返回的新闻数量。
+            code (str): 资产代码 (e.g., "FE.EURUSD", "KH.01211")
+            market (str): 市场代码 (e.g., "fx", "hk", "a")
+            days (int): 检索最近N天的新闻
+            n_results (int): 返回的新闻数量
 
         Returns:
-            List[Dict]: 搜索到的新闻结果列表。
+            List[Dict]: 搜索到的新闻结果列表，每个新闻包含id、document、metadata等字段
         """
-        logger.info(f"开始为 {market}-{code} 智能检索新闻...")
+        logger.info(f"开始为 {market}-{code} 检索新闻（优化版本）...")
         
-        # --- 步骤1: 准备资产信息 ---
         try:
-            market_types = {
-                "a": "A股", "hk": "港股", "fx": "外汇", "us": "美股",
-                "futures": "期货", "ny_futures": "期货",
-                "currency": "数字货币", "currency_spot": "数字货币",
-            }
-            market_type = market_types.get(market, '股票')  # 使用更具描述性的类别
-
-            # 假设这些函数存在且能正常工作
+            # 1. 获取资产基本信息
             ex = get_exchange(Market(market))
             stock_info = ex.stock_info(code)
 
@@ -1460,39 +1107,115 @@ def register_vector_api_routes(app):
                 logger.error(f"无法获取资产信息: {code}")
                 return []
 
-            product_info = {
-                'name': stock_info.get('name'),
-                'code': stock_info.get('code'),
-                'category': market_type # 使用描述性类别
-            }
+            # 2. 构建智能综合查询
+            stock_name = stock_info.get('name', '')
+            stock_code = stock_info.get('code', '')
+            
+            # 构建综合查询字符串
+            query_parts = []
+            market_terms = []
+            
+            # 添加清理后的股票名称
+            if stock_name:
+                clean_name = stock_name.replace('－Ｗ', '').replace('-W', '').strip()
+                query_parts.append(clean_name)
+            
+            # 添加清理后的代码和市场术语
+            print('stock_code,stock_name:', stock_code,stock_name)
+            if stock_code:
+                clean_code = stock_code
+                if 'FE.' in clean_code:
+                    clean_code = clean_code.replace('FE.', '')
+                    query_parts.append(clean_code)
+                    market_terms.extend(['外汇', 'forex', 'fx', '汇率', '货币政策', '央行'])
+                elif 'KH.' in clean_code:
+                    clean_code = clean_code.replace('KH.', '')
+                    query_parts.append(clean_code)
+                    market_terms.extend(['港股', '香港股市', 'Hong Kong', 'HK stock'])
+                elif market == 'a':
+                    query_parts.append(clean_code)
+                    market_terms.extend(['A股', '沪深', '上交所', '深交所', '中国股市'])
+                else:
+                    query_parts.append(clean_code)
+                    print('clean_code',clean_code)
+                    if 'QZ.MAL8' in clean_code:
+                        market_terms.extend(['METHAN', 'METHANOL'])
+                    if 'CZ' in clean_code:
+                        market_terms.extend(['bond', '30y','10y'])
+
+            
+            # 构建综合查询字符串
+            comprehensive_query = ' '.join(query_parts)
+            if market_terms:
+                # 添加市场相关术语，提升搜索的语义理解
+                comprehensive_query += ' ' + ' '.join(market_terms[:3])  # 限制术语数量避免查询过长
+            
+            logger.info(f"构建的综合查询: {comprehensive_query}")
+            
+            # 3. 执行单次综合向量搜索
+            vector_db = get_vector_db(db_path="./chroma_db")
+            from datetime import datetime, timedelta
+            
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            print('comprehensive_query',comprehensive_query)
+            # 使用更大的搜索范围以获得更好的结果多样性
+            search_results = vector_db.semantic_search(
+                query=comprehensive_query,
+                n_results=min(n_results * 3, 150),  # 搜索更多结果用于后续智能筛选
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat()
+            )
+            
+            if not search_results:
+                logger.warning(f"未找到相关新闻: {comprehensive_query}")
+                return []
+            
+            # 4. 去重处理（基于新闻ID）
+            unique_results = {}
+            for result in search_results:
+                news_id = result.get('id', '')
+                if news_id and news_id not in unique_results:
+                    unique_results[news_id] = result
+            
+            deduplicated_results = list(unique_results.values())
+            logger.info(f"去重后剩余 {len(deduplicated_results)} 条新闻")
+            
+            # 5. 两阶段排序：先按semantic_search返回的score排序取前n_results，再按时间排序
+            relevance_sorted = sorted(
+                deduplicated_results,
+                key=lambda x: x.get('score', 0),
+                reverse=True
+            )[:n_results]
+            
+            # 然后对筛选出的结果按发布时间排序
+            time_sorted_results = sorted(
+                relevance_sorted,
+                key=lambda x: x.get('metadata', {}).get('published_at', ''),
+                reverse=True
+            )
+            
+            # 6. 格式化最终结果
+            formatted_results = []
+            for result in time_sorted_results:
+                formatted_result = {
+                    'id': result.get('id', ''),
+                    'document': result.get('document', ''),
+                    'metadata': result.get('metadata', {}),
+                    'score': result.get('score', 0),  # 直接使用semantic_search返回的score
+                    'distance': result.get('distance', 1.0)
+                }
+                formatted_results.append(formatted_result)
+            # print('formatted_results',formatted_results)
+            logger.info(f"为 {code} 检索到 {len(formatted_results)} 条相关新闻")
+            return formatted_results
+            
         except Exception as e:
-            logger.error(f"准备资产信息时出错: {e}")
+            logger.error(f"检索新闻时出错: {e}", exc_info=True)
             return []
 
-        # --- 步骤2: AI生成搜索计划 ---
-        # search_plan = generate_search_keywords_with_llm(product_info, market)
-        # print('search_plan', search_plan)
-        optimized_query = ''
-        # for key in search_plan:
-        #     optimized_query += f' OR ({key})'
-        # --- 步骤3: 执行搜索 ---
-        # query = 'eur'
-        # query =  stock_info.get('name')
-        optimized_query = ''
-        vector_db = get_vector_db()
-        search_results = _execute_hybrid_search(
-            query=stock_info.get('name'),
-            vector_db=vector_db,
-            search_plan=optimized_query,
-            days_ago=days,
-            n_results=n_results
-        )
-        # print('search_results', search_results)
-        logger.info(f"为 {code} 检索到 {len(search_results)} 条相关新闻。")
-        return search_results
-
-
-    @app.route("/api/news/market_summary", methods=["POST"])
+    
+    @app.route("/api/news/market_summary", methods=["POST"])  # pyright: ignore[reportUnreachable]
     @login_required
     def generate_market_summary():
         """
@@ -1531,10 +1254,11 @@ def register_vector_api_routes(app):
             current_market = data.get('current_market', '')
             current_code = data.get('current_code', '')
             product_code = data.get('product_code', '')
-            print('product_code',product_code)
+            frequency = data.get('frequency', 'd')  # 获取分析周期参数，默认为日线
+            selected_nodes = data.get('selected_nodes', [])  # 获取用户选择的AI分析节点
             n_results = 50
             days = data.get('days', 1)
-            days = 7
+            # days = 7
             # 如果没有提供查询，尝试使用产品代码或标的代码构建查询
             if not query:
                 if product_code:
@@ -1551,42 +1275,46 @@ def register_vector_api_routes(app):
             # 使用向量数据库搜索相关新闻
             logger.info(f"开始搜索新闻，查询: {query}, 产品代码:{current_market} {product_code}, 结果数量: {n_results}, 天数: {days}")
             
-            # 创建优化的搜索查询
+            # # 创建优化的搜索查询
             optimized_query,product_info = _create_optimized_search_query(query, product_code)
-            name = product_info.get('name_en')
-            # query = '美联储或欧洲央行的货币政策、利率决定、通胀和就业数据对欧元兑美元汇率的影响'
-            # 计算日期范围
-            print('name',name)
-            query = 'eur'
-            required_keywords = [
-                "EUR/USD", "EURUSD", "欧元美元", "欧美", 
-                "美联储", "Fed", "欧央行", "ECB", 
-                "欧元", "美元","EUR","USD"
-            ]
-            from datetime import datetime, timedelta
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=days)
-            print('query',query)
-            # 执行语义搜索
-            vector_db = get_vector_db()
-            print('optimized_query',query,optimized_query)
-            search_results = vector_db.semantic_search(
-                query=optimized_query,
-                n_results=n_results,
-                keywords='',
-                start_date=start_date.isoformat(),
-                end_date=end_date.isoformat()
-            )
+            # name = product_info.get('name_en')
+            # # query = '美联储或欧洲央行的货币政策、利率决定、通胀和就业数据对欧元兑美元汇率的影响'
+            # # 计算日期范围
+            # print('name',name)
+          
+            # from datetime import datetime, timedelta
+            # end_date = datetime.now()
+            # start_date = end_date - timedelta(days=days)
+            # # 执行语义搜索
+            vector_db = get_vector_db(db_path="./chroma_db")
+            ex = get_exchange(Market(current_market))
+            stock_info = ex.stock_info(current_code)
+            name = stock_info.get('name')
+            # print('optimized_query',query,optimized_query)
+            # search_results = vector_db.semantic_search(
+            #     query=name,
+            #     n_results=n_results,
+            #     keywords='',
+            #     start_date=start_date.isoformat(),
+            #     end_date=end_date.isoformat()
+            # )
             
-            # 按发布时间排序，最新的新闻优先
-            news_list = sorted(
-                search_results,
-                key=lambda x: x.get('metadata', {}).get('published_at', ''), 
-                reverse=True
-            )
-            # print('news_list',news_list)
-            logger.info(f"搜索到 {len(news_list)} 条相关新闻")
-            
+            # # 按发布时间排序，最新的新闻优先
+            # news_list = sorted(
+            #     search_results,
+            #     key=lambda x: x.get('metadata', {}).get('published_at', ''), 
+            #     reverse=True
+            # )
+            # # print('news_list',news_list)
+            # logger.info(f"搜索到 {len(news_list)} 条相关新闻")
+            # data = request.get_json()
+            # query = data.get('query')
+            # product_code = query['query']
+            # market = query['market']
+            # days = 2
+            print('current_code',current_code)
+            news_list = get_vector_news(current_code, current_market,days)
+            print('news_list222',len(news_list))
             if not news_list:
                 return jsonify({
                     "code": 400,
@@ -1623,15 +1351,15 @@ def register_vector_api_routes(app):
             # market_type = market_map.get(market_prefix, 'futures' if '.' in product_code_clean else 'a')
             # ex = get_exchange(Market(market_type))
             # stock_info = ex.stock_info(current_code)
-            ex = get_exchange(Market(current_market))
-            stock_info = ex.stock_info(current_code)
-            name = stock_info.get('name')
+        
 
             print('name1111',name)
             # 调用大模型生成研究报告
             print('current_market:', current_market, 'current_code:', current_code)
             print(f'使用向量搜索获取到 {len(formatted_news_list)} 条新闻')
-            summary = _generate_ai_market_summary(economic_data_list,formatted_news_list, current_market, current_code,name)
+            # if 'QZ.MAL8' in c:
+            #     name = '中证1000期货'
+            summary = _generate_ai_market_summary(economic_data_list,formatted_news_list, current_market, current_code,name, frequency, selected_nodes)
             
             # 保存研究报告到数据库
             summary_id = None
@@ -1693,7 +1421,7 @@ def register_vector_api_routes(app):
             n_results = request.args.get('n_results', 5, type=int)
             
             # 获取相似新闻
-            vector_db = get_vector_db()
+            vector_db = get_vector_db(db_path="./chroma_db")
             similar_news = vector_db.get_similar_news(
                 news_id=news_id,
                 n_results=n_results
@@ -1744,7 +1472,7 @@ def register_vector_api_routes(app):
             print('min_relevance',min_relevance)
             
             # 获取市场相关新闻
-            vector_db = get_vector_db()
+            vector_db = get_vector_db(db_path="./chroma_db")
             market_news = vector_db.get_market_relevant_news(
                 min_relevance=min_relevance,
                 limit=limit
@@ -1822,7 +1550,7 @@ def register_vector_api_routes(app):
                     })
             
             # 获取情感分析统计
-            vector_db = get_vector_db()
+            vector_db = get_vector_db(db_path="./chroma_db")
             sentiment_stats = vector_db.get_sentiment_analysis(
                 start_date=start_date,
                 end_date=end_date
@@ -1862,7 +1590,7 @@ def register_vector_api_routes(app):
         """
         try:
             # 获取统计信息
-            vector_db = get_vector_db()
+            vector_db = get_vector_db(db_path="./chroma_db")
             stats = vector_db.get_collection_stats()
             
             return jsonify({
@@ -1899,7 +1627,7 @@ def register_vector_api_routes(app):
         """
         try:
             # 删除新闻向量
-            vector_db = get_vector_db()
+            vector_db = get_vector_db(db_path="./chroma_db")
             success = vector_db.delete_news(news_id)
             
             if success:
@@ -1982,7 +1710,7 @@ def register_vector_api_routes(app):
             parameters = data.get('parameters', {})
             
             # 获取向量数据库实例
-            vector_db = get_vector_db()
+            vector_db = get_vector_db(db_path="./chroma_db")
             
             # 根据分析类型执行不同的分析
             if analysis_type == "sentiment_trend":
@@ -2018,6 +1746,129 @@ def register_vector_api_routes(app):
             return jsonify({
                 "code": 500,
                 "msg": f"量化分析失败: {str(e)}",
+                "data": None
+            })
+
+    @app.route("/api/news/daily_summary", methods=["POST"])
+    @login_required
+    def generate_daily_news_summary():
+        """
+        生成每日新闻总结API
+        
+        请求体:
+        {
+            "days": 1  // 分析天数，默认1天
+        }
+        
+        返回:
+        {
+            "code": 0,
+            "msg": "生成成功",
+            "data": {
+                "summary": "每日新闻总结内容",
+                "summary_id": "保存的总结ID",
+                "analyzed_targets": ["分析的标的列表"],
+                "news_count": 50
+            }
+        }
+        """
+        try:
+            data = request.get_json() or {}
+            days = data.get('days', 1)
+            
+            # 参数验证
+            if not isinstance(days, int) or days < 1 or days > 30:
+                return jsonify({
+                    "code": 400,
+                    "msg": "天数参数无效，请选择1-30天",
+                    "data": None
+                })
+            
+            logger.info(f"开始生成{days}天的每日新闻总结")
+            
+            # 获取指定天数内的所有新闻
+            vector_db = get_vector_db(db_path="./chroma_db")
+            
+            # 计算日期范围
+            from datetime import datetime, timedelta
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            
+            # 获取新闻数据
+            all_news = vector_db.get_news_by_date_range(
+                start_date=start_date.strftime('%Y-%m-%d'),
+                end_date=end_date.strftime('%Y-%m-%d'),
+                limit=5000
+            )
+            
+            if not all_news:
+                return jsonify({
+                    "code": 400,
+                    "msg": f"未找到{days}天内的新闻数据",
+                    "data": None
+                })
+            
+            logger.info(f"获取到{len(all_news)}条新闻，开始分析")
+            
+            # 分析新闻中提到的重要标的
+            analyzed_targets = _analyze_important_targets(all_news)
+            
+            # 转换新闻格式
+            formatted_news_list = []
+            for news in all_news:
+                metadata = news.get('metadata', {})
+                formatted_news = {
+                    'title': metadata.get('title', ''),
+                    'body': news.get('document', ''),
+                    'content': news.get('document', ''),
+                    'published_at': metadata.get('published_at', ''),
+                    'source': metadata.get('source', ''),
+                    'category': metadata.get('category', ''),
+                    'sentiment_score': metadata.get('sentiment_score', 0),
+                    'importance_score': metadata.get('importance_score', 0),
+                    'news_id': metadata.get('news_id', '')
+                }
+                formatted_news_list.append(formatted_news)
+            print('formatted_news_list',formatted_news_list)
+            # 生成每日新闻总结
+            summary = _generate_daily_news_summary(
+                news_list=formatted_news_list,
+                analyzed_targets=analyzed_targets,
+                days=days
+            )
+            
+            # 保存总结到数据库
+            summary_id = None
+            try:
+                from chanlun.db import db
+                summary_data = {
+                    'title': f"{days}天每日新闻总结",
+                    'content': summary,
+                    'market': 'all',
+                    'code': 'daily_summary',
+                    'summary_type': 'daily_news_summary'
+                }
+                summary_id = db.market_summary_insert(summary_data)
+                logger.info(f"每日新闻总结已保存到数据库，ID: {summary_id}")
+            except Exception as db_error:
+                logger.error(f"保存每日新闻总结到数据库失败: {str(db_error)}")
+            
+            return jsonify({
+                "code": 0,
+                "msg": "生成成功",
+                "data": {
+                    "summary": summary,
+                    "summary_id": summary_id,
+                    "analyzed_targets": analyzed_targets,
+                    "news_count": len(formatted_news_list)
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"生成每日新闻总结失败: {str(e)}")
+            return jsonify({
+                "code": 500,
+                "msg": f"生成失败: {str(e)}",
                 "data": None
             })
 
@@ -2067,6 +1918,670 @@ def _analyze_sentiment_trend(vector_db, time_range: Dict, filters: Dict, paramet
     except Exception as e:
         logger.error(f"情感趋势分析失败: {str(e)}")
         return {"error": str(e)}
+
+
+
+def _analyze_important_targets(news_list):
+    """
+    分析新闻中提到的重要标的（优化支持英文新闻）
+    
+    Args:
+        news_list: 新闻列表
+    
+    Returns:
+        List: 重要标的列表
+    """
+    try:
+        import re
+        from collections import Counter
+        
+        # 股票代码正则表达式（优化支持更多格式）
+        stock_patterns = [
+            r'\b\d{6}\b',  # 6位数字（A股代码）
+            r'\b[A-Z]{1,5}\b',  # 1-5位大写字母（美股代码）
+            r'\b\d{5}\.[A-Z]{2}\b',  # 港股代码格式
+            r'\b[A-Z]{2,4}\d{4,6}\b',  # 期货代码格式
+            r'\$[A-Z]{1,5}\b',  # 美股代码带$符号
+        ]
+        
+        # 外汇对正则表达式
+        forex_patterns = [
+            r'\b[A-Z]{3}/[A-Z]{3}\b',  # EUR/USD格式
+            r'\b[A-Z]{6}\b',  # EURUSD格式
+            r'\b[A-Z]{3}-[A-Z]{3}\b',  # EUR-USD格式
+        ]
+        
+        # 扩展的标的名称关键词（中英文）
+        target_keywords = {
+            # 中国公司
+            '茅台': ['moutai', 'kweichow moutai'],
+            '腾讯': ['tencent', 'tencent holdings'],
+            '阿里': ['alibaba', 'ali', 'baba'],
+            '比亚迪': ['byd', 'build your dreams'],
+            '宁德时代': ['catl', 'contemporary amperex'],
+            '美团': ['meituan'],
+            '小米': ['xiaomi', 'mi'],
+            '字节跳动': ['bytedance', 'tiktok'],
+            '百度': ['baidu'],
+            '京东': ['jd.com', 'jingdong'],
+            '网易': ['netease'],
+            '拼多多': ['pdd', 'pinduoduo'],
+            
+            # 美国公司
+            '苹果': ['apple', 'aapl'],
+            '特斯拉': ['tesla', 'tsla'],
+            '微软': ['microsoft', 'msft'],
+            '谷歌': ['google', 'alphabet', 'googl', 'goog'],
+            '亚马逊': ['amazon', 'amzn'],
+            '英伟达': ['nvidia', 'nvda'],
+            '脸书': ['facebook', 'meta', 'fb'],
+            '奈飞': ['netflix', 'nflx'],
+            '推特': ['twitter', 'x corp'],
+            '优步': ['uber'],
+            '空客': ['airbus'],
+            '波音': ['boeing'],
+            '摩根大通': ['jpmorgan', 'jp morgan'],
+            '高盛': ['goldman sachs'],
+            '摩根士丹利': ['morgan stanley'],
+            
+            # 商品和货币
+            '黄金': ['gold', 'xau'],
+            '白银': ['silver', 'xag'],
+            '原油': ['oil', 'crude', 'wti', 'brent'],
+            '天然气': ['natural gas', 'ng'],
+            '铜': ['copper'],
+            '美元': ['usd', 'dollar', 'dxy'],
+            '人民币': ['cny', 'yuan', 'rmb'],
+            '欧元': ['eur', 'euro'],
+            '日元': ['jpy', 'yen'],
+            '英镑': ['gbp', 'pound'],
+            '澳元': ['aud'],
+            '加元': ['cad'],
+            '瑞郎': ['chf'],
+            '比特币': ['bitcoin', 'btc'],
+            '以太坊': ['ethereum', 'eth'],
+            
+            # 指数
+            '上证指数': ['shanghai composite', 'shcomp'],
+            '深证成指': ['szse component'],
+            '创业板': ['chinext'],
+            '科创板': ['star market'],
+            '恒生指数': ['hang seng', 'hsi'],
+            '纳斯达克': ['nasdaq', 'ndx', 'ixic'],
+            '标普500': ['s&p 500', 'spx', 'spy'],
+            '道琼斯': ['dow jones', 'djia', 'dji'],
+            '富时100': ['ftse 100'],
+            '日经225': ['nikkei', 'n225'],
+            '德国dax': ['dax'],
+        }
+        
+        # 常见金融术语
+        financial_terms = [
+            'fed', 'federal reserve', 'ecb', 'boe', 'boj', 'pboc',
+            'gdp', 'cpi', 'ppi', 'nfp', 'unemployment',
+            'interest rate', 'inflation', 'recession',
+            'earnings', 'revenue', 'profit', 'loss',
+            'ipo', 'merger', 'acquisition', 'dividend'
+        ]
+        
+        target_counts = Counter()
+        
+        for news in news_list:
+            # 获取新闻内容，转换为小写以便匹配
+            content = news.get('document', '') + ' ' + news.get('metadata', {}).get('title', '')
+            content_lower = content.lower()
+            
+            # 查找股票代码（保持原大小写）
+            for pattern in stock_patterns:
+                matches = re.findall(pattern, content, re.IGNORECASE)
+                for match in matches:
+                    # 过滤掉常见的非股票代码
+                    if match.upper() not in ['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'HAD', 'BUT', 'HAS']:
+                        target_counts[match.upper()] += 1
+            
+            # 查找外汇对
+            for pattern in forex_patterns:
+                matches = re.findall(pattern, content, re.IGNORECASE)
+                for match in matches:
+                    target_counts[match.upper()] += 1
+            
+            # 查找标的名称关键词（支持中英文）
+            for chinese_name, english_names in target_keywords.items():
+                # 检查中文名称
+                if chinese_name in content:
+                    target_counts[chinese_name] += 1
+                
+                # 检查英文名称（大小写不敏感）
+                for english_name in english_names:
+                    if english_name.lower() in content_lower:
+                        target_counts[chinese_name] += 1
+                        break
+            
+            # 查找金融术语
+            for term in financial_terms:
+                if term.lower() in content_lower:
+                    target_counts[term.upper()] += 1
+        
+        # 按出现频次排序，取前30个
+        most_common_targets = target_counts.most_common(30)
+        
+        # 过滤掉出现次数太少的标的（至少出现2次）
+        filtered_targets = [target for target, count in most_common_targets if count >= 2]
+        
+        logger.info(f"分析出{len(filtered_targets)}个重要标的: {filtered_targets[:10]}")
+        
+        return filtered_targets
+        
+    except Exception as e:
+        logger.error(f"分析重要标的失败: {str(e)}")
+        return []
+
+
+def _validate_news_quality(news_list):
+    """
+    验证新闻数据质量，过滤掉不完整或质量差的新闻
+    
+    Args:
+        news_list: 新闻列表
+    
+    Returns:
+        List: 验证后的高质量新闻列表
+    """
+    try:
+        validated_news = []
+        
+        for news in news_list:
+            # 基本字段检查
+            title = news.get('title', '').strip()
+            content = news.get('content', '').strip()
+            source = news.get('source', '').strip()
+            published_at = news.get('published_at', '')
+            
+            # 质量验证规则
+            quality_checks = [
+                # 标题不能为空且长度合理
+                len(title) >= 5 and len(title) <= 200,
+                # 内容不能为空且有足够信息量
+                len(content) >= 20 and len(content) <= 10000,
+                # 来源不能为空
+                len(source) >= 2,
+                # 发布时间不能为空
+                published_at and published_at != '未知时间',
+                # 标题和内容不能完全相同（避免重复数据）
+                title.lower() != content.lower(),
+                # 内容不能只是标题的重复
+                not (len(content) < 100 and title.lower() in content.lower() and len(content) - len(title) < 20),
+                # 避免明显的垃圾内容
+                not any(spam_word in title.lower() + content.lower() for spam_word in [
+                    '广告', '推广', '点击', '链接', '下载', '注册', '免费', '赚钱',
+                    'advertisement', 'promotion', 'click here', 'download', 'register', 'free money'
+                ]),
+                # 内容不能包含过多特殊字符（至少70%应该是正常字符）
+                sum(1 for c in content if c.isalnum() or c.isspace() or c in '，。！？；：""''()[]{}') >= len(content) * 0.7
+            ]
+            
+            # 所有质量检查都通过才保留新闻
+            if all(quality_checks):
+                # 额外的内容质量检查
+                content_words = len(content.split())
+                title_words = len(title.split())
+                
+                # 内容应该比标题有更多信息
+                if content_words > title_words * 1.5:
+                    validated_news.append(news)
+        
+        logger.info(f"新闻质量验证完成：原始{len(news_list)}条 -> 验证后{len(validated_news)}条")
+        
+        return validated_news
+        
+    except Exception as e:
+        logger.error(f"新闻质量验证失败: {str(e)}")
+        # 如果验证失败，返回原始新闻列表
+        return news_list
+
+
+def _filter_financial_news(news_list):
+    """
+    筛选金融相关新闻，过滤掉非金融市场的新闻
+    
+    Args:
+        news_list: 新闻列表
+    
+    Returns:
+        List: 筛选后的金融新闻列表
+    """
+    try:
+        import re
+        
+        # 金融关键词白名单（中英文）- 扩展版
+        financial_keywords = {
+            # 市场相关
+            '股票', '股市', '股价', '股指', '上市', '退市', '停牌', '复牌', '涨停', '跌停', '开盘', '收盘', '盘中', '盘后',
+            '沪指', '深指', '创业板', '科创板', '北交所', '新三板', '主板', '中小板',
+            'stock', 'stocks', 'equity', 'equities', 'share', 'shares', 'market', 'trading', 'nasdaq', 'nyse', 'dow',
+            'sp500', 's&p', 'russell', 'ftse', 'nikkei', 'hang seng', 'shanghai composite',
+            
+            # 外汇相关
+            '外汇', '汇率', '美元', '欧元', '日元', '英镑', '人民币', '澳元', '加元', '瑞郎', '新西兰元', '港币',
+            'forex', 'fx', 'currency', 'exchange rate', 'usd', 'eur', 'jpy', 'gbp', 'cny', 'aud', 'cad', 'chf', 'nzd', 'hkd',
+            'dollar', 'euro', 'yen', 'pound', 'yuan', 'rmb', 'dxy', 'dollar index',
+            
+            # 债券相关
+            '债券', '国债', '企业债', '公司债', '可转债', '收益率', '利率', '央行', '货币政策', '降息', '加息',
+            '国开债', '地方债', '城投债', '信用债', '利差', '久期',
+            'bond', 'bonds', 'treasury', 'corporate bond', 'yield', 'interest rate', 'central bank',
+            'monetary policy', 'fed', 'federal reserve', 'ecb', 'boe', 'boj', 'pboc', 'rate cut', 'rate hike',
+            
+            # 金融机构
+            '银行', '保险', '证券', '基金', '信托', '期货', '投资', '融资', '贷款', '券商', '私募', '公募',
+            '资管', '理财', '财富管理', '投行', '风投', 'vc', 'pe', '对冲基金',
+            'bank', 'banking', 'insurance', 'securities', 'fund', 'trust', 'futures', 'investment',
+            'financing', 'loan', 'credit', 'broker', 'asset management', 'wealth management', 'hedge fund',
+            
+            # 经济指标
+            'gdp', 'cpi', 'ppi', 'pmi', 'nfp', 'unemployment', 'inflation', 'deflation', 'recession',
+            '通胀', '通缩', '失业率', '经济增长', '经济数据', '财报', '业绩', '营收', '利润', '净利润', '毛利率',
+            '同比', '环比', '季报', '年报', '中报', 'roe', 'roa', '资产负债率',
+            'earnings', 'revenue', 'profit', 'financial results', 'quarterly', 'annual report',
+            
+            # 金融产品
+            '期权', '衍生品', '商品', '黄金', '白银', '原油', '天然气', '铜', '大宗商品', '农产品',
+            '铁矿石', '煤炭', '钢铁', '有色金属', '贵金属', '能源', '化工',
+            'options', 'derivatives', 'commodities', 'gold', 'silver', 'oil', 'crude', 'natural gas',
+            'copper', 'metals', 'iron ore', 'coal', 'steel', 'energy', 'chemicals',
+            
+            # 加密货币
+            '比特币', '以太坊', '加密货币', '数字货币', '区块链', '虚拟货币', 'defi', 'nft',
+            'bitcoin', 'ethereum', 'cryptocurrency', 'crypto', 'blockchain', 'btc', 'eth', 'usdt', 'usdc',
+            'binance', 'coinbase', 'digital asset',
+            
+            # 金融术语
+            'ipo', 'merger', 'acquisition', 'dividend', 'buyback', 'split', 'volatility', 'liquidity',
+            '并购', '收购', '分红', '回购', '拆股', '波动率', '市值', '估值', '流动性', '杠杆',
+            '做多', '做空', '套利', '对冲', '风险', '收益', '资本', '资金',
+            'market cap', 'valuation', 'pe ratio', 'pb ratio', 'leverage', 'arbitrage', 'hedge',
+            
+            # 行业和板块
+            '科技股', '金融股', '地产股', '消费股', '医药股', '新能源', '芯片', '半导体',
+            '5g', '人工智能', 'ai', '新基建', '碳中和', '双碳', 'esg',
+            'tech stock', 'fintech', 'biotech', 'semiconductor', 'renewable energy', 'electric vehicle',
+            
+            # 监管和政策
+            '证监会', '银保监会', '央行', '发改委', '财政部', '国资委', 'sec', 'cftc', 'finra',
+            '监管', '政策', '法规', '合规', '审批', '备案',
+            'regulation', 'policy', 'compliance', 'approval'
+        }
+        
+        # 非金融关键词黑名单（缩减版，只排除明显无关的内容）
+        non_financial_keywords = {
+            # 娱乐体育（明显无关）
+            '娱乐圈', '明星八卦', '电视剧', '电影票房', '音乐排行', '综艺节目',
+            'celebrity gossip', 'tv drama', 'movie box office', 'music chart', 'variety show',
+            
+            # 纯生活消费（非商业投资）
+            '美食推荐', '旅游攻略', '时尚搭配', '健身减肥', '育儿教育',
+            'food recommendation', 'travel guide', 'fashion style', 'fitness', 'parenting',
+            
+            # 纯社会新闻（非经济影响）
+            '刑事案件', '交通事故', '自然灾害', '天气预报',
+            'criminal case', 'traffic accident', 'natural disaster', 'weather forecast'
+        }
+        
+        filtered_news = []
+        
+        for news in news_list:
+            # 获取新闻内容
+            title = news.get('title', '').lower()
+            content = news.get('content', '').lower()
+            body = news.get('body', '').lower()
+            category = news.get('category', '').lower()
+            
+            # 合并所有文本内容
+            full_text = f"{title} {content} {body} {category}"
+            
+            # 检查是否包含金融关键词
+            has_financial_keywords = any(keyword.lower() in full_text for keyword in financial_keywords)
+            
+            # 检查是否包含非金融关键词（排除项）
+            has_non_financial_keywords = any(keyword.lower() in full_text for keyword in non_financial_keywords)
+            
+            # 特殊规则：如果标题或内容明确包含股票代码、外汇对等，直接保留
+            has_financial_codes = bool(
+                re.search(r'\b\d{6}\b', full_text) or  # A股代码
+                re.search(r'\b[A-Z]{3}/[A-Z]{3}\b', full_text) or  # 外汇对
+                re.search(r'\$[A-Z]{1,5}\b', full_text) or  # 美股代码
+                re.search(r'\b(fed|ecb|boe|boj|pboc)\b', full_text, re.IGNORECASE)  # 央行
+            )
+            
+            # 优化后的筛选逻辑（更宽松的条件）：
+            # 1. 包含金融代码的直接保留
+            # 2. 包含金融关键词的保留（放宽条件，不再严格要求无非金融关键词）
+            # 3. 对于同时包含金融和非金融关键词的新闻，降低筛选门槛
+            if has_financial_codes:
+                filtered_news.append(news)
+            elif has_financial_keywords:
+                if not has_non_financial_keywords:
+                    # 纯金融新闻，直接保留
+                    filtered_news.append(news)
+                else:
+                    # 计算金融关键词密度
+                    financial_count = sum(1 for keyword in financial_keywords if keyword.lower() in full_text)
+                    non_financial_count = sum(1 for keyword in non_financial_keywords if keyword.lower() in full_text)
+                    
+                    # 降低筛选门槛：金融关键词数量 >= 非金融关键词数量即可保留
+                    # 或者金融关键词数量 >= 2（表示有一定的金融相关性）
+                    if financial_count >= non_financial_count or financial_count >= 2:
+                        filtered_news.append(news)
+        
+        logger.info(f"新闻筛选完成：原始{len(news_list)}条 -> 筛选后{len(filtered_news)}条")
+        
+        return filtered_news
+        
+    except Exception as e:
+        logger.error(f"筛选金融新闻失败: {str(e)}")
+        # 如果筛选失败，返回原始新闻列表
+        return news_list
+
+
+def _generate_daily_news_summary(news_list, analyzed_targets, days):
+    """
+    生成每日新闻总结（包含价格变动信息）
+    
+    Args:
+        news_list: 新闻列表
+        analyzed_targets: 分析出的重要标的
+        days: 分析天数
+    
+    Returns:
+        str: 生成的总结内容
+    """
+    try:
+        from chanlun.tools.ai_analyse import AIAnalyse
+        from chanlun.zixuan import ZiXuan
+        from chanlun.exchange import get_exchange
+        from chanlun.base import Market
+        import datetime
+        
+        # 首先进行新闻数据质量验证
+        validated_news = _validate_news_quality(news_list)
+        logger.info(f"新闻质量验证：原始{len(news_list)}条 -> 验证后{len(validated_news)}条")
+        
+        # 然后筛选金融相关新闻
+        filtered_news = _filter_financial_news(validated_news)
+        
+        # 如果筛选后没有新闻，返回提示信息
+        if not filtered_news:
+            return "暂无相关金融市场新闻。"
+        
+        # 获取用户关注产品的价格信息
+        price_info = ""
+        mentioned_products = set()  # 存储新闻中提及的自选产品
+        
+        try:
+            # 支持的市场类型
+            supported_markets = ['a', 'hk', 'us', 'fx', 'futures', 'currency']
+            all_price_data = []
+            
+            for market in supported_markets:
+                try:
+                    zx = ZiXuan(market)
+                    # 获取所有自选组的股票
+                    all_zx_stocks = zx.query_all_zs_stocks()
+                    
+                    # 收集所有股票代码和名称
+                    market_codes = []
+                    stock_info = {}  # 代码到名称的映射
+                    
+                    for zx_group in all_zx_stocks:
+                        for stock in zx_group['stocks']:
+                            code = stock['code']
+                            name = stock['name']
+                            market_codes.append(code)
+                            stock_info[code] = name
+                            stock_info[name] = code  # 双向映射
+                    
+                    if market_codes:
+                        # 获取价格数据
+                        ex = get_exchange(Market(market))
+                        ticks = ex.ticks(market_codes)
+                        
+                        market_names = {
+                            'a': 'A股',
+                            'hk': '港股', 
+                            'us': '美股',
+                            'fx': '外汇',
+                            'futures': '期货',
+                            'currency': '数字货币'
+                        }
+                        market_name = market_names.get(market, market)
+                        
+                        for code, tick in ticks.items():
+                            stock_name = stock_info.get(code, code)
+                            
+                            price_data = {
+                                'market': market_name,
+                                'code': code,
+                                'name': stock_name,
+                                'price': getattr(tick, 'last', 0),
+                                'rate': getattr(tick, 'rate', 0)
+                            }
+                            all_price_data.append(price_data)
+                            
+                            # 检查新闻中是否提及该产品
+                            for news in filtered_news:
+                                news_text = (news.get('title', '') + ' ' + news.get('content', '')).lower()
+                                if (code.lower() in news_text or 
+                                    stock_name.lower() in news_text or
+                                    (len(stock_name) > 2 and stock_name[:4].lower() in news_text)):
+                                    mentioned_products.add((market_name, code, stock_name, price_data['price'], price_data['rate']))
+                            
+                except Exception as e:
+                    logger.warning(f"获取{market}市场价格数据失败: {str(e)}")
+                    continue
+            
+            # 构建价格信息文本
+            if all_price_data:
+                price_info = "\n\n## 关注产品当前价格\n"
+                current_market_data = {}
+                for data in all_price_data:
+                    market = data['market']
+                    if market not in current_market_data:
+                        current_market_data[market] = []
+                    current_market_data[market].append(data)
+                
+                for market, stocks in current_market_data.items():
+                    price_info += f"\n**{market}市场:**\n"
+                    for stock in stocks[:10]:  # 限制每个市场最多显示10只股票
+                        rate_str = f"{stock['rate']:+.2f}%" if stock['rate'] != 0 else "0.00%"
+                        price_info += f"- {stock['name']}({stock['code']}): {stock['price']:.2f} ({rate_str})\n"
+                        
+        except Exception as e:
+            logger.error(f"获取关注产品价格信息失败: {str(e)}")
+            price_info = "\n\n## 关注产品价格\n暂时无法获取价格信息，请稍后重试。\n"
+        
+        # 构建提示词 - 包含价格分析指导
+        current_date = datetime.datetime.now().strftime('%Y年%m月%d日')
+        
+        # 简单格式化筛选后的新闻列表
+        news_content = ""
+        for i, news in enumerate(filtered_news[:50], 1):  # 限制最多50条新闻
+            title = news.get('title', '无标题')
+            source = news.get('source', '未知来源')
+            published_at = news.get('published_at', '未知时间')
+            content = news.get('content', '')[:500]  # 限制内容长度
+            
+            news_content += f"""
+{i}. 【{title}】
+   来源：{source} | 时间：{published_at}
+   内容：{content}{'...' if len(news.get('content', '')) > 500 else ''}
+
+"""
+        
+        # 构建新闻中提及的自选产品信息
+        mentioned_products_info = ""
+        if mentioned_products:
+            mentioned_products_info = "\n\n## 新闻中提及的关注产品\n"
+            for market_name, code, name, price, rate in mentioned_products:
+                rate_str = f"{rate:+.2f}%" if rate != 0 else "0.00%"
+                mentioned_products_info += f"- {name}({code}) [{market_name}]: {price:.2f} ({rate_str})\n"
+        
+        prompt = f"""
+请基于以下{days}天的金融市场新闻内容，生成一份全面深入的新闻分析报告。
+
+## 基本信息
+- 时间范围：过去{days}天
+- 原始新闻总数：{len(news_list)}条
+- 筛选后金融新闻：{len(filtered_news)}条
+- 报告时间：{current_date}
+
+## 新闻内容
+{news_content}
+
+{mentioned_products_info}
+
+## 输出要求
+请按以下格式生成全面的分析报告：
+
+# {days}天金融市场新闻深度分析报告
+
+## 执行摘要
+[提供整体市场概况和核心要点的简明总结，包括主要趋势、关键事件和市场影响]
+
+## 重大新闻事件深度分析
+[详细分析每个重要新闻事件，包括：
+- 事件背景和详细描述
+- 涉及的关键参与者和机构
+- 对相关行业和市场的潜在影响
+- 与历史类似事件的对比
+- 后续发展的可能方向]
+
+## 行业板块动态分析
+[按行业分类深入分析：
+- 各行业的主要新闻和发展趋势
+- 行业内公司的表现差异
+- 政策变化对行业的影响
+- 技术创新和商业模式变化
+- 竞争格局的变化]
+
+## 宏观经济环境分析
+[分析宏观经济因素：
+- 货币政策和财政政策变化
+- 经济指标的变化趋势
+- 国际经济环境的影响
+- 地缘政治因素的作用]
+
+## 市场情绪和资金流向
+[分析市场情绪变化：
+- 投资者情绪的变化趋势
+- 资金流向的特点
+- 风险偏好的变化
+- 市场预期的调整]
+
+## 关注产品专项分析
+[如果新闻中提及关注产品，进行专项分析：
+- 相关新闻对产品的具体影响
+- 价格变动的原因分析
+- 基本面变化情况
+- 技术面表现特征
+- 未来走势的关键因素]
+
+## 风险因素识别
+[识别和分析潜在风险：
+- 系统性风险因素
+- 行业特定风险
+- 个股风险点
+- 外部环境风险]
+
+## 关键时间节点
+[按时间顺序梳理重要事件，并分析其连锁反应和累积效应]
+
+## 市场展望和关注要点
+[基于新闻分析，提出未来需要关注的要点：
+- 即将到来的重要事件
+- 需要跟踪的关键指标
+- 可能的市场转折点
+- 长期趋势的判断]
+
+## 分析要求：
+1. 进行深度分析和专业解读，不仅仅是新闻整理
+2. 保持客观专业的分析视角
+3. 详细阐述因果关系和影响机制
+4. 结合历史数据和趋势进行对比分析
+5. 提供多角度的分析视角
+6. 重点关注新闻之间的关联性和系统性影响
+7. 对关注产品进行重点分析，结合价格变动进行深入解读
+8. 识别市场机会和风险点
+9. 分析内容要具有前瞻性和指导价值
+10. 确保分析的逻辑性和完整性
+"""
+        
+        # 创建AI客户端并调用生成总结
+        ai_client = AIAnalyse("a")  # 默认使用A股市场
+        summary = _call_ai_and_get_content(ai_client, prompt)
+        
+        if not summary or "AI分析失败" in summary or "AI分析异常" in summary:
+            return "AI生成总结失败，请稍后重试"
+        
+        # 将价格信息添加到总结末尾
+        final_summary = summary + price_info
+        
+        logger.info(f"每日新闻总结生成成功，长度: {len(final_summary)}")
+        return final_summary
+        
+    except Exception as e:
+        logger.error(f"生成每日新闻总结失败: {str(e)}")
+        return f"生成每日新闻总结时发生错误: {str(e)}"
+
+
+# 移除_categorize_news_by_type函数 - 不再需要复杂的新闻分类
+
+
+# 移除_analyze_market_sentiment函数 - 不再需要复杂的情感分析
+
+
+# 移除_extract_key_events函数 - 不再需要复杂的关键事件提取
+
+
+# 移除_format_news_categories函数 - 不再需要
+
+
+# 移除_format_key_events函数 - 不再需要
+
+
+# 移除_format_important_news函数 - 已有简化版本
+
+
+def _format_important_news_simple(news_list):
+    """
+    格式化重要新闻详情（简化版）
+    
+    Args:
+        news_list: 新闻列表
+    
+    Returns:
+        str: 格式化的新闻详情文本
+    """
+    try:
+        if not news_list:
+            return "暂无新闻数据"
+        
+        # 按重要性分数排序
+        important_news = sorted(news_list, key=lambda x: x.get('importance_score', 0), reverse=True)
+        
+        formatted_text = ""
+        for i, news in enumerate(important_news, 1):
+            formatted_text += f"""
+{i}. {news.get('title', '无标题')}
+   来源: {news.get('source', '未知')} | 时间: {news.get('published_at', '未知')}
+   摘要: {news.get('content', '')[:150]}{'...' if len(news.get('content', '')) > 150 else ''}
+
+"""
+        
+        return formatted_text
+        
+    except Exception as e:
+        logger.error(f"格式化重要新闻失败: {str(e)}")
+        return "新闻详情格式化失败"
 
 
 def _generate_technical_indicators_analysis(code: str, market: str) -> str:
@@ -2851,17 +3366,27 @@ class ReportGenerationState(TypedDict):
     """报告生成工作流的共享状态"""
     original_news: List[Dict]   # 原始新闻输入
     economic_data: List[Dict]   # 经济数据输入
+    geopolitical_news: List[Dict]  # 地缘政治新闻输入
     current_market: str         # 当前市场
     current_code: str           # 当前代码
     name: str                   # 股票名称
+    frequency: str              # 分析周期（如'd'日线, 'w'周线等）
+    
     # 各个节点分析后生成的结果
     macro_analysis: Optional[str]
     economic_analysis: Optional[str]  # 经济数据分析结果
     technical_analysis: Optional[str] 
     chanlun_analysis: Optional[str]
+    financial_analysis: Optional[str]  # 财务分析结果
+    geopolitical_analysis: Optional[str]  # 地缘政治分析结果
     
     # 最终的报告
     final_report: Optional[str]
+    
+    # 反思修正相关字段
+    needs_revision: bool         # 是否需要修正
+    revision_target_node: str   # 需要修正的目标节点
+    revision_count: int         # 修正次数计数器
 
 
 def _format_economic_data_for_analysis(economic_data: List[Dict]) -> str:
@@ -3011,15 +3536,50 @@ def _get_indicator_type_from_mnemonic(mnemonic: str) -> str:
 
 
 def _format_news_content(news_list: List[Dict]) -> str:
-    """格式化新闻内容"""
+    """格式化新闻内容，按发布时间排序，最新新闻优先"""
+    from datetime import datetime, timedelta
+    import dateutil.parser
+    
+    # 按发布时间排序，最新的排在前面
+    def parse_time(news):
+        published_at = news.get('published_at', '')
+        if not published_at or published_at == '未知时间':
+            return datetime.min  # 未知时间的新闻排在最后
+        try:
+            return dateutil.parser.parse(published_at)
+        except:
+            return datetime.min
+    
+    sorted_news = sorted(news_list, key=parse_time, reverse=True)
+    
+    # 计算时间权重标识
+    now = datetime.now()
     news_content = ""
-    for i, news in enumerate(news_list[:10], 1):  # 限制最多10条新闻
+    
+    for i, news in enumerate(sorted_news[:10], 1):  # 限制最多10条新闻
         title = news.get('title', '无标题')
         body = news.get('body', news.get('content', '无内容'))
         published_at = news.get('published_at', '未知时间')
         source = news.get('source', '未知来源')
         
-        news_content += f"\n{i}. 标题: {title}\n"
+        # 添加时间权重标识
+        time_weight = ""
+        if published_at != '未知时间':
+            try:
+                pub_time = dateutil.parser.parse(published_at)
+                time_diff = now - pub_time
+                if time_diff.days == 0:
+                    time_weight = "【🔥最新】"  # 当天新闻
+                elif time_diff.days == 1:
+                    time_weight = "【⚡近期】"  # 昨天新闻
+                elif time_diff.days <= 3:
+                    time_weight = "【📈重要】"  # 3天内新闻
+                else:
+                    time_weight = "【📰参考】"  # 较早新闻
+            except:
+                time_weight = "【📰参考】"
+        
+        news_content += f"\n{i}. {time_weight}标题: {title}\n"
         news_content += f"   来源: {source}\n"
         news_content += f"   时间: {published_at}\n"
         if body and body != '无内容':
@@ -3045,8 +3605,1436 @@ def _call_ai_and_get_content(ai_client, prompt: str) -> str:
         return f"AI分析异常: {str(e)}"
 
 
-def _get_chanlun_analysis(code: str, market: str) -> str:
-    """获取缠论分析"""
+def _format_financial_data_for_analysis(financial_data,name) -> str:
+    """使用大模型对公司财务数据进行深度分析"""
+    if not financial_data:
+        return "暂无财务数据"
+    
+    try:
+        from chanlun.tools.ai_analyse import AIAnalyse
+        
+        # 按报告日期和报表类型分组财务数据
+        reports_by_date = {}
+        for item in financial_data:
+            report_date = item.report_date.strftime('%Y-%m-%d') if item.report_date else '未知日期'
+            statement_type = item.statement_type or '未知类型'
+            
+            if report_date not in reports_by_date:
+                reports_by_date[report_date] = {}
+            
+            if statement_type not in reports_by_date[report_date]:
+                reports_by_date[report_date][statement_type] = {}
+            
+            item_name = item.item_name or '未知项目'
+            item_value = item.item_value if item.item_value is not None else 0
+            reports_by_date[report_date][statement_type][item_name] = item_value
+        
+        # 按日期排序（最新的在前）
+        sorted_dates = sorted(reports_by_date.keys(), reverse=True)
+        
+        if not sorted_dates:
+            return "暂无有效财务数据"
+        
+        # 构建完整的财务数据供大模型分析
+        financial_data_text = "\n=== 公司完整财务报表数据 ===\n\n"
+        
+        # 添加数据概览
+        financial_data_text += f"数据范围: {sorted_dates[-1]} 至 {sorted_dates[0]}\n"
+        financial_data_text += f"报告期数: {len(sorted_dates)}个\n"
+        financial_data_text += f"数据记录总数: {len(financial_data)}条\n\n"
+        
+        # 详细展示每个报告期的财务数据
+        for i, report_date in enumerate(sorted_dates):
+            date_data = reports_by_date[report_date]
+            financial_data_text += f"\n📅 **{report_date} 财务数据**\n"
+            
+            for statement_type, items in date_data.items():
+                financial_data_text += f"\n📋 {statement_type}:\n"
+                
+                # 显示所有财务项目
+                for item_name, value in items.items():
+                    formatted_value = _format_financial_value(value)
+                    financial_data_text += f"  • {item_name}: {formatted_value}\n"
+        
+        # 构建大模型分析提示词
+        ai_prompt = f"""
+你是一位资深的财务分析专家，请基于{name}的完整财务报表数据进行深度分析。
+
+**重要说明：以下所有财务数据均为该公司正式披露的历史财务报表信息，全部为已发布的实际数据，不包含任何预测、预期或市场估计数据。请严格基于这些历史已发布数据进行分析，不要在分析中提及任何预测数据或市场预期。**
+
+{financial_data_text}
+
+**分析重点：请特别关注最新财务数据的变动情况和趋势分析**
+
+请从以下维度进行全面深度分析，**重点突出最新数据的变化**：
+
+1. **最新财务表现分析（重点）**
+   - **重点分析最新报告期的财务表现变化**
+   - 对比最新期与上一期的关键指标变动（同比、环比增长率）
+   - 识别最新财务数据中的重要变化和转折点
+   - 分析最新期财务表现的驱动因素
+
+2. **最新盈利能力变动分析（重点）**
+   - **重点关注最新期营业收入、净利润的变动情况**
+   - 分析最新期毛利率、净利率等关键比率的变化趋势
+   - 评估最新期盈利质量的改善或恶化情况
+   - 识别影响最新期盈利能力的关键因素
+
+3. **最新成长性趋势分析（重点）**
+   - **重点评估最新期的收入增长率、利润增长率变化**
+   - 分析最新期业务扩张情况和市场竞争力变化
+   - 基于最新数据判断成长性的可持续性
+   - 识别最新期成长性的新驱动因素或风险点
+
+4. **最新费用结构变化分析**
+   - 分析最新期研发费用、员工薪酬等关键费用的变动
+   - 评估最新期费用控制效果和运营效率变化
+   - 分析最新期费用结构优化情况
+
+5. **最新财务风险变化评估**
+   - 基于最新数据评估财务风险的新变化
+   - 分析最新期财务稳定性的改善或恶化
+   - 识别最新财务数据中的新风险信号或改善迹象
+
+6. **最新竞争力变化分析**
+   - 结合最新财务数据分析竞争地位的变化
+   - 评估最新期在行业中的相对表现变化
+
+7. **基于最新数据的投资价值评估**
+   - **重点基于最新财务数据变化评估投资价值**
+   - 提供基于最新数据变动的投资建议和风险提示
+   - 识别需要重点关注的最新财务指标变化
+
+**输出要求：**
+- 每个分析维度都要突出最新数据的变化情况
+- 优先展示最新期与前期的对比分析
+- 重点标注关键财务指标的最新变动幅度
+- 字数控制在2000字左右，重点突出最新变化
+"""
+        
+        # 调用大模型进行分析
+        ai_client = AIAnalyse("a")  # 使用A股市场配置
+        analysis_result = _call_ai_and_get_content(ai_client, ai_prompt)
+        
+        return analysis_result
+        
+    except Exception as e:
+        logger.error(f"财务数据分析异常: {str(e)}")
+        return f"财务数据分析异常: {str(e)}"
+
+
+def _extract_key_financial_items(items: dict) -> dict:
+    """提取关键财务指标 - 基于实际数据库财务代码格式
+    
+    数据库中的item_name格式为："代码 (英文描述)"
+    例如："CIAC (Income Available to Com)", "ECOR (Vehicle sales)"
+    """
+    key_items = {}
+    
+    # 基于实际数据库中的财务代码格式进行精确匹配
+    key_mappings = {
+        # 收入相关 - 基于实际数据格式
+        'Vehicle Sales': 'ECOR (Vehicle sales)',
+        'Other Revenue': 'ECOR (Other sales and services)',
+        
+        # 利润相关 - 基于实际数据格式
+        'Net Income': 'CIAC (Income Available to Com)',
+        'Net Income Before Taxes': 'EIBT (Net Income Before Taxes)',
+        'Operating Income': 'EONT (Other operating income, net)',
+        
+        # 费用相关 - 基于实际数据格式
+        'Employee Compensation': 'ERAD (Employee compensation)',
+        'Employee Compensation SGA': 'ELAR (Employee compensation in SGA)',
+        'R&D Expenses': 'ERAD (Research and development)',
+        
+        # 每股数据 - 基于实际数据格式
+        'Basic EPS': 'GBAI (Basic EPS Including ExtraOrd)',
+        'Basic EPS Excluding': 'GBBF (Basic EPS Excluding ExtraOrd)',
+        'Diluted EPS': 'GDAI (Diluted EPS Including ExtraOrd)',
+        'Diluted EPS Excluding': 'GDBF (Diluted EPS Excluding ExtraOrd)',
+        'Basic Shares': 'GBAS (Basic Weighted Average Shares)',
+        'Diluted Shares': 'GDWS (Diluted Weighted Average Shares)',
+        'DPS Class A': 'DDPS1 (DPS-Ordinary Shares Class A)',
+        'DPS Class B': 'DDPS2 (DPS-Ordinary Shares Class B)',
+        
+        # 其他指标 - 基于实际数据格式
+        'Minority Interest': 'CMIN (Net income attributable to nonco)',
+    }
+    
+    # 精确匹配财务指标
+    for key_name, exact_pattern in key_mappings.items():
+        if exact_pattern in items:
+            key_items[key_name] = items[exact_pattern]
+    
+    # 模糊匹配（用于处理可能的格式变化）
+    fallback_mappings = {
+        'Net Income': ['CIAC', 'NINC', 'GDNI'],
+        'Net Income Before Taxes': ['EIBT'],
+        'Operating Income': ['EONT'],
+        'Employee Compensation': ['ERAD'],
+        'Basic EPS': ['GBAI', 'GBBF'],
+        'Diluted EPS': ['GDAI', 'GDBF'],
+        'Basic Shares': ['GBAS'],
+        'Diluted Shares': ['GDWS'],
+        'DPS Class A': ['DDPS1'],
+        'DPS Class B': ['DDPS2'],
+        'Minority Interest': ['CMIN'],
+    }
+    
+    # 对于没有精确匹配的指标，尝试模糊匹配
+    for key_name, code_patterns in fallback_mappings.items():
+        if key_name in key_items:  # 已经找到，跳过
+            continue
+            
+        for code in code_patterns:
+            for item_name, value in items.items():
+                if item_name.startswith(code + ' ('):
+                    key_items[key_name] = value
+                    break
+            if key_name in key_items:
+                break
+    
+    # 计算总收入（Vehicle Sales + Other Revenue）
+    if 'Vehicle Sales' in key_items and 'Other Revenue' in key_items:
+        key_items['Total Revenue'] = key_items['Vehicle Sales'] + key_items['Other Revenue']
+    elif 'Vehicle Sales' in key_items:
+        key_items['Total Revenue'] = key_items['Vehicle Sales']
+    elif 'Other Revenue' in key_items:
+        key_items['Total Revenue'] = key_items['Other Revenue']
+    
+    # 合并员工薪酬数据
+    if 'Employee Compensation' in key_items and 'Employee Compensation SGA' in key_items:
+        key_items['Total Employee Compensation'] = key_items['Employee Compensation'] + key_items['Employee Compensation SGA']
+    
+    return key_items
+
+
+def _format_financial_value(value) -> str:
+    """格式化财务数值"""
+    if not isinstance(value, (int, float)):
+        return str(value)
+    
+    if abs(value) >= 1e8:  # 亿元
+        return f"{value/1e8:.2f}亿"
+    elif abs(value) >= 1e4:  # 万元
+        return f"{value/1e4:.2f}万"
+    else:
+        return f"{value:,.0f}"
+
+
+def _analyze_income_statement(reports_by_date: dict, sorted_dates: list) -> list:
+    """详细分析利润表结构 (Income Statement Analysis)"""
+    income_analysis = []
+    
+    if len(sorted_dates) < 1:
+        return income_analysis
+    
+    try:
+        # 获取最新期数据
+        latest_date = sorted_dates[0]
+        latest_data = reports_by_date[latest_date]
+        
+        # 合并所有报表类型的数据
+        combined_data = {}
+        for statement_type, items in latest_data.items():
+            combined_data.update(items)
+        
+        key_items = _extract_key_financial_items(combined_data)
+        
+        income_analysis.append("\n📊 **利润表结构分析**")
+        
+        # 1. 收入结构分析
+        income_analysis.append("\n💰 **收入结构**")
+        
+        if 'Total Revenue' in key_items:
+            total_revenue = key_items['Total Revenue']
+            income_analysis.append(f"  • 总收入: {_format_financial_value(total_revenue)}")
+            
+            # 分析收入构成
+            if 'Operating Revenue' in key_items:
+                op_revenue = key_items['Operating Revenue']
+                op_ratio = (op_revenue / total_revenue) * 100 if total_revenue != 0 else 0
+                income_analysis.append(f"  • 营业收入: {_format_financial_value(op_revenue)} ({op_ratio:.1f}%)")
+            
+            if 'Other Revenue' in key_items:
+                other_revenue = key_items['Other Revenue']
+                other_ratio = (other_revenue / total_revenue) * 100 if total_revenue != 0 else 0
+                income_analysis.append(f"  • 其他收入: {_format_financial_value(other_revenue)} ({other_ratio:.1f}%)")
+        
+        # 2. 成本费用分析
+        income_analysis.append("\n💸 **成本费用结构**")
+        
+        if 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+            total_revenue = key_items['Total Revenue']
+            
+                # 费用分析 - 基于实际可用数据
+            if 'R&D Expenses' in key_items:
+                rd_expense = key_items['R&D Expenses']
+                rd_ratio = (rd_expense / total_revenue) * 100
+                income_analysis.append(f"  • 研发费用: {_format_financial_value(rd_expense)} ({rd_ratio:.2f}%)")
+            
+            if 'Employee Compensation' in key_items:
+                emp_expense = key_items['Employee Compensation']
+                emp_ratio = (emp_expense / total_revenue) * 100
+                income_analysis.append(f"  • 员工薪酬: {_format_financial_value(emp_expense)} ({emp_ratio:.2f}%)")
+            
+            if 'SGA Expenses' in key_items:
+                sga_expense = key_items['SGA Expenses']
+                sga_ratio = (sga_expense / total_revenue) * 100
+                income_analysis.append(f"  • 销售管理费用: {_format_financial_value(sga_expense)} ({sga_ratio:.2f}%)")
+            
+            if 'Interest Expense' in key_items:
+                interest_expense = key_items['Interest Expense']
+                interest_ratio = (interest_expense / total_revenue) * 100
+                income_analysis.append(f"  • 利息费用: {_format_financial_value(interest_expense)} ({interest_ratio:.2f}%)")
+            
+            if 'Tax Expense' in key_items:
+                tax_expense = key_items['Tax Expense']
+                tax_ratio = (tax_expense / total_revenue) * 100
+                income_analysis.append(f"  • 税费支出: {_format_financial_value(tax_expense)} ({tax_ratio:.2f}%)")
+        
+        # 3. 利润层次分析 - 基于实际可用数据
+        income_analysis.append("\n📈 **利润层次分析**")
+        
+        if 'Operating Income' in key_items:
+            op_income = key_items['Operating Income']
+            income_analysis.append(f"  • 其他营业收入: {_format_financial_value(op_income)}")
+            
+            if 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+                op_margin = (op_income / key_items['Total Revenue']) * 100
+                income_analysis.append(f"    占总收入比例: {op_margin:.2f}%")
+        
+        if 'Net Income Before Taxes' in key_items:
+            income_bt = key_items['Net Income Before Taxes']
+            income_analysis.append(f"  • 税前净利润: {_format_financial_value(income_bt)}")
+            
+            if 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+                bt_margin = (income_bt / key_items['Total Revenue']) * 100
+                income_analysis.append(f"    税前净利润率: {bt_margin:.2f}%")
+        
+        if 'Net Income' in key_items:
+            net_income = key_items['Net Income']
+            income_analysis.append(f"  • 净利润: {_format_financial_value(net_income)}")
+            
+            if 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+                net_margin = (net_income / key_items['Total Revenue']) * 100
+                income_analysis.append(f"    净利润率: {net_margin:.2f}%")
+        
+        # 少数股东权益分析
+        if 'Minority Interest' in key_items:
+            minority = key_items['Minority Interest']
+            income_analysis.append(f"  • 少数股东损益: {_format_financial_value(minority)}")
+        
+        # 4. 每股指标 - 基于实际可用数据
+        income_analysis.append("\n📊 **每股指标**")
+        
+        if 'Basic EPS' in key_items:
+            basic_eps = key_items['Basic EPS']
+            income_analysis.append(f"  • 基本每股收益: {basic_eps:.4f}元")
+        
+        if 'Diluted EPS' in key_items:
+            diluted_eps = key_items['Diluted EPS']
+            income_analysis.append(f"  • 稀释每股收益: {diluted_eps:.4f}元")
+        
+        if 'Basic Shares' in key_items:
+            basic_shares = key_items['Basic Shares']
+            income_analysis.append(f"  • 基本加权平均股数: {_format_financial_value(basic_shares)}股")
+        
+        if 'Diluted Shares' in key_items:
+            diluted_shares = key_items['Diluted Shares']
+            income_analysis.append(f"  • 稀释加权平均股数: {_format_financial_value(diluted_shares)}股")
+        
+        if 'DPS Class A' in key_items:
+            dps_a = key_items['DPS Class A']
+            income_analysis.append(f"  • A类普通股每股股利: {dps_a:.4f}元")
+        
+        if 'DPS Class B' in key_items:
+            dps_b = key_items['DPS Class B']
+            income_analysis.append(f"  • B类普通股每股股利: {dps_b:.4f}元")
+        
+        # 5. 同比分析（如果有多期数据）
+        if len(sorted_dates) >= 2:
+            income_analysis.append("\n📊 **同比变化分析**")
+            
+            prev_date = sorted_dates[1]
+            prev_data = reports_by_date[prev_date]
+            prev_combined = {}
+            for statement_type, items in prev_data.items():
+                prev_combined.update(items)
+            prev_key_items = _extract_key_financial_items(prev_combined)
+            
+            # 收入增长分析
+            if 'Total Revenue' in key_items and 'Total Revenue' in prev_key_items and prev_key_items['Total Revenue'] != 0:
+                revenue_growth = ((key_items['Total Revenue'] - prev_key_items['Total Revenue']) / prev_key_items['Total Revenue']) * 100
+                income_analysis.append(f"  • 总收入同比增长: {revenue_growth:+.2f}%")
+            
+            # 利润增长分析
+            if 'Net Income' in key_items and 'Net Income' in prev_key_items and prev_key_items['Net Income'] != 0:
+                profit_growth = ((key_items['Net Income'] - prev_key_items['Net Income']) / prev_key_items['Net Income']) * 100
+                income_analysis.append(f"  • 净利润同比增长: {profit_growth:+.2f}%")
+            
+            # 毛利率变化
+            if ('Gross Profit' in key_items and 'Total Revenue' in key_items and 
+                'Gross Profit' in prev_key_items and 'Total Revenue' in prev_key_items and 
+                key_items['Total Revenue'] != 0 and prev_key_items['Total Revenue'] != 0):
+                current_gross_margin = (key_items['Gross Profit'] / key_items['Total Revenue']) * 100
+                prev_gross_margin = (prev_key_items['Gross Profit'] / prev_key_items['Total Revenue']) * 100
+                margin_change = current_gross_margin - prev_gross_margin
+                income_analysis.append(f"  • 毛利率变化: {margin_change:+.2f}个百分点")
+            
+            # 净利率变化
+            if ('Net Income' in key_items and 'Total Revenue' in key_items and 
+                'Net Income' in prev_key_items and 'Total Revenue' in prev_key_items and 
+                key_items['Total Revenue'] != 0 and prev_key_items['Total Revenue'] != 0):
+                current_net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+                prev_net_margin = (prev_key_items['Net Income'] / prev_key_items['Total Revenue']) * 100
+                net_margin_change = current_net_margin - prev_net_margin
+                income_analysis.append(f"  • 净利率变化: {net_margin_change:+.2f}个百分点")
+    
+    except Exception as e:
+        income_analysis.append(f"  ❌ 利润表分析异常: {str(e)}")
+    
+    return income_analysis
+
+
+def _calculate_financial_ratios(reports_by_date: dict, sorted_dates: list) -> list:
+    """计算财务比率"""
+    ratios_output = []
+    
+    if len(sorted_dates) < 1:
+        return ratios_output
+    
+    try:
+        # 获取最新期数据
+        latest_date = sorted_dates[0]
+        latest_data = reports_by_date[latest_date]
+        
+        # 合并所有报表类型的数据
+        combined_data = {}
+        for statement_type, items in latest_data.items():
+            combined_data.update(items)
+        
+        key_items = _extract_key_financial_items(combined_data)
+        
+        # 1. 盈利能力比率 - 基于损益表数据
+        ratios_output.append("\n💰 **盈利能力分析**")
+        
+        # 净利率
+        if 'Total Revenue' in key_items and 'Net Income' in key_items and key_items['Total Revenue'] != 0:
+            net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 净利率: {net_margin:.2f}%")
+        
+        # 税前利润率
+        if 'Total Revenue' in key_items and 'Net Income Before Taxes' in key_items and key_items['Total Revenue'] != 0:
+            pretax_margin = (key_items['Net Income Before Taxes'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 税前利润率: {pretax_margin:.2f}%")
+        
+        # 研发费用率
+        if 'Total Revenue' in key_items and 'R&D Expenses' in key_items and key_items['Total Revenue'] != 0:
+            rd_ratio = (key_items['R&D Expenses'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 研发费用率: {rd_ratio:.2f}%")
+        
+        # 员工薪酬占比
+        if 'Total Revenue' in key_items and 'Employee Compensation' in key_items and key_items['Total Revenue'] != 0:
+            emp_ratio = (key_items['Employee Compensation'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 员工薪酬占收入比: {emp_ratio:.2f}%")
+        
+        # 税负率
+        if 'Net Income Before Taxes' in key_items and 'Tax Expense' in key_items and key_items['Net Income Before Taxes'] != 0:
+            tax_rate = (key_items['Tax Expense'] / key_items['Net Income Before Taxes']) * 100
+            ratios_output.append(f"  • 实际税负率: {tax_rate:.2f}%")
+        
+        # 2. 费用结构分析 - 基于损益表数据
+        ratios_output.append("\n📊 **费用结构分析**")
+        
+        # 利息费用分析
+        if 'Interest Expense' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+            interest_ratio = (key_items['Interest Expense'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 利息费用占收入比: {interest_ratio:.2f}%")
+        
+        # 总运营费用分析
+        if 'Total Operating Expense' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+            opex_ratio = (key_items['Total Operating Expense'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 总运营费用率: {opex_ratio:.2f}%")
+        
+        # 费用效率分析
+        total_expenses = 0
+        expense_count = 0
+        
+        if 'R&D Expenses' in key_items:
+            total_expenses += key_items['R&D Expenses']
+            expense_count += 1
+        if 'Employee Compensation' in key_items:
+            total_expenses += key_items['Employee Compensation']
+            expense_count += 1
+        if 'SGA Expenses' in key_items:
+            total_expenses += key_items['SGA Expenses']
+            expense_count += 1
+        
+        if total_expenses > 0 and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+            total_expense_ratio = (total_expenses / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 主要费用合计占收入比: {total_expense_ratio:.2f}%")
+        
+        # 3. 每股指标分析 - 基于损益表数据
+        ratios_output.append("\n📈 **每股指标分析**")
+        
+        # 基本每股收益
+        if 'Basic EPS' in key_items:
+            ratios_output.append(f"  • 基本每股收益: {key_items['Basic EPS']:.4f}元")
+        
+        # 稀释每股收益
+        if 'Diluted EPS' in key_items:
+            ratios_output.append(f"  • 稀释每股收益: {key_items['Diluted EPS']:.4f}元")
+        
+        # 每股股利分析
+        if 'DPS Class A' in key_items and 'DPS Class B' in key_items:
+            total_dps = key_items['DPS Class A'] + key_items['DPS Class B']
+            ratios_output.append(f"  • 每股股利合计: {total_dps:.4f}元")
+        
+        # 股利支付率
+        if 'DPS Class A' in key_items and 'Basic EPS' in key_items and key_items['Basic EPS'] != 0:
+            payout_ratio = (key_items['DPS Class A'] / key_items['Basic EPS']) * 100
+            ratios_output.append(f"  • A类股股利支付率: {payout_ratio:.2f}%")
+        
+        # 股本稀释度
+        if 'Basic Shares' in key_items and 'Diluted Shares' in key_items and key_items['Basic Shares'] != 0:
+            dilution_rate = ((key_items['Diluted Shares'] - key_items['Basic Shares']) / key_items['Basic Shares']) * 100
+            ratios_output.append(f"  • 股本稀释度: {dilution_rate:.2f}%")
+        
+        # 4. 成长能力分析（需要多期数据）
+        if len(sorted_dates) >= 2:
+            ratios_output.append("\n📈 **成长能力分析**")
+            
+            # 获取上期数据
+            prev_date = sorted_dates[1]
+            prev_data = reports_by_date[prev_date]
+            prev_combined = {}
+            for statement_type, items in prev_data.items():
+                prev_combined.update(items)
+            prev_key_items = _extract_key_financial_items(prev_combined)
+            
+            # 营业收入增长率
+            if 'Total Revenue' in key_items and 'Total Revenue' in prev_key_items and prev_key_items['Total Revenue'] != 0:
+                revenue_growth = ((key_items['Total Revenue'] - prev_key_items['Total Revenue']) / prev_key_items['Total Revenue']) * 100
+                ratios_output.append(f"  • 营业收入增长率: {revenue_growth:.2f}%")
+            
+            # 净利润增长率
+            if 'Net Income' in key_items and 'Net Income' in prev_key_items and prev_key_items['Net Income'] != 0:
+                profit_growth = ((key_items['Net Income'] - prev_key_items['Net Income']) / prev_key_items['Net Income']) * 100
+                ratios_output.append(f"  • 净利润增长率: {profit_growth:.2f}%")
+            
+            # 总资产增长率
+            if 'Total Assets' in key_items and 'Total Assets' in prev_key_items and prev_key_items['Total Assets'] != 0:
+                asset_growth = ((key_items['Total Assets'] - prev_key_items['Total Assets']) / prev_key_items['Total Assets']) * 100
+                ratios_output.append(f"  • 总资产增长率: {asset_growth:.2f}%")
+            
+            # 股东权益增长率
+            if 'Total Equity' in key_items and 'Total Equity' in prev_key_items and prev_key_items['Total Equity'] != 0:
+                equity_growth = ((key_items['Total Equity'] - prev_key_items['Total Equity']) / prev_key_items['Total Equity']) * 100
+                ratios_output.append(f"  • 股东权益增长率: {equity_growth:.2f}%")
+        
+        # 5. 收入质量分析 - 基于损益表数据
+        ratios_output.append("\n💎 **收入质量分析**")
+        
+        # 收入构成分析
+        if 'Vehicle Sales' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+            vehicle_ratio = (key_items['Vehicle Sales'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 汽车销售收入占比: {vehicle_ratio:.2f}%")
+        
+        if 'Other Revenue' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+            other_ratio = (key_items['Other Revenue'] / key_items['Total Revenue']) * 100
+            ratios_output.append(f"  • 其他收入占比: {other_ratio:.2f}%")
+        
+        # 利润质量分析
+        if 'Net Income' in key_items and 'Minority Interest' in key_items:
+            parent_income = key_items['Net Income'] - key_items['Minority Interest']
+            if key_items['Net Income'] != 0:
+                parent_ratio = (parent_income / key_items['Net Income']) * 100
+                ratios_output.append(f"  • 归属母公司净利润占比: {parent_ratio:.2f}%")
+        
+        # 税负合理性分析
+        if 'Tax Expense' in key_items and 'Net Income Before Taxes' in key_items:
+            if key_items['Net Income Before Taxes'] > 0:
+                effective_tax_rate = (key_items['Tax Expense'] / key_items['Net Income Before Taxes']) * 100
+                ratios_output.append(f"  • 有效税率: {effective_tax_rate:.2f}%")
+            else:
+                ratios_output.append(f"  • 税前亏损，实际税负: {_format_financial_value(key_items['Tax Expense'])}")
+        
+    except Exception as e:
+        ratios_output.append(f"  ❌ 财务比率计算异常: {str(e)}")
+    
+    return ratios_output
+
+
+def _analyze_financial_trends(reports_by_date: dict, sorted_dates: list) -> list:
+    """详细的财务趋势分析和多期数据对比"""
+    trend_output = []
+    
+    if len(sorted_dates) < 2:
+        trend_output.append("  ℹ️ 需要至少两期数据进行趋势分析")
+        return trend_output
+    
+    try:
+        trend_output.append("\n📈 **财务趋势分析**")
+        
+        # 分析最近3-4期的数据趋势
+        periods_to_analyze = min(4, len(sorted_dates))
+        
+        # 收集各期关键指标
+        period_data = []
+        for i in range(periods_to_analyze):
+            date = sorted_dates[i]
+            combined_data = {}
+            for statement_type, items in reports_by_date[date].items():
+                combined_data.update(items)
+            key_items = _extract_key_financial_items(combined_data)
+            period_data.append({
+                'date': date,
+                'data': key_items
+            })
+        
+        # 1. 收入趋势分析
+        trend_output.append("\n💰 **收入趋势**")
+        revenue_trend = []
+        for period in period_data:
+            if 'Total Revenue' in period['data']:
+                revenue_trend.append({
+                    'date': period['date'],
+                    'value': period['data']['Total Revenue']
+                })
+        
+        if len(revenue_trend) >= 2:
+            # 计算各期同比增长率
+            for i in range(len(revenue_trend) - 1):
+                current = revenue_trend[i]
+                previous = revenue_trend[i + 1]
+                if previous['value'] != 0:
+                    growth_rate = ((current['value'] - previous['value']) / previous['value']) * 100
+                    trend_direction = "📈" if growth_rate > 0 else "📉" if growth_rate < 0 else "➡️"
+                    trend_output.append(f"  {trend_direction} {current['date']}: {_format_financial_value(current['value'])} (同比{growth_rate:+.1f}%)")
+        
+        # 2. 利润趋势分析
+        trend_output.append("\n💎 **利润趋势**")
+        profit_trend = []
+        for period in period_data:
+            if 'Net Income' in period['data']:
+                profit_trend.append({
+                    'date': period['date'],
+                    'value': period['data']['Net Income']
+                })
+        
+        if len(profit_trend) >= 2:
+            for i in range(len(profit_trend) - 1):
+                current = profit_trend[i]
+                previous = profit_trend[i + 1]
+                if previous['value'] != 0:
+                    growth_rate = ((current['value'] - previous['value']) / previous['value']) * 100
+                    trend_direction = "📈" if growth_rate > 0 else "📉" if growth_rate < 0 else "➡️"
+                    trend_output.append(f"  {trend_direction} {current['date']}: {_format_financial_value(current['value'])} (同比{growth_rate:+.1f}%)")
+        
+        # 3. 资产规模趋势
+        trend_output.append("\n🏢 **资产规模趋势**")
+        asset_trend = []
+        for period in period_data:
+            if 'Total Assets' in period['data']:
+                asset_trend.append({
+                    'date': period['date'],
+                    'value': period['data']['Total Assets']
+                })
+        
+        if len(asset_trend) >= 2:
+            for i in range(len(asset_trend) - 1):
+                current = asset_trend[i]
+                previous = asset_trend[i + 1]
+                if previous['value'] != 0:
+                    growth_rate = ((current['value'] - previous['value']) / previous['value']) * 100
+                    trend_direction = "📈" if growth_rate > 0 else "📉" if growth_rate < 0 else "➡️"
+                    trend_output.append(f"  {trend_direction} {current['date']}: {_format_financial_value(current['value'])} (同比{growth_rate:+.1f}%)")
+        
+        # 4. 现金流趋势
+        trend_output.append("\n💧 **现金流趋势**")
+        cashflow_trend = []
+        for period in period_data:
+            if 'Operating Cash Flow' in period['data']:
+                cashflow_trend.append({
+                    'date': period['date'],
+                    'value': period['data']['Operating Cash Flow']
+                })
+        
+        if len(cashflow_trend) >= 2:
+            for i in range(len(cashflow_trend) - 1):
+                current = cashflow_trend[i]
+                previous = cashflow_trend[i + 1]
+                if previous['value'] != 0:
+                    growth_rate = ((current['value'] - previous['value']) / previous['value']) * 100
+                    trend_direction = "📈" if growth_rate > 0 else "📉" if growth_rate < 0 else "➡️"
+                    trend_output.append(f"  {trend_direction} {current['date']}: {_format_financial_value(current['value'])} (同比{growth_rate:+.1f}%)")
+        
+        # 5. 关键比率趋势
+        trend_output.append("\n📊 **关键比率趋势**")
+        
+        # 净利率趋势
+        margin_trend = []
+        for period in period_data:
+            if 'Total Revenue' in period['data'] and 'Net Income' in period['data']:
+                revenue = period['data']['Total Revenue']
+                profit = period['data']['Net Income']
+                if revenue != 0:
+                    margin = (profit / revenue) * 100
+                    margin_trend.append({
+                        'date': period['date'],
+                        'margin': margin
+                    })
+        
+        if len(margin_trend) >= 2:
+            trend_output.append("  📈 净利率变化:")
+            for i, period in enumerate(margin_trend):
+                if i < len(margin_trend) - 1:
+                    next_period = margin_trend[i + 1]
+                    change = period['margin'] - next_period['margin']
+                    trend_direction = "↗️" if change > 0 else "↘️" if change < 0 else "➡️"
+                    trend_output.append(f"    {trend_direction} {period['date']}: {period['margin']:.2f}% (变化{change:+.2f}pp)")
+        
+        # 6. 趋势总结
+        trend_output.append("\n🎯 **趋势总结**")
+        
+        # 基于多个指标给出综合趋势判断
+        positive_trends = 0
+        negative_trends = 0
+        
+        # 检查收入趋势
+        if len(revenue_trend) >= 2 and revenue_trend[0]['value'] > revenue_trend[1]['value']:
+            positive_trends += 1
+        elif len(revenue_trend) >= 2 and revenue_trend[0]['value'] < revenue_trend[1]['value']:
+            negative_trends += 1
+        
+        # 检查利润趋势
+        if len(profit_trend) >= 2 and profit_trend[0]['value'] > profit_trend[1]['value']:
+            positive_trends += 1
+        elif len(profit_trend) >= 2 and profit_trend[0]['value'] < profit_trend[1]['value']:
+            negative_trends += 1
+        
+        # 检查现金流趋势
+        if len(cashflow_trend) >= 2 and cashflow_trend[0]['value'] > cashflow_trend[1]['value']:
+            positive_trends += 1
+        elif len(cashflow_trend) >= 2 and cashflow_trend[0]['value'] < cashflow_trend[1]['value']:
+            negative_trends += 1
+        
+        if positive_trends > negative_trends:
+            trend_output.append("  🟢 整体趋势: 向好，多项关键指标呈现增长态势")
+        elif negative_trends > positive_trends:
+            trend_output.append("  🔴 整体趋势: 下滑，需要关注经营状况变化")
+        else:
+            trend_output.append("  🟡 整体趋势: 平稳，各项指标变化不大")
+        
+    except Exception as e:
+        trend_output.append(f"  ❌ 趋势分析异常: {str(e)}")
+    
+    return trend_output
+
+
+def _assess_financial_risks(reports_by_date: dict, sorted_dates: list) -> list:
+    """评估财务风险"""
+    risk_output = []
+    
+    if len(sorted_dates) < 1:
+        return risk_output
+    
+    try:
+        # 获取最新期数据
+        latest_date = sorted_dates[0]
+        latest_data = reports_by_date[latest_date]
+        
+        # 合并所有报表类型的数据
+        combined_data = {}
+        for statement_type, items in latest_data.items():
+            combined_data.update(items)
+        
+        key_items = _extract_key_financial_items(combined_data)
+        
+        # 1. 流动性风险评估
+        risk_output.append("\n💧 **流动性风险评估**")
+        
+        if 'Current Assets' in key_items and 'Current Liabilities' in key_items:
+            if key_items['Current Liabilities'] != 0:
+                current_ratio = key_items['Current Assets'] / key_items['Current Liabilities']
+                if current_ratio < 1.0:
+                    risk_output.append(f"  🔴 高风险: 流动比率{current_ratio:.2f} < 1.0，短期偿债能力不足")
+                elif current_ratio < 1.5:
+                    risk_output.append(f"  🟡 中风险: 流动比率{current_ratio:.2f}，流动性偏紧")
+                else:
+                    risk_output.append(f"  🟢 低风险: 流动比率{current_ratio:.2f}，流动性良好")
+        
+        # 现金流风险
+        if 'Operating Cash Flow' in key_items:
+            if key_items['Operating Cash Flow'] < 0:
+                risk_output.append(f"  🔴 高风险: 经营现金流为负，现金流紧张")
+            elif 'Net Income' in key_items and key_items['Net Income'] > 0:
+                cash_quality = key_items['Operating Cash Flow'] / key_items['Net Income']
+                if cash_quality < 0.8:
+                    risk_output.append(f"  🟡 中风险: 现金流质量{cash_quality:.2f}，盈利质量有待提升")
+                else:
+                    risk_output.append(f"  🟢 低风险: 现金流质量{cash_quality:.2f}，盈利质量良好")
+        
+        # 2. 偿债风险评估
+        risk_output.append("\n🏦 **偿债风险评估**")
+        
+        if 'Total Liabilities' in key_items and 'Total Assets' in key_items and key_items['Total Assets'] != 0:
+            debt_ratio = (key_items['Total Liabilities'] / key_items['Total Assets']) * 100
+            if debt_ratio > 70:
+                risk_output.append(f"  🔴 高风险: 资产负债率{debt_ratio:.1f}% > 70%，债务负担重")
+            elif debt_ratio > 50:
+                risk_output.append(f"  🟡 中风险: 资产负债率{debt_ratio:.1f}%，债务水平偏高")
+            else:
+                risk_output.append(f"  🟢 低风险: 资产负债率{debt_ratio:.1f}%，债务水平合理")
+        
+        # 3. 经营风险评估
+        risk_output.append("\n📊 **经营风险评估**")
+        
+        # 盈利能力风险
+        if 'Total Revenue' in key_items and 'Net Income' in key_items and key_items['Total Revenue'] != 0:
+            net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+            if net_margin < 0:
+                risk_output.append(f"  🔴 高风险: 净利率{net_margin:.2f}%，公司亏损")
+            elif net_margin < 5:
+                risk_output.append(f"  🟡 中风险: 净利率{net_margin:.2f}%，盈利能力偏弱")
+            else:
+                risk_output.append(f"  🟢 低风险: 净利率{net_margin:.2f}%，盈利能力良好")
+        
+        # 成长性风险（需要多期数据）
+        if len(sorted_dates) >= 2:
+            prev_date = sorted_dates[1]
+            prev_data = reports_by_date[prev_date]
+            prev_combined = {}
+            for statement_type, items in prev_data.items():
+                prev_combined.update(items)
+            prev_key_items = _extract_key_financial_items(prev_combined)
+            
+            if 'Total Revenue' in key_items and 'Total Revenue' in prev_key_items and prev_key_items['Total Revenue'] != 0:
+                revenue_growth = ((key_items['Total Revenue'] - prev_key_items['Total Revenue']) / prev_key_items['Total Revenue']) * 100
+                if revenue_growth < -10:
+                    risk_output.append(f"  🔴 高风险: 营业收入下降{abs(revenue_growth):.1f}%，业务萎缩")
+                elif revenue_growth < 0:
+                    risk_output.append(f"  🟡 中风险: 营业收入下降{abs(revenue_growth):.1f}%，增长乏力")
+                else:
+                    risk_output.append(f"  🟢 低风险: 营业收入增长{revenue_growth:.1f}%，业务发展良好")
+        
+    except Exception as e:
+        risk_output.append(f"  ❌ 风险评估异常: {str(e)}")
+    
+    return risk_output
+
+
+def _analyze_financial_prospects(reports_by_date: dict, sorted_dates: list) -> list:
+    """分析财务前景"""
+    prospect_output = []
+    
+    if len(sorted_dates) < 2:
+        prospect_output.append("  ℹ️ 需要至少两期数据进行前景分析")
+        return prospect_output
+    
+    try:
+        # 获取最新两期数据
+        latest_date = sorted_dates[0]
+        prev_date = sorted_dates[1]
+        
+        latest_data = reports_by_date[latest_date]
+        prev_data = reports_by_date[prev_date]
+        
+        # 合并数据
+        latest_combined = {}
+        prev_combined = {}
+        
+        for statement_type, items in latest_data.items():
+            latest_combined.update(items)
+        for statement_type, items in prev_data.items():
+            prev_combined.update(items)
+        
+        latest_key = _extract_key_financial_items(latest_combined)
+        prev_key = _extract_key_financial_items(prev_combined)
+        
+        # 1. 收入增长趋势分析
+        prospect_output.append("\n📈 **收入增长趋势**")
+        
+        if 'Total Revenue' in latest_key and 'Total Revenue' in prev_key and prev_key['Total Revenue'] != 0:
+            revenue_growth = ((latest_key['Total Revenue'] - prev_key['Total Revenue']) / prev_key['Total Revenue']) * 100
+            
+            if revenue_growth > 20:
+                prospect_output.append(f"  🚀 优秀: 营业收入增长{revenue_growth:.1f}%，高速增长")
+                prospect_output.append(f"    预期: 如果保持当前增长势头，未来业绩表现值得期待")
+            elif revenue_growth > 10:
+                prospect_output.append(f"  📈 良好: 营业收入增长{revenue_growth:.1f}%，稳健增长")
+                prospect_output.append(f"    预期: 业务发展稳定，具备持续增长潜力")
+            elif revenue_growth > 0:
+                prospect_output.append(f"  📊 一般: 营业收入增长{revenue_growth:.1f}%，温和增长")
+                prospect_output.append(f"    预期: 增长动力有限，需关注业务拓展情况")
+            else:
+                prospect_output.append(f"  📉 担忧: 营业收入下降{abs(revenue_growth):.1f}%，业务收缩")
+                prospect_output.append(f"    预期: 需要关注业务转型和市场竞争力恢复")
+        
+        # 2. 盈利能力变化分析
+        prospect_output.append("\n💰 **盈利能力变化**")
+        
+        if 'Net Income' in latest_key and 'Net Income' in prev_key and prev_key['Net Income'] != 0:
+            profit_growth = ((latest_key['Net Income'] - prev_key['Net Income']) / prev_key['Net Income']) * 100
+            
+            # 计算净利率变化
+            if 'Total Revenue' in latest_key and 'Total Revenue' in prev_key:
+                latest_margin = (latest_key['Net Income'] / latest_key['Total Revenue']) * 100 if latest_key['Total Revenue'] != 0 else 0
+                prev_margin = (prev_key['Net Income'] / prev_key['Total Revenue']) * 100 if prev_key['Total Revenue'] != 0 else 0
+                margin_change = latest_margin - prev_margin
+                
+                if profit_growth > 15 and margin_change > 0:
+                    prospect_output.append(f"  🌟 优秀: 净利润增长{profit_growth:.1f}%，净利率提升{margin_change:.1f}个百分点")
+                    prospect_output.append(f"    预期: 盈利能力显著改善，投资价值提升")
+                elif profit_growth > 0:
+                    prospect_output.append(f"  📈 良好: 净利润增长{profit_growth:.1f}%，盈利能力稳定")
+                    prospect_output.append(f"    预期: 盈利水平保持增长，经营效率良好")
+                else:
+                    prospect_output.append(f"  📉 担忧: 净利润下降{abs(profit_growth):.1f}%，盈利承压")
+                    prospect_output.append(f"    预期: 需要关注成本控制和经营效率改善")
+        
+        # 3. 现金流健康度分析
+        prospect_output.append("\n💧 **现金流健康度**")
+        
+        if 'Operating Cash Flow' in latest_key and 'Operating Cash Flow' in prev_key:
+            if latest_key['Operating Cash Flow'] > 0 and prev_key['Operating Cash Flow'] > 0:
+                cashflow_growth = ((latest_key['Operating Cash Flow'] - prev_key['Operating Cash Flow']) / prev_key['Operating Cash Flow']) * 100
+                
+                if cashflow_growth > 10:
+                    prospect_output.append(f"  💪 优秀: 经营现金流增长{cashflow_growth:.1f}%，现金创造能力强")
+                    prospect_output.append(f"    预期: 现金流充裕，支撑业务扩张和分红能力")
+                elif cashflow_growth > 0:
+                    prospect_output.append(f"  👍 良好: 经营现金流增长{cashflow_growth:.1f}%，现金流稳定")
+                    prospect_output.append(f"    预期: 现金流状况良好，经营质量可靠")
+                else:
+                    prospect_output.append(f"  ⚠️ 关注: 经营现金流下降{abs(cashflow_growth):.1f}%，需要关注")
+                    prospect_output.append(f"    预期: 现金流压力增加，需要改善回款和库存管理")
+            elif latest_key['Operating Cash Flow'] > 0 and prev_key['Operating Cash Flow'] <= 0:
+                prospect_output.append(f"  🔄 改善: 经营现金流由负转正，现金流状况改善")
+                prospect_output.append(f"    预期: 经营质量提升，现金流健康度恢复")
+            elif latest_key['Operating Cash Flow'] <= 0:
+                prospect_output.append(f"  🔴 警告: 经营现金流为负，现金流紧张")
+                prospect_output.append(f"    预期: 需要密切关注资金链安全和经营改善")
+        
+        # 4. 综合前景判断
+        prospect_output.append("\n🔮 **综合前景判断**")
+        
+        # 基于多个指标综合评分
+        score = 0
+        factors = []
+        
+        # 收入增长评分
+        if 'Total Revenue' in latest_key and 'Total Revenue' in prev_key and prev_key['Total Revenue'] != 0:
+            revenue_growth = ((latest_key['Total Revenue'] - prev_key['Total Revenue']) / prev_key['Total Revenue']) * 100
+            if revenue_growth > 15:
+                score += 3
+                factors.append("收入高增长")
+            elif revenue_growth > 5:
+                score += 2
+                factors.append("收入稳增长")
+            elif revenue_growth > 0:
+                score += 1
+                factors.append("收入微增长")
+            else:
+                factors.append("收入下降")
+        
+        # 盈利能力评分
+        if 'Net Income' in latest_key and 'Net Income' in prev_key and prev_key['Net Income'] != 0:
+            profit_growth = ((latest_key['Net Income'] - prev_key['Net Income']) / prev_key['Net Income']) * 100
+            if profit_growth > 20:
+                score += 3
+                factors.append("利润高增长")
+            elif profit_growth > 10:
+                score += 2
+                factors.append("利润稳增长")
+            elif profit_growth > 0:
+                score += 1
+                factors.append("利润微增长")
+            else:
+                factors.append("利润下降")
+        
+        # 现金流评分
+        if 'Operating Cash Flow' in latest_key:
+            if latest_key['Operating Cash Flow'] > 0:
+                if 'Net Income' in latest_key and latest_key['Net Income'] > 0:
+                    cash_quality = latest_key['Operating Cash Flow'] / latest_key['Net Income']
+                    if cash_quality > 1.2:
+                        score += 3
+                        factors.append("现金流优质")
+                    elif cash_quality > 0.8:
+                        score += 2
+                        factors.append("现金流良好")
+                    else:
+                        score += 1
+                        factors.append("现金流一般")
+                else:
+                    score += 1
+                    factors.append("现金流为正")
+            else:
+                factors.append("现金流为负")
+        
+        # 综合评价
+        if score >= 7:
+            prospect_output.append(f"  🌟 前景优秀 (评分: {score}/9)")
+            prospect_output.append(f"    关键因素: {', '.join(factors)}")
+            prospect_output.append(f"    投资建议: 公司基本面强劲，具备良好的投资价值")
+        elif score >= 4:
+            prospect_output.append(f"  👍 前景良好 (评分: {score}/9)")
+            prospect_output.append(f"    关键因素: {', '.join(factors)}")
+            prospect_output.append(f"    投资建议: 公司发展稳健，可考虑适度配置")
+        elif score >= 2:
+            prospect_output.append(f"  ⚠️ 前景一般 (评分: {score}/9)")
+            prospect_output.append(f"    关键因素: {', '.join(factors)}")
+            prospect_output.append(f"    投资建议: 公司表现平平，需要谨慎评估")
+        else:
+            prospect_output.append(f"  📉 前景担忧 (评分: {score}/9)")
+            prospect_output.append(f"    关键因素: {', '.join(factors)}")
+            prospect_output.append(f"    投资建议: 公司面临挑战，建议规避风险")
+        
+    except Exception as e:
+        prospect_output.append(f"  ❌ 前景分析异常: {str(e)}")
+    
+    return prospect_output
+
+
+def _calculate_financial_health_score(reports_by_date: dict, sorted_dates: list) -> list:
+    """计算综合财务健康评分"""
+    health_output = []
+    
+    if len(sorted_dates) < 1:
+        return health_output
+    
+    try:
+        # 获取最新期数据
+        latest_date = sorted_dates[0]
+        latest_data = reports_by_date[latest_date]
+        
+        # 合并所有报表类型的数据
+        combined_data = {}
+        for statement_type, items in latest_data.items():
+            combined_data.update(items)
+        
+        key_items = _extract_key_financial_items(combined_data)
+        
+        # 健康评分系统 (总分100分)
+        total_score = 0
+        max_score = 100
+        score_details = []
+        
+        # 1. 盈利能力评分 (30分)
+        profitability_score = 0
+        if 'Total Revenue' in key_items and 'Net Income' in key_items and key_items['Total Revenue'] != 0:
+            net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+            if net_margin > 15:
+                profitability_score = 30
+            elif net_margin > 10:
+                profitability_score = 25
+            elif net_margin > 5:
+                profitability_score = 20
+            elif net_margin > 0:
+                profitability_score = 15
+            else:
+                profitability_score = 0
+            
+            score_details.append(f"盈利能力: {profitability_score}/30 (净利率{net_margin:.1f}%)")
+        else:
+            score_details.append("盈利能力: 0/30 (数据不足)")
+        
+        total_score += profitability_score
+        
+        # 2. 偿债能力评分 (25分) - 基于损益表数据的替代评估
+        solvency_score = 0
+        if 'Total Liabilities' in key_items and 'Total Assets' in key_items and key_items['Total Assets'] != 0:
+            debt_ratio = (key_items['Total Liabilities'] / key_items['Total Assets']) * 100
+            if debt_ratio < 30:
+                solvency_score = 25
+            elif debt_ratio < 50:
+                solvency_score = 20
+            elif debt_ratio < 70:
+                solvency_score = 15
+            else:
+                solvency_score = 5
+            
+            score_details.append(f"偿债能力: {solvency_score}/25 (资产负债率{debt_ratio:.1f}%)")
+        else:
+            # 基于盈利能力的替代评估
+            if 'Net Income' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+                net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+                if net_margin > 15:  # 高盈利能力通常意味着较强的偿债能力
+                    solvency_score = 15
+                elif net_margin > 10:
+                    solvency_score = 12
+                elif net_margin > 5:
+                    solvency_score = 8
+                elif net_margin > 0:
+                    solvency_score = 5
+                else:
+                    solvency_score = 0
+                
+                score_details.append(f"偿债能力: {solvency_score}/25 (基于净利率{net_margin:.1f}%评估，缺少资产负债表数据)")
+            else:
+                score_details.append("偿债能力: 0/25 (缺少资产负债表数据，无法评估)")
+        
+        total_score += solvency_score
+        
+        # 3. 流动性评分 (20分) - 基于损益表数据的替代评估
+        liquidity_score = 0
+        if 'Current Assets' in key_items and 'Current Liabilities' in key_items and key_items['Current Liabilities'] != 0:
+            current_ratio = key_items['Current Assets'] / key_items['Current Liabilities']
+            if current_ratio > 2.0:
+                liquidity_score = 20
+            elif current_ratio > 1.5:
+                liquidity_score = 16
+            elif current_ratio > 1.0:
+                liquidity_score = 12
+            else:
+                liquidity_score = 5
+            
+            score_details.append(f"流动性: {liquidity_score}/20 (流动比率{current_ratio:.2f})")
+        else:
+            # 基于营业收入规模和盈利稳定性的替代评估
+            if 'Total Revenue' in key_items and 'Net Income' in key_items:
+                revenue_billion = key_items['Total Revenue'] / 1000000000  # 转换为十亿单位
+                if key_items['Net Income'] > 0 and revenue_billion > 10:  # 大规模盈利企业通常流动性较好
+                    liquidity_score = 12
+                elif key_items['Net Income'] > 0 and revenue_billion > 5:
+                    liquidity_score = 10
+                elif key_items['Net Income'] > 0 and revenue_billion > 1:
+                    liquidity_score = 8
+                elif key_items['Net Income'] > 0:
+                    liquidity_score = 6
+                else:
+                    liquidity_score = 2
+                
+                score_details.append(f"流动性: {liquidity_score}/20 (基于营收规模{revenue_billion:.1f}十亿评估，缺少资产负债表数据)")
+            else:
+                score_details.append("流动性: 0/20 (缺少资产负债表数据，无法评估)")
+        
+        total_score += liquidity_score
+        
+        # 4. 现金流质量评分 (15分) - 基于损益表数据的替代评估
+        cashflow_score = 0
+        if 'Operating Cash Flow' in key_items and 'Net Income' in key_items:
+            if key_items['Operating Cash Flow'] > 0 and key_items['Net Income'] > 0:
+                cash_quality = key_items['Operating Cash Flow'] / key_items['Net Income']
+                if cash_quality > 1.2:
+                    cashflow_score = 15
+                elif cash_quality > 1.0:
+                    cashflow_score = 12
+                elif cash_quality > 0.8:
+                    cashflow_score = 10
+                else:
+                    cashflow_score = 5
+                
+                score_details.append(f"现金流质量: {cashflow_score}/15 (现金流/净利润={cash_quality:.2f})")
+            elif key_items['Operating Cash Flow'] > 0:
+                cashflow_score = 8
+                score_details.append(f"现金流质量: {cashflow_score}/15 (经营现金流为正)")
+            else:
+                score_details.append("现金流质量: 0/15 (经营现金流为负)")
+        else:
+            # 基于盈利质量和业务模式的替代评估
+            if 'Net Income' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+                net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+                # 高净利率通常意味着较好的现金转换能力
+                if net_margin > 15 and key_items['Net Income'] > 0:
+                    cashflow_score = 10
+                elif net_margin > 10 and key_items['Net Income'] > 0:
+                    cashflow_score = 8
+                elif net_margin > 5 and key_items['Net Income'] > 0:
+                    cashflow_score = 6
+                elif key_items['Net Income'] > 0:
+                    cashflow_score = 4
+                else:
+                    cashflow_score = 0
+                
+                score_details.append(f"现金流质量: {cashflow_score}/15 (基于净利率{net_margin:.1f}%评估，缺少现金流量表数据)")
+            else:
+                score_details.append("现金流质量: 0/15 (缺少现金流量表数据，无法评估)")
+        
+        total_score += cashflow_score
+        
+        # 5. 成长性评分 (10分) - 需要多期数据
+        growth_score = 0
+        if len(sorted_dates) >= 2:
+            prev_date = sorted_dates[1]
+            prev_data = reports_by_date[prev_date]
+            prev_combined = {}
+            for statement_type, items in prev_data.items():
+                prev_combined.update(items)
+            prev_key_items = _extract_key_financial_items(prev_combined)
+            
+            if 'Total Revenue' in key_items and 'Total Revenue' in prev_key_items and prev_key_items['Total Revenue'] != 0:
+                revenue_growth = ((key_items['Total Revenue'] - prev_key_items['Total Revenue']) / prev_key_items['Total Revenue']) * 100
+                if revenue_growth > 20:
+                    growth_score = 10
+                elif revenue_growth > 10:
+                    growth_score = 8
+                elif revenue_growth > 5:
+                    growth_score = 6
+                elif revenue_growth > 0:
+                    growth_score = 4
+                else:
+                    growth_score = 0
+                
+                score_details.append(f"成长性: {growth_score}/10 (收入增长{revenue_growth:.1f}%)")
+            else:
+                score_details.append("成长性: 0/10 (数据不足)")
+        else:
+            score_details.append("成长性: 0/10 (需要多期数据)")
+        
+        total_score += growth_score
+        
+        # 输出健康评分结果
+        health_output.append(f"\n🏥 **综合健康评分: {total_score}/{max_score}分**")
+        
+        # 评级判断
+        if total_score >= 80:
+            rating = "AAA (优秀)"
+            emoji = "🌟"
+            description = "财务状况非常健康，各项指标表现优异"
+        elif total_score >= 70:
+            rating = "AA (良好)"
+            emoji = "👍"
+            description = "财务状况良好，大部分指标表现稳健"
+        elif total_score >= 60:
+            rating = "A (一般)"
+            emoji = "📊"
+            description = "财务状况一般，部分指标需要改善"
+        elif total_score >= 40:
+            rating = "B (关注)"
+            emoji = "⚠️"
+            description = "财务状况需要关注，存在一定风险"
+        else:
+            rating = "C (警告)"
+            emoji = "🔴"
+            description = "财务状况较差，存在较大风险"
+        
+        health_output.append(f"\n{emoji} **财务健康等级: {rating}**")
+        health_output.append(f"  📝 评价: {description}")
+        
+        health_output.append("\n📋 **评分明细:**")
+        for detail in score_details:
+            health_output.append(f"  • {detail}")
+        
+    except Exception as e:
+        health_output.append(f"  ❌ 健康评分计算异常: {str(e)}")
+    
+    return health_output
+
+
+def _generate_investment_advice(reports_by_date: dict, sorted_dates: list) -> list:
+    """生成投资建议"""
+    advice_output = []
+    
+    if len(sorted_dates) < 1:
+        return advice_output
+    
+    try:
+        # 获取最新期数据
+        latest_date = sorted_dates[0]
+        latest_data = reports_by_date[latest_date]
+        
+        # 合并所有报表类型的数据
+        combined_data = {}
+        for statement_type, items in latest_data.items():
+            combined_data.update(items)
+        
+        key_items = _extract_key_financial_items(combined_data)
+        
+        # 投资建议评分系统
+        investment_score = 0
+        positive_factors = []
+        negative_factors = []
+        neutral_factors = []
+        
+        # 1. 盈利能力分析
+        if 'Total Revenue' in key_items and 'Net Income' in key_items and key_items['Total Revenue'] != 0:
+            net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+            if net_margin > 10:
+                investment_score += 2
+                positive_factors.append(f"净利率{net_margin:.1f}%，盈利能力强")
+            elif net_margin > 5:
+                investment_score += 1
+                neutral_factors.append(f"净利率{net_margin:.1f}%，盈利能力一般")
+            elif net_margin > 0:
+                neutral_factors.append(f"净利率{net_margin:.1f}%，盈利微薄")
+            else:
+                investment_score -= 2
+                negative_factors.append(f"净利率{net_margin:.1f}%，公司亏损")
+        
+        # 2. 财务稳健性分析 - 基于损益表数据的替代评估
+        if 'Total Liabilities' in key_items and 'Total Assets' in key_items and key_items['Total Assets'] != 0:
+            debt_ratio = (key_items['Total Liabilities'] / key_items['Total Assets']) * 100
+            if debt_ratio < 40:
+                investment_score += 1
+                positive_factors.append(f"资产负债率{debt_ratio:.1f}%，财务稳健")
+            elif debt_ratio < 60:
+                neutral_factors.append(f"资产负债率{debt_ratio:.1f}%，财务结构合理")
+            else:
+                investment_score -= 1
+                negative_factors.append(f"资产负债率{debt_ratio:.1f}%，债务负担重")
+        else:
+            # 基于盈利能力评估财务稳健性
+            if 'Net Income' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+                net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+                if net_margin > 15:
+                    investment_score += 1
+                    positive_factors.append(f"净利率{net_margin:.1f}%，盈利能力强，财务相对稳健")
+                elif net_margin > 5:
+                    neutral_factors.append(f"净利率{net_margin:.1f}%，盈利能力一般，财务稳健性待评估")
+                elif net_margin <= 0:
+                    investment_score -= 1
+                    negative_factors.append(f"净利率{net_margin:.1f}%，亏损状态，财务稳健性存疑")
+        
+        # 3. 流动性分析 - 基于损益表数据的替代评估
+        if 'Current Assets' in key_items and 'Current Liabilities' in key_items and key_items['Current Liabilities'] != 0:
+            current_ratio = key_items['Current Assets'] / key_items['Current Liabilities']
+            if current_ratio > 1.5:
+                investment_score += 1
+                positive_factors.append(f"流动比率{current_ratio:.2f}，流动性充足")
+            elif current_ratio > 1.0:
+                neutral_factors.append(f"流动比率{current_ratio:.2f}，流动性一般")
+            else:
+                investment_score -= 1
+                negative_factors.append(f"流动比率{current_ratio:.2f}，流动性不足")
+        else:
+            # 基于营业收入规模和盈利稳定性评估流动性
+            if 'Total Revenue' in key_items and 'Net Income' in key_items:
+                revenue_billion = key_items['Total Revenue'] / 1000000000
+                if key_items['Net Income'] > 0 and revenue_billion > 10:
+                    neutral_factors.append(f"营收规模{revenue_billion:.1f}十亿且盈利，流动性预期较好")
+                elif key_items['Net Income'] > 0 and revenue_billion > 1:
+                    neutral_factors.append(f"营收规模{revenue_billion:.1f}十亿且盈利，流动性预期一般")
+                elif key_items['Net Income'] <= 0:
+                    negative_factors.append("公司亏损，流动性可能承压")
+        
+        # 4. 现金流分析 - 基于损益表数据的替代评估
+        if 'Operating Cash Flow' in key_items:
+            if key_items['Operating Cash Flow'] > 0:
+                if 'Net Income' in key_items and key_items['Net Income'] > 0:
+                    cash_quality = key_items['Operating Cash Flow'] / key_items['Net Income']
+                    if cash_quality > 1.0:
+                        investment_score += 2
+                        positive_factors.append(f"现金流质量{cash_quality:.2f}，盈利质量高")
+                    else:
+                        investment_score += 1
+                        positive_factors.append(f"经营现金流为正，现金创造能力良好")
+                else:
+                    investment_score += 1
+                    positive_factors.append("经营现金流为正")
+            else:
+                investment_score -= 1
+                negative_factors.append("经营现金流为负，现金流紧张")
+        else:
+            # 基于盈利质量评估现金流状况
+            if 'Net Income' in key_items and 'Total Revenue' in key_items and key_items['Total Revenue'] != 0:
+                net_margin = (key_items['Net Income'] / key_items['Total Revenue']) * 100
+                if net_margin > 15 and key_items['Net Income'] > 0:
+                    positive_factors.append(f"净利率{net_margin:.1f}%，盈利质量较高，现金转换能力预期良好")
+                elif net_margin > 5 and key_items['Net Income'] > 0:
+                    neutral_factors.append(f"净利率{net_margin:.1f}%，现金转换能力有待观察")
+                elif key_items['Net Income'] <= 0:
+                    negative_factors.append("公司亏损，现金流状况堪忧")
+        
+        # 5. 成长性分析（需要多期数据）
+        if len(sorted_dates) >= 2:
+            prev_date = sorted_dates[1]
+            prev_data = reports_by_date[prev_date]
+            prev_combined = {}
+            for statement_type, items in prev_data.items():
+                prev_combined.update(items)
+            prev_key_items = _extract_key_financial_items(prev_combined)
+            
+            if 'Total Revenue' in key_items and 'Total Revenue' in prev_key_items and prev_key_items['Total Revenue'] != 0:
+                revenue_growth = ((key_items['Total Revenue'] - prev_key_items['Total Revenue']) / prev_key_items['Total Revenue']) * 100
+                if revenue_growth > 15:
+                    investment_score += 2
+                    positive_factors.append(f"营业收入增长{revenue_growth:.1f}%，高速成长")
+                elif revenue_growth > 5:
+                    investment_score += 1
+                    positive_factors.append(f"营业收入增长{revenue_growth:.1f}%，稳健成长")
+                elif revenue_growth > 0:
+                    neutral_factors.append(f"营业收入增长{revenue_growth:.1f}%，温和增长")
+                else:
+                    investment_score -= 1
+                    negative_factors.append(f"营业收入下降{abs(revenue_growth):.1f}%，业务萎缩")
+        
+        # 生成投资建议
+        advice_output.append("\n💡 **投资建议分析**")
+        
+        # 显示关键因素
+        if positive_factors:
+            advice_output.append("\n✅ **积极因素:**")
+            for factor in positive_factors:
+                advice_output.append(f"  • {factor}")
+        
+        if negative_factors:
+            advice_output.append("\n❌ **风险因素:**")
+            for factor in negative_factors:
+                advice_output.append(f"  • {factor}")
+        
+        if neutral_factors:
+            advice_output.append("\n⚪ **中性因素:**")
+            for factor in neutral_factors:
+                advice_output.append(f"  • {factor}")
+        
+        # 综合投资建议
+        advice_output.append("\n🎯 **综合投资建议:**")
+        
+        if investment_score >= 5:
+            advice_output.append("  🌟 **强烈推荐 (买入)**")
+            advice_output.append("    • 公司基本面优秀，财务指标表现突出")
+            advice_output.append("    • 具备良好的盈利能力和成长潜力")
+            advice_output.append("    • 适合长期投资和价值投资者")
+            advice_output.append("    • 建议逢低买入，长期持有")
+        elif investment_score >= 2:
+            advice_output.append("  👍 **推荐 (买入)**")
+            advice_output.append("    • 公司基本面良好，财务状况稳健")
+            advice_output.append("    • 具备一定的投资价值")
+            advice_output.append("    • 适合稳健型投资者")
+            advice_output.append("    • 可考虑适度配置")
+        elif investment_score >= 0:
+            advice_output.append("  ⚖️ **中性 (持有)**")
+            advice_output.append("    • 公司基本面一般，喜忧参半")
+            advice_output.append("    • 投资价值有限")
+            advice_output.append("    • 建议观望或小仓位试探")
+            advice_output.append("    • 需要密切关注后续发展")
+        elif investment_score >= -2:
+            advice_output.append("  ⚠️ **谨慎 (减持)**")
+            advice_output.append("    • 公司存在一定风险因素")
+            advice_output.append("    • 财务指标表现不佳")
+            advice_output.append("    • 不建议新增投资")
+            advice_output.append("    • 持有者可考虑减持")
+        else:
+            advice_output.append("  🔴 **回避 (卖出)**")
+            advice_output.append("    • 公司基本面较差，风险较大")
+            advice_output.append("    • 财务状况堪忧")
+            advice_output.append("    • 强烈建议回避投资")
+            advice_output.append("    • 持有者应考虑及时止损")
+        
+        # 风险提示
+        advice_output.append("\n⚠️ **风险提示:**")
+        advice_output.append("  • 以上分析基于历史财务数据，不构成投资建议")
+        advice_output.append("  • 投资有风险，决策需谨慎")
+        advice_output.append("  • 建议结合行业分析、市场环境等因素综合判断")
+        advice_output.append("  • 请根据自身风险承受能力做出投资决策")
+        
+    except Exception as e:
+        advice_output.append(f"  ❌ 投资建议生成异常: {str(e)}")
+    
+    return advice_output
+
+
+def _get_chanlun_analysis(code: str, market: str, frequency: str = 'd') -> str:
+    """获取缠论分析
+    
+    Args:
+        code: 股票代码
+        market: 市场代码
+        frequency: 分析周期，默认为'd'（日线）
+    """
     try:
         import sys
         import os
@@ -3060,7 +5048,7 @@ def _get_chanlun_analysis(code: str, market: str) -> str:
         from chanlun.tools.ai_analyse import AIAnalyse
         
         ai_analyse = AIAnalyse(market)
-        chanlun_result = ai_analyse.analyse(code=code, frequency='d')
+        chanlun_result = ai_analyse.analyse(code=code, frequency=frequency)
         
         if chanlun_result.get('ok', False):
             analysis = chanlun_result.get('msg', '').strip()
@@ -3098,14 +5086,28 @@ def macro_analyst_node(state: ReportGenerationState) -> Dict:
         current_code = state['current_code']
         news_content = _format_news_content(state['original_news'])
         ai_client = AIAnalyse(state['current_market'] or "a")
-        vector_db_instance = get_vector_db()
+        vector_db_instance = get_vector_db(db_path="./chroma_db")
 
         # --- 第一阶段：因子提取 ---
         logger.info("阶段1：提取驱动因子")
         factor_prompt = f"""
-你是一位敏锐的市场分析师。请阅读以下今日新闻，并识别出影响‘{current_code}’的3-5个最核心的驱动因子。
-这些因子应该是具体的、可搜索的概念（例如：‘美联储利率预期’、‘欧元区通胀数据’、‘地缘政治风险’）。
-请以JSON列表的格式返回这些因子，例如：["美联储鹰派言论", "德国PMI数据疲软", "俄乌局势紧张"]。
+你是一位敏锐的市场分析师。请阅读以下新闻内容，并识别出影响'{current_code}'的3-5个最核心的驱动因子。
+
+**关键分析原则：**
+1. **时间敏感性识别**：请特别重视标有【🔥最新】和【⚡近期】标识的新闻，这些是最新发生的事件
+2. **事件状态区分**：请明确区分以下两类事件：
+   - **已发生事件**：已经公布的经济数据、已经发生的政策决定、已经结束的会议等
+   - **预期事件**：即将公布的数据、预期的政策变化、未来的重要事件等
+3. **影响权重评估**：已发生的事件对市场的影响更为确定和直接，应给予更高权重
+
+**因子提取要求：**
+- 这些因子应该是具体的、可搜索的概念（例如：'美国CPI数据已公布'、'美联储鹰派言论'、'欧元区通胀数据疲软'）
+- 在因子描述中明确标注事件状态，例如：
+  * "美国12月CPI数据已公布超预期" （已发生）
+  * "美联储1月议息会议预期" （预期事件）
+- 优先提取已发生的重要事件，特别是经济数据公布、央行决议等
+
+请以JSON列表的格式返回这些因子，例如：["美国CPI数据已公布超预期", "美联储鹰派言论已发表", "欧央行1月议息会议预期"]。
 
 新闻内容:
 {news_content}
@@ -3136,7 +5138,7 @@ def macro_analyst_node(state: ReportGenerationState) -> Dict:
 
         end_date2 = datetime.now()
         start_date2 = end_date2 - timedelta(days=90)
-        vector_db = get_vector_db()
+        vector_db = get_vector_db(db_path="./chroma_db")
         
         def search_factor(factor):
             return factor, vector_db.semantic_search(
@@ -3166,9 +5168,15 @@ def macro_analyst_node(state: ReportGenerationState) -> Dict:
         synthesis_prompt = f"""
 你是一位顶级的宏观策略师，请为 {current_code} 撰写一份宏观分析备忘录。
 
+**核心分析原则：**
+1. **事实优先原则**：优先分析已经发生的事件（标有【🔥最新】和【⚡近期】标识），这些事件对市场的影响是确定的
+2. **时效性权重**：已公布的经济数据、已发生的政策决定比预期事件具有更高的分析权重
+3. **状态明确性**：在分析中明确区分"已发生"和"预期"事件，避免将已公布的数据误判为"即将公布"
+4. **影响确定性**：基于实际已发生的事件进行市场影响分析，而不是基于不确定的预期"
+
 **输入信息:**
 
-1.  **今日核心新闻:**
+1.  **核心新闻（按时间排序，最新优先）:**
     {news_content}
 
 2.  **识别出的核心驱动因子:**
@@ -3179,17 +5187,26 @@ def macro_analyst_node(state: ReportGenerationState) -> Dict:
 
 **分析任务与要求:**
 
-1.  **因子分析 (Factor-by-Factor Analysis):**
-    -   对于每个识别出的因子，结合今日新闻和历史背景，分析其当前的影响力与历史有何不同？（例如：市场对'美联储鹰派言论'的反应是否比过去更敏感/迟钝？）
-    -   这个因子目前是利好、利空还是中性？
+1.  **事件状态识别与分析 (Event Status Analysis):**
+    -   **已发生事件分析**：重点分析标有【🔥最新】和【⚡近期】标识的已发生事件（如已公布的CPI数据、已结束的央行会议等）
+    -   **预期事件评估**：对未来可能发生的事件进行概率性分析，但权重低于已发生事件
+    -   **明确标注状态**：在分析每个因子时，明确标注是"已发生"还是"预期事件"
+    -   **影响确定性评估**：已发生事件的影响是确定的，预期事件的影响是概率性的
 
-2.  **综合判断 (Synthesized View):**
-    -   将所有因子的分析整合起来，当前哪个因子是主导市场的核心矛盾？
-    -   这些因子共同作用下，市场的整体宏观情绪是偏向乐观、悲观还是谨慎？
+2.  **因子影响力分析 (Factor Impact Analysis):**
+    -   对于每个已发生的因子，结合最新新闻和历史背景，分析其实际市场影响
+    -   对于预期因子，分析其可能的影响方向和概率
+    -   特别关注：如果新闻中提到某经济数据"已公布"，绝不能分析为"即将公布"
 
-3.  **后市展望 (Outlook):**
-    -   基于以上分析，对 {current_code} 的短期（1-3天）走势做出预判（看涨/看跌/震荡）。
-    -   简要说明你的主要逻辑依据。
+3.  **综合判断 (Synthesized View):**
+    -   **以已发生事件为主导**：将已发生事件作为分析的核心依据
+    -   **预期事件为辅助**：预期事件仅作为风险提示和概率性判断
+    -   识别当前主导市场的核心矛盾（优先考虑已发生的重大事件）
+
+4.  **后市展望 (Outlook):**
+    -   **基于事实的预判**：主要基于已发生事件的确定性影响进行短期走势预判
+    -   **风险提示**：对可能影响预判的未来事件进行风险提示
+    -   **逻辑依据**：明确说明预判的主要依据，区分确定性因素和不确定性因素
 
 请以清晰、结构化的备忘录形式输出你的分析。
 """
@@ -3226,7 +5243,7 @@ def economic_data_analyst_node(state: ReportGenerationState) -> Dict:
         
         if not economic_data:
             return {"economic_analysis": "暂无经济数据可供分析"}
-        print('economic_data',economic_data)
+        # print('economic_data',economic_data)
         # 构建经济数据分析提示词
         economic_prompt = f"""
 你是一位资深的宏观经济分析师，专注于{name}市场分析。请基于以下两国经济数据，进行深入的经济分析。
@@ -3301,8 +5318,13 @@ def chanlun_expert_node(state: ReportGenerationState) -> Dict:
     logger.info(">> 正在执行：缠论专家节点")
     
     try:
+        # 从state中获取frequency参数，如果没有则使用默认值'd'
+        frequency = state.get('frequency', 'd')
+        current_code = state['current_code']
         analysis = _get_chanlun_analysis(
-            state['current_code'], state['current_market']
+            current_code, 
+            state['current_market'],
+            frequency
         )
         return {"chanlun_analysis": analysis}
         
@@ -3311,9 +5333,123 @@ def chanlun_expert_node(state: ReportGenerationState) -> Dict:
         return {"chanlun_analysis": f"缠论分析异常: {str(e)}"}
 
 
-def chief_strategist_node(state: ReportGenerationState) -> Dict:
-    """首席策略师节点：整合所有分析，形成最终报告"""
-    logger.info(">> 正在执行：首席策略师节点")
+def financial_analyst_node(state: ReportGenerationState) -> Dict:
+    """财务分析师节点：分析公司财务报表数据（仅适用于股票市场）"""
+    logger.info(">> 正在执行：财务分析师节点")
+    
+    try:
+        import sys
+        import os
+        from datetime import datetime, timedelta
+        
+        # 添加项目路径到sys.path
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        src_path = os.path.join(project_root, 'src')
+        if src_path not in sys.path:
+            sys.path.append(src_path)
+        
+        from chanlun.tools.ai_analyse import AIAnalyse
+        from chanlun.db import db
+        
+        current_market = state['current_market']
+        current_code = state['current_code']
+        name = state['name']
+        
+        # 判断是否为股票市场
+        stock_markets = ['a', 'hk', 'us']
+        if current_market not in stock_markets:
+            logger.info(f"当前市场 {current_market} 不是股票市场，跳过财务分析")
+            return {"financial_analysis": "当前市场不是股票市场，无需进行财务分析"}
+        
+        # 查询财务数据
+        logger.info(f"正在查询 {current_code} 的财务数据")
+        
+        # 查询最近3年的财务数据
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=1065)  # 3年前
+        
+        financial_data = db.company_financials_query(
+            code=current_code,
+            report_date_start=start_date,
+            report_date_end=end_date,
+            limit=500
+        )
+        
+        if not financial_data:
+            logger.info(f"未找到 {current_code} 的财务数据")
+            return {"financial_analysis": "暂无财务报表数据，无法进行财务分析"}
+        
+        logger.info(f"找到 {len(financial_data)} 条财务数据记录")
+        
+        # 格式化财务数据供AI分析
+        formatted_financial_data = _format_financial_data_for_analysis(financial_data,name)
+        print('formatted_financial_data',formatted_financial_data)
+        # 构建财务分析提示词
+        ai_client = AIAnalyse(current_market)
+        
+        financial_prompt = f"""
+你是一位资深的财务分析师，专注于{name}({current_code})的财务报表分析。请基于以下财务数据，进行深入的财务分析。
+
+**分析标的**: {name}({current_code})
+**市场**: {current_market.upper()}
+
+**财务数据概览**:
+{formatted_financial_data}
+
+**重要分析要求：请特别重点关注最新财务数据的变动情况和趋势分析**
+
+**分析要求（重点突出最新数据变化）**:
+
+1. **最新盈利能力变动分析（核心重点）**:
+   - **重点分析最新报告期营业收入、净利润的变动情况**
+   - **详细对比最新期与上期的盈利指标变化（同比、环比增长率）**
+   - **评估最新期毛利率、净利率等关键比率的变化趋势**
+   - **识别最新期盈利能力变化的主要驱动因素**
+   - 分析最新期盈利质量的改善或恶化情况
+
+2. **最新财务健康状况变化（核心重点）**:
+   - **重点分析最新期资产负债结构的变化**
+   - **评估最新期现金流状况和资金周转效率的变动**
+   - **识别最新期财务风险和流动性的新变化**
+   - 对比最新期与前期的偿债能力指标变化
+
+3. **最新成长性趋势分析（核心重点）**:
+   - **重点评估最新期收入和利润成长性的变化**
+   - **分析最新期研发投入、资本开支等成长投资的变动**
+   - **基于最新数据判断成长性的可持续性变化**
+   - 识别最新期成长性的新驱动因素或风险点
+
+4. **基于最新数据的估值判断**:
+   - **重点基于最新财务数据评估估值水平的变化**
+   - 分析最新期财务指标对估值的影响
+   - 识别最新期估值支撑因素的变化
+
+5. **基于最新变动的投资建议（核心重点）**:
+   - **重点基于最新财务数据变化给出投资评级建议**
+   - **识别需要重点监控的最新财务指标变化**
+   - **提供基于最新数据变动的风险提示和关注要点**
+   - 明确指出最新财务表现对投资决策的影响
+
+**输出格式要求**:
+- 每个分析维度都要突出最新数据的变化情况
+- 优先展示最新期与前期的对比分析结果
+- 重点标注关键财务指标的最新变动幅度和方向
+- 使用清晰的标题和子标题组织内容
+- 控制总长度在1500字以内，重点突出最新变化
+"""
+        
+        # 调用AI进行财务分析
+        analysis = _call_ai_and_get_content(ai_client, financial_prompt)
+        return {"financial_analysis": analysis}
+        
+    except Exception as e:
+        logger.error(f"财务分析师节点异常: {str(e)}", exc_info=True)
+        return {"financial_analysis": f"财务分析异常: {str(e)}"}
+
+
+def enhanced_chief_strategist_node(state: ReportGenerationState) -> Dict:
+    """增强版首席策略师节点：支持反思修正的整合分析"""
+    logger.info(">> 正在执行：增强版首席策略师节点")
     
     try:
         import sys
@@ -3327,31 +5463,104 @@ def chief_strategist_node(state: ReportGenerationState) -> Dict:
         
         from chanlun.tools.ai_analyse import AIAnalyse
         
+        # 获取修正次数，防止无限循环
+        revision_count = state.get('revision_count', 0)
+        max_revisions = 2  # 最多允许2次修正
+        
+        # 第一步：质量检查和一致性分析
+        quality_check_prompt = f"""
+你是一位严格的首席投资策略师。请检查你团队专家的分析报告质量和一致性：
+
+1. **【宏观分析师的报告】**:
+{state.get('macro_analysis', '暂无')}
+
+2. **【经济数据分析师的报告】**:
+{state.get('economic_analysis', '暂无')}
+
+3. **【技术指标分析师的报告】**:
+{state.get('technical_analysis', '暂无')}
+
+4. **【缠论结构专家的报告】**:
+{state.get('chanlun_analysis', '暂无')}
+
+5. **【财务分析师的报告】**:
+{state.get('financial_analysis', '暂无')}
+
+6. **【地缘政治分析师的报告】**:
+{state.get('geopolitical_analysis', '暂无')}
+
+**质量检查要求：**
+请检查是否存在以下问题：
+1. 观点严重冲突（如宏观看多但技术看空且无合理解释）
+2. 逻辑不自洽（如分析依据与结论矛盾）
+3. 关键信息缺失（如重要分析师报告为空或过于简单）
+4. 分析深度不足（如缺乏具体数据支撑）
+
+**输出格式：**
+如果发现严重问题，请输出：
+```
+NEEDS_REVISION: [问题描述]
+TARGET_NODE: [需要重新分析的节点名，如macro_analyst/economic_data_analyst/technical_analyst/chanlun_expert/financial_analyst/geopolitical_analyst]
+REVISION_REASON: [具体修正要求]
+```
+
+如果质量合格，请输出：
+```
+QUALITY_APPROVED: 分析质量合格，可以进行最终整合
+```
+"""
+        
+        ai_client = AIAnalyse(state['current_market'] or "a")
+        quality_result = _call_ai_and_get_content(ai_client, quality_check_prompt)
+        
+        # 解析质量检查结果
+        if "NEEDS_REVISION:" in quality_result and revision_count < max_revisions:
+            # 提取修正信息
+            import re
+            target_match = re.search(r'TARGET_NODE: (\w+)', quality_result)
+            if target_match:
+                target_node = target_match.group(1)
+                logger.info(f"质量检查发现问题，要求{target_node}重新分析（第{revision_count + 1}次修正）")
+                return {
+                    "needs_revision": True,
+                    "revision_target_node": target_node,
+                    "revision_count": revision_count + 1
+                }
+        
+        # 如果质量合格或已达到最大修正次数，进行最终整合
+        logger.info("分析质量合格或已达最大修正次数，开始最终整合")
+        
         # 这是最关键的一步：它的输入是前面所有专家的结论
         prompt = f"""
-你是一位顶级的首席投资策略师。你的任务是整合你团队中四位专家的分析报告，形成一份逻辑连贯、观点明确、包含具体策略的最终研究报告。
+你是一位顶级的首席投资策略师。你的任务是整合你团队中专家的分析报告，形成一份逻辑连贯、观点明确、包含具体策略的最终研究报告。
 
 **你的输入：**
 
 1. **【宏观分析师的报告】**:
-{state['macro_analysis']}
+{state.get('macro_analysis', '暂无宏观分析')}
 
 2. **【经济数据分析师的报告】**:
 {state.get('economic_analysis', '暂无经济数据分析')}
 
 3. **【技术指标分析师的报告】**:
-{state['technical_analysis']}
+{state.get('technical_analysis', '暂无技术分析')}
 
 4. **【缠论结构专家的报告】**:
-{state['chanlun_analysis']}
+{state.get('chanlun_analysis', '暂无缠论分析')}
+
+5. **【财务分析师的报告】**:
+{state.get('financial_analysis', '暂无财务分析')}
+
+6. **【地缘政治分析师的报告】**:
+{state.get('geopolitical_analysis', '暂无地缘政治分析')}
 
 **你的任务和输出要求：**
 
 1. **综合摘要 (Executive Summary)**: 用2-3句话总结当前市场的核心矛盾与机会点。
 2. **逻辑整合分析**:
-   - **识别并分析观点冲突**: 明确指出三份报告中的一致点和矛盾点（例如：宏观偏空但缠论看涨）。
-   - **构建核心逻辑链**: 基于你的专业判断，解释应如何理解这些矛盾。哪个因素是主导？哪个是次要？（例如：认为短期宏观利空是噪音，长期缠论结构才是主导趋势）。
-   - **推导核心观点**: 基于上述逻辑，明确给出对后市走势的最终判断（看涨/看跌/震荡）。
+   - **识别并分析观点冲突**: 明确指出各份报告中的一致点和矛盾点（例如：宏观偏空但缠论看涨，或财务基本面强劲但技术面疲弱，或地缘政治风险与基本面分析的冲突）。
+   - **构建核心逻辑链**: 基于你的专业判断，解释应如何理解这些矛盾。哪个因素是主导？哪个是次要？特别关注地缘政治事件对市场的短期和长期影响。
+   - **推导核心观点**: 基于上述逻辑，明确给出对后市走势的最终判断（看涨/看跌/震荡），并考虑地缘政治风险对投资策略的影响。
 3. **具体交易策略 (Actionable Strategy)**:
    - **入场条件**: 应该在什么情况下考虑入场？（例如：等待价格回调至xxx区域）
    - **止损位**: 策略失效的关键价位在哪里？
@@ -3396,14 +5605,41 @@ def chief_strategist_node(state: ReportGenerationState) -> Dict:
             final_report += "-" * 50 + "\n"
             final_report += state['chanlun_analysis'] + "\n\n"
         
+        # 附件5：财务分析师报告
+        if state.get('financial_analysis'):
+            final_report += "## 💰 附件五：财务分析师详细报告\n"
+            final_report += "-" * 50 + "\n"
+            final_report += state['financial_analysis'] + "\n\n"
+        
+        # 附件6：地缘政治分析师报告
+        if state.get('geopolitical_analysis'):
+            final_report += "## 🌍 附件六：地缘政治分析师详细报告\n"
+            final_report += "-" * 50 + "\n"
+            final_report += state['geopolitical_analysis'] + "\n\n"
+        
         final_report += "="*80 + "\n"
         final_report += "*以上附件为各专家的详细分析报告，供参考*\n"
         
-        return {"final_report": final_report}
+        # 重置修正标志，确保流程结束
+        return {
+            "final_report": final_report,
+            "needs_revision": False,
+            "revision_target_node": ""
+        }
         
     except Exception as e:
-        logger.error(f"首席策略师节点异常: {str(e)}")
-        return {"final_report": f"最终报告生成异常: {str(e)}"}
+        logger.error(f"增强版首席策略师节点异常: {str(e)}")
+        return {
+            "final_report": f"最终报告生成异常: {str(e)}",
+            "needs_revision": False,
+            "revision_target_node": ""
+        }
+
+
+def chief_strategist_node(state: ReportGenerationState) -> Dict:
+    """原版首席策略师节点：保持向后兼容"""
+    logger.info(">> 正在执行：原版首席策略师节点")
+    return enhanced_chief_strategist_node(state)
 
 
 def _get_economic_data_by_product(product_info: Optional[Dict[str, Any]] = None, product_code: Optional[str] = None, limit: int = 1000) -> List[Dict]:
@@ -3483,20 +5719,30 @@ def _get_economic_data_by_product(product_info: Optional[Dict[str, Any]] = None,
     return economic_data_list
 
 
-def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[Dict], current_market: str = '', current_code: str = '',name: str = '') -> str:
+def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[Dict], current_market: str = '', current_code: str = '',name: str = '', frequency: str = 'd', selected_nodes: List[str] = None) -> str:
     """
-    使用LangGraph工作流生成高质量、逻辑性强的研究报告
+    使用优化的LangGraph工作流生成高质量、逻辑性强的研究报告
+    
+    优化特性:
+    1. 并行化初级分析：宏观、经济数据、技术和缠论分析并行执行
+    2. 反思修正循环：首席策略师可要求特定分析师重新分析
+    3. 工具使用节点：支持外部工具调用（如实时数据获取）
     
     Args:
+        economic_data_list: 经济数据列表
         news_list: 新闻列表
         current_market: 当前市场代码 (如: a, hk, us, fx等)
         current_code: 当前标的代码
+        name: 标的名称
+        frequency: 分析周期
+        selected_nodes: 选择的分析节点列表
         
     Returns:
         str: 生成的研究报告
     """
     try:
         from langgraph.graph import StateGraph, END
+        from langgraph.prebuilt import ToolNode
         from datetime import datetime
         import sys
         import os
@@ -3511,48 +5757,174 @@ def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[D
         from chanlun.exchange import get_exchange
         from chanlun.base import Market
         
-        if not (current_market and current_code):
-            return "错误：生成高质量报告需要提供具体的市场和代码。"
+        # 验证必要参数
+        if not current_market:
+            logger.warning("未提供市场代码，使用默认市场'a'")
+            current_market = 'a'
         
-        logger.info(f"开始使用LangGraph工作流生成报告，市场: {current_market}, 代码: {current_code}")
+        if not current_code:
+            logger.warning("未提供标的代码，将生成通用市场分析")
         
-        # 1. 创建工作流图
+        logger.info(f"开始使用优化的LangGraph工作流生成报告，市场: {current_market}, 代码: {current_code}")
+        
+        # 处理选择的节点，如果没有提供则使用所有节点
+        if selected_nodes is None:
+            selected_nodes = ['macro_analyst', 'economic_data_analyst', 'technical_analyst', 'chanlun_expert', 'financial_analyst', 'geopolitical_analyst']
+        
+        # 确保selected_nodes是列表类型
+        if not isinstance(selected_nodes, list):
+            selected_nodes = list(selected_nodes) if selected_nodes else []
+        
+        logger.info(f"选择的AI分析节点: {selected_nodes}")
+        
+        # 1. 创建优化的工作流图
         workflow = StateGraph(ReportGenerationState)
         
-        # 添加节点
-        workflow.add_node("macro_analyst", macro_analyst_node)
-        workflow.add_node("economic_data_analyst", economic_data_analyst_node)
-        workflow.add_node("technical_analyst", technical_analyst_node)
-        workflow.add_node("chanlun_expert", chanlun_expert_node)
-        workflow.add_node("chief_strategist", chief_strategist_node)
+        # 根据用户选择添加分析师节点
+        available_nodes = {
+            'macro_analyst': macro_analyst_node,
+            'economic_data_analyst': economic_data_analyst_node,
+            'technical_analyst': technical_analyst_node,
+            'chanlun_expert': chanlun_expert_node,
+            'financial_analyst': financial_analyst_node,
+            'geopolitical_analyst': geopolitical_analyst_node
+        }
         
-        # 定义边的连接关系 (工作流程)
-        workflow.set_entry_point("macro_analyst")
-        workflow.add_edge("macro_analyst", "economic_data_analyst")
-        workflow.add_edge("economic_data_analyst", "technical_analyst")
-        workflow.add_edge("technical_analyst", "chanlun_expert")
-        workflow.add_edge("chanlun_expert", "chief_strategist")
-        workflow.add_edge("chief_strategist", END)  # 策略师完成后，流程结束
+        # 只添加用户选择的节点
+        active_nodes = []
+        for node_name in selected_nodes:
+            if node_name in available_nodes:
+                try:
+                    workflow.add_node(node_name, available_nodes[node_name])
+                    active_nodes.append(node_name)
+                    logger.info(f"添加分析节点: {node_name}")
+                except Exception as e:
+                    logger.error(f"添加节点{node_name}失败: {str(e)}")
+            else:
+                logger.warning(f"未知的分析节点: {node_name}")
+        
+        if not active_nodes:
+            logger.error("没有有效的分析节点被选择")
+            return "错误：没有选择有效的分析节点。"
+        
+        # 添加首席策略师节点（支持反思修正）
+        try:
+            workflow.add_node("chief_strategist", enhanced_chief_strategist_node)
+        except Exception as e:
+            logger.error(f"添加首席策略师节点失败: {str(e)}")
+            return f"工作流配置错误：{str(e)}"
+        
+        # 定义策略师决策路由器
+        def strategist_decision_router(state: ReportGenerationState):
+            """首席策略师决策路由：检查是否需要修正或结束流程"""
+            try:
+                needs_revision = state.get('needs_revision', False)
+                revision_target = state.get('revision_target_node', '')
+                revision_count = state.get('revision_count', 0)
+                
+                # 防止无限修正循环：超过最大修正次数后强制结束
+                MAX_REVISION_COUNT = 3
+                if revision_count >= MAX_REVISION_COUNT:
+                    logger.warning(f"已达到最大修正次数({MAX_REVISION_COUNT})，强制结束流程")
+                    return END
+                
+                if needs_revision and revision_target and revision_target in active_nodes:
+                    logger.info(f"首席策略师要求{revision_target}重新分析 (第{revision_count + 1}次修正)")
+                    return revision_target
+                else:
+                    logger.info("分析质量合格，流程结束")
+                    return END
+            except Exception as e:
+                logger.error(f"策略师决策路由器异常: {str(e)}")
+                return END
+        
+        # 添加启动节点来触发并行执行
+        def start_parallel_analysis(state: ReportGenerationState):
+            """启动节点：触发所有初级分析师并行执行"""
+            logger.info("启动并行分析：宏观、经济数据、技术、缠论、地缘政治分析师将同时开始工作")
+            return state
+        
+        try:
+            workflow.add_node("start_analysis", start_parallel_analysis)
+            workflow.set_entry_point("start_analysis")
+        except Exception as e:
+            logger.error(f"添加启动节点失败: {str(e)}")
+            return f"工作流配置错误：{str(e)}"
+        
+        # 从启动节点分发到用户选择的分析师（并行执行）
+        try:
+            for node_name in active_nodes:
+                workflow.add_edge("start_analysis", node_name)
+                logger.info(f"添加启动边: start_analysis -> {node_name}")
+        except Exception as e:
+            logger.error(f"添加启动边失败: {str(e)}")
+            return f"工作流配置错误：{str(e)}"
+        
+        # 所有选择的分析师完成后，汇聚到首席策略师
+        try:
+            for node_name in active_nodes:
+                workflow.add_edge(node_name, "chief_strategist")
+                logger.info(f"添加汇聚边: {node_name} -> chief_strategist")
+        except Exception as e:
+            logger.error(f"添加汇聚边失败: {str(e)}")
+            return f"工作流配置错误：{str(e)}"
+        
+        # 首席策略师根据分析质量决定下一步
+        try:
+            decision_map = {node_name: node_name for node_name in active_nodes}
+            decision_map[END] = END
+            workflow.add_conditional_edges(
+                "chief_strategist",
+                strategist_decision_router,
+                decision_map
+            )
+        except Exception as e:
+            logger.error(f"添加条件边失败: {str(e)}")
+            return f"工作流配置错误：{str(e)}"
         
         # 编译成可执行应用
-        app = workflow.compile()
+        try:
+            app = workflow.compile()
+        except Exception as e:
+            logger.error(f"工作流编译失败: {str(e)}")
+            return f"工作流编译错误：{str(e)}"
         
-        # 2. 定义初始状态
+        # 2. 获取地缘政治新闻数据
+        geopolitical_news = []
+        try:
+            vector_db = get_vector_db()
+            if vector_db:
+                geopolitical_news = _search_geopolitical_news(7)  # 搜索7天内的地缘政治新闻
+                logger.info(f"获取到{len(geopolitical_news)}条地缘政治相关新闻")
+            else:
+                logger.warning("无法获取向量数据库实例，跳过地缘政治新闻搜索")
+        except Exception as e:
+            logger.error(f"获取地缘政治新闻失败: {str(e)}")
+        
+        # 3. 定义初始状态
         initial_state = ReportGenerationState(
             original_news=news_list,
             economic_data=economic_data_list,
             current_market=current_market,
             current_code=current_code,
             name=name,
+            frequency=frequency,
+            geopolitical_news=geopolitical_news,
             macro_analysis=None,
             economic_analysis=None,
             technical_analysis=None,
             chanlun_analysis=None,
-            final_report=None
+            financial_analysis=None,
+            geopolitical_analysis=None,
+            final_report=None,
+            # 新增反思修正相关字段
+            needs_revision=False,
+            revision_target_node='',
+            revision_count=0
         )
         
-        # 3. 运行工作流
-        logger.info("开始执行LangGraph工作流...")
+        # 3. 运行优化的工作流
+        logger.info("开始执行优化的LangGraph并行工作流...")
         final_state = app.invoke(initial_state)
         
         # 4. 获取基础报告
@@ -3583,9 +5955,9 @@ def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[D
             supported_markets = ['a', 'hk', 'us', 'fx', 'futures', 'currency']
             all_price_data = []
             
-            for market in supported_markets:
+            for market_type in supported_markets:
                 try:
-                    zx = ZiXuan(market)
+                    zx = ZiXuan(market_type)
                     # 获取所有自选组的股票
                     all_zx_stocks = zx.query_all_zs_stocks()
                     
@@ -3597,7 +5969,7 @@ def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[D
                     
                     if market_codes:
                         # 获取价格数据
-                        ex = get_exchange(Market(market))
+                        ex = get_exchange(Market(market_type))
                         ticks = ex.ticks(market_codes)
                         
                         market_names = {
@@ -3608,7 +5980,7 @@ def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[D
                             'futures': '期货',
                             'currency': '数字货币'
                         }
-                        market_name = market_names.get(market, market)
+                        market_name = market_names.get(market_type, market_type)
                         
                         for code, tick in ticks.items():
                             # 查找股票名称
@@ -3629,21 +6001,21 @@ def _generate_ai_market_summary(economic_data_list: List[Dict],news_list: List[D
                             all_price_data.append(price_data)
                             
                 except Exception as e:
-                    logger.warning(f"获取{market}市场价格数据失败: {str(e)}")
+                    logger.warning(f"获取{market_type}市场价格数据失败: {str(e)}")
                     continue
             
             # 构建价格信息文本
             if all_price_data:
                 price_info = "\n\n## 关注产品当前价格\n"
-                current_market_data = {}
+                market_data_groups = {}
                 for data in all_price_data:
-                    market = data['market']
-                    if market not in current_market_data:
-                        current_market_data[market] = []
-                    current_market_data[market].append(data)
+                    market_name = data['market']
+                    if market_name not in market_data_groups:
+                        market_data_groups[market_name] = []
+                    market_data_groups[market_name].append(data)
                 
-                for market, stocks in current_market_data.items():
-                    price_info += f"\n**{market}市场:**\n"
+                for market_name, stocks in market_data_groups.items():
+                    price_info += f"\n**{market_name}市场:**\n"
                     for stock in stocks[:10]:  # 限制每个市场最多显示10只股票
                         rate_str = f"{stock['rate']:+.2f}%" if stock['rate'] != 0 else "0.00%"
                         price_info += f"- {stock['name']}({stock['code']}): {stock['price']:.2f} ({rate_str})\n"
@@ -3797,3 +6169,152 @@ def _analyze_topic_clustering(vector_db, time_range: Dict, filters: Dict, parame
     except Exception as e:
         logger.error(f"主题聚类分析失败: {str(e)}")
         return {"error": str(e)}
+
+
+def _search_geopolitical_news(days: int = 7) -> List[Dict]:
+    """
+    搜索地缘政治相关新闻
+    
+    Args:
+        days: 搜索天数，默认7天
+        
+    Returns:
+        List[Dict]: 地缘政治相关新闻列表
+    """
+    try:
+        from datetime import datetime, timedelta
+        
+        # 地缘政治关键词列表
+        geopolitical_keywords = [
+            "战争", "冲突", "军事", "制裁", "贸易战", "地缘政治",
+            "俄乌", "俄罗斯", "乌克兰", "中美", "台海", "朝鲜", 
+            "伊朗", "以色列", "巴勒斯坦", "中东", "欧盟制裁",
+            "war", "conflict", "military", "sanctions", "trade war", 
+            "geopolitical", "russia", "ukraine", "china", "usa", 
+            "taiwan", "north korea", "iran", "israel", "palestine"
+        ]
+        
+        # 计算搜索时间范围
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # 获取向量数据库实例
+        vector_db = get_vector_db(db_path="./chroma_db")
+        
+        geopolitical_news = []
+        
+        # 对每个关键词进行搜索
+        for keyword in geopolitical_keywords:
+            try:
+                search_results = vector_db.semantic_search(
+                    query=keyword,
+                    n_results=20,  # 每个关键词最多20条
+                    keywords='',
+                    start_date=start_date.strftime('%Y-%m-%d'),
+                    end_date=end_date.strftime('%Y-%m-%d')
+                )
+                
+                # 过滤和去重
+                for news in search_results:
+                    news_id = news.get('metadata', {}).get('news_id', '')
+                    # 检查是否已存在（简单去重）
+                    if not any(existing.get('metadata', {}).get('news_id') == news_id for existing in geopolitical_news):
+                        # 检查新闻内容是否真的与地缘政治相关
+                        title = news.get('metadata', {}).get('title', '').lower()
+                        content = news.get('document', '').lower()
+                        
+                        # 简单的相关性检查
+                        if any(kw.lower() in title or kw.lower() in content for kw in geopolitical_keywords):
+                            geopolitical_news.append(news)
+                            
+            except Exception as e:
+                logger.warning(f"搜索关键词 '{keyword}' 时出错: {str(e)}")
+                continue
+        
+        # 按重要性和时间排序
+        geopolitical_news.sort(
+            key=lambda x: (
+                x.get('metadata', {}).get('importance_score', 0),
+                x.get('metadata', {}).get('published_at', '')
+            ),
+            reverse=True
+        )
+        
+        # 限制返回数量
+        result = geopolitical_news[:50]  # 最多返回50条
+        
+        logger.info(f"搜索到 {len(result)} 条地缘政治相关新闻")
+        return result
+        
+    except Exception as e:
+        logger.error(f"搜索地缘政治新闻失败: {str(e)}")
+        return []
+
+
+def geopolitical_analyst_node(state: ReportGenerationState) -> Dict:
+    """
+    地缘政治分析师节点：专门分析地缘政治事件对市场的影响
+    """
+    logger.info(">> 正在执行：地缘政治分析师节点")
+    
+    try:
+        geopolitical_news = state.get('geopolitical_news', [])
+        current_market = state.get('current_market', '')
+        current_code = state.get('current_code', '')
+        name = state.get('name', '')
+        
+        if not geopolitical_news:
+            analysis = "当前时期未发现重大地缘政治事件，市场地缘政治风险相对较低。"
+        else:
+            # 格式化地缘政治新闻
+            formatted_news = _format_news_content(geopolitical_news)
+            
+            # 构建地缘政治分析提示词
+            prompt = f"""
+你是一位资深的地缘政治风险分析师，专门研究地缘政治事件对金融市场的影响。
+
+请基于以下地缘政治新闻，分析对市场特别是{name}({current_code})的潜在影响：
+
+{formatted_news}
+
+请从以下角度进行专业分析：
+
+## 地缘政治风险评估
+1. **当前地缘政治态势**：总结主要的地缘政治事件和冲突
+2. **风险等级评估**：评估当前地缘政治风险等级（低/中/高）
+3. **关键风险因素**：识别最重要的风险驱动因素
+
+## 市场影响分析
+1. **全球市场影响**：分析对全球金融市场的整体影响
+2. **资产类别影响**：分析对股票、债券、商品、外汇等不同资产的影响
+3. **避险情绪**：评估市场避险情绪的变化趋势
+
+## 特定标的影响
+1. **直接影响**：分析地缘政治事件对{name}的直接影响
+2. **间接影响**：通过供应链、贸易、资金流等渠道的间接影响
+3. **行业影响**：分析对相关行业的整体影响
+
+## 风险预警与建议
+1. **短期风险**：未来1-3个月需要关注的风险点
+2. **中期影响**：未来3-12个月的潜在影响
+3. **投资建议**：基于地缘政治风险的投资策略建议
+
+## 关键监控指标
+列出需要持续监控的地缘政治指标和事件
+
+请确保分析客观、专业，避免政治立场，重点关注对市场和投资的实际影响。
+"""
+            
+            # 调用AI进行分析
+            ai_client = AIAnalyse("a")
+            analysis = _call_ai_and_get_content(ai_client, prompt)
+            
+            if not analysis or "AI分析失败" in analysis:
+                analysis = "地缘政治分析暂时不可用，请稍后重试。"
+        
+        logger.info("地缘政治分析师节点执行完成")
+        return {"geopolitical_analysis": analysis}
+        
+    except Exception as e:
+        logger.error(f"地缘政治分析师节点执行失败: {str(e)}")
+        return {"geopolitical_analysis": f"地缘政治分析执行异常: {str(e)}"}

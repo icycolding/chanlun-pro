@@ -7,132 +7,504 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        .summary-card {
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            transition: box-shadow 0.3s ease;
+        body {
+            background-color: #f8f9fa;
         }
-        .summary-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        
+        /* 主布局 */
+        .main-container {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 20px;
         }
-        .summary-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        
+        /* 左侧分类导航 */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 24px;
+            margin-right: 24px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .sidebar-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-title i {
+            margin-right: 12px;
+            color: #007bff;
+        }
+        
+        /* 分类导航项 */
+        .category-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .category-item {
+            margin-bottom: 8px;
+        }
+        
+        .category-link {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #495057;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .category-link:hover {
+            background: #e9ecef;
+            color: #007bff;
+            text-decoration: none;
+            transform: translateY(-2px);
+        }
+        
+        .category-link.active {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
             color: white;
-            padding: 15px;
-            border-radius: 8px 8px 0 0;
+            border-color: #007bff;
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
         }
-        .summary-content {
+        
+        .category-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .category-icon {
+            font-size: 1.2rem;
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .category-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .category-count {
+            background: rgba(255,255,255,0.2);
+            color: inherit;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .category-link.active .category-count {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .category-link:not(.active) .category-count {
+            background: #dee2e6;
+            color: #6c757d;
+        }
+        
+        /* 右侧内容区域 */
+        .content-area {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 32px;
+        }
+        
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f1f3f4;
+        }
+        
+        .content-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .content-subtitle {
+            color: #6c757d;
+            font-size: 1rem;
+            margin-top: 4px;
+        }
+        /* 报告卡片样式 */
+        .report-card {
+            background: white;
+            border-radius: 12px;
             padding: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .summary-meta {
-            background-color: #f8f9fa;
-            padding: 10px 20px;
-            border-top: 1px solid #e0e0e0;
-            border-radius: 0 0 8px 8px;
-        }
-        .filter-section {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
-        }
-        .markdown-content {
-            line-height: 1.6;
-        }
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
-            color: #333;
-            margin-top: 20px;
-            margin-bottom: 10px;
-        }
-        .markdown-content ul, .markdown-content ol {
-            padding-left: 20px;
-        }
-        .markdown-content blockquote {
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
             border-left: 4px solid #007bff;
-            padding-left: 15px;
-            margin: 15px 0;
-            background-color: #f8f9fa;
         }
+        
+        .report-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        
+        .report-badges {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        
+        .market-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .market-badge.market-stock { background-color: #28a745; }
+        .market-badge.market-forex { background-color: #17a2b8; }
+        .market-badge.market-futures { background-color: #ffc107; color: #212529; }
+        .market-badge.market-unknown { background-color: #6c757d; }
+        
+        .report-preview {
+            color: #666;
+            line-height: 1.6;
+            margin: 12px 0;
+            font-size: 14px;
+            text-align: justify;
+        }
+        
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .report-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0;
+            line-height: 1.4;
+        }
+        
+        .report-id {
+            background: #e9ecef;
+            color: #6c757d;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .report-content {
+            color: #495057;
+            line-height: 1.7;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        
+        .report-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .meta-info {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        
+        .meta-item {
+            display: flex;
+            align-items: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .meta-item i {
+            margin-right: 6px;
+            width: 16px;
+            text-align: center;
+        }
+        
+        .report-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .btn-action {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-1px);
+        }
+        
+        .btn-danger.btn-action {
+            background-color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .btn-danger.btn-action:hover {
+            background-color: #c82333;
+            border-color: #bd2130;
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+        }
+        
+        /* 筛选区域 */
+        .filter-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid #e9ecef;
+        }
+        
+        /* 空状态和加载状态 */
+        .loading, .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        
+        .loading i, .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: #dee2e6;
+        }
+        
+        /* 分页样式 */
         .pagination-wrapper {
             display: flex;
             justify-content: center;
-            margin-top: 30px;
+            margin-top: 32px;
         }
-        .loading {
-            text-align: center;
-            padding: 50px;
+        
+        .pagination .page-link {
+            border-radius: 8px;
+            margin: 0 4px;
+            border: 1px solid #dee2e6;
+            color: #495057;
         }
-        .empty-state {
-            text-align: center;
-            padding: 50px;
-            color: #666;
+        
+        .pagination .page-item.active .page-link {
+            background: #007bff;
+            border-color: #007bff;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 24px;
+                position: static;
+            }
+            
+            .category-nav {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            
+            .category-item {
+                margin-bottom: 0;
+                flex: 1;
+                min-width: 200px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .content-area {
+                padding: 20px;
+            }
+            
+            .report-card {
+                padding: 20px;
+            }
+            
+            .report-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .category-item {
+                min-width: 150px;
+            }
+        }
+        /* Markdown内容样式 */
+        .markdown-content {
+            line-height: 1.7;
+        }
+        
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            color: #2c3e50;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .markdown-content ul, .markdown-content ol {
+            padding-left: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .markdown-content blockquote {
+            border-left: 4px solid #007bff;
+            padding-left: 16px;
+            margin: 16px 0;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 12px 16px;
+        }
+        
+        .markdown-content p {
+            margin-bottom: 12px;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <div class="col-12">
-                <h1 class="mb-4">
-                    <i class="fas fa-chart-line text-primary"></i>
-                    市场总结历史
-                </h1>
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- 左侧分类导航 -->
+            <div class="sidebar">
+                <h2 class="sidebar-title">
+                    <i class="fas fa-chart-line"></i>
+                    市场分类
+                </h2>
+                
+                <ul class="category-nav" id="categoryNav">
+                    <li class="category-item">
+                        <a href="#" class="category-link active" data-market="all">
+                            <div class="category-info">
+                                <i class="fas fa-globe category-icon"></i>
+                                <span class="category-name">全部市场</span>
+                            </div>
+                            <span class="category-count" id="count-all">0</span>
+                        </a>
+                    </li>
+                    <li class="category-item">
+                        <a href="#" class="category-link" data-market="STOCK">
+                            <div class="category-info">
+                                <i class="fas fa-chart-line category-icon"></i>
+                                <span class="category-name">A股市场</span>
+                            </div>
+                            <span class="category-count" id="count-STOCK">0</span>
+                        </a>
+                    </li>
+                    <li class="category-item">
+                        <a href="#" class="category-link" data-market="FOREX">
+                            <div class="category-info">
+                                <i class="fas fa-dollar-sign category-icon"></i>
+                                <span class="category-name">外汇市场</span>
+                            </div>
+                            <span class="category-count" id="count-FOREX">0</span>
+                        </a>
+                    </li>
+                    <li class="category-item">
+                        <a href="#" class="category-link" data-market="FUTURES">
+                            <div class="category-info">
+                                <i class="fas fa-coins category-icon"></i>
+                                <span class="category-name">期货市场</span>
+                            </div>
+                            <span class="category-count" id="count-FUTURES">0</span>
+                        </a>
+                    </li>
+                    <li class="category-item">
+                        <a href="#" class="category-link" data-market="UNKNOWN">
+                            <div class="category-info">
+                                <i class="fas fa-question-circle category-icon"></i>
+                                <span class="category-name">其他市场</span>
+                            </div>
+                            <span class="category-count" id="count-UNKNOWN">0</span>
+                        </a>
+                    </li>
+                </ul>
                 
                 <!-- 筛选区域 -->
-                <div class="filter-section">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label for="marketFilter" class="form-label">市场</label>
-                            <select class="form-select" id="marketFilter">
-                                <option value="">全部市场</option>
-                                <option value="a">A股</option>
-                                <option value="hk">港股</option>
-                                <option value="us">美股</option>
-                                <option value="futures">期货</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="codeFilter" class="form-label">标的代码</label>
-                            <input type="text" class="form-control" id="codeFilter" placeholder="输入标的代码">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="startDate" class="form-label">开始日期</label>
-                            <input type="date" class="form-control" id="startDate">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="endDate" class="form-label">结束日期</label>
-                            <input type="date" class="form-control" id="endDate">
-                        </div>
-                        <div class="col-md-2 d-flex align-items-end">
-                            <button class="btn btn-primary me-2" onclick="searchSummaries()">
-                                <i class="fas fa-search"></i> 搜索
-                            </button>
-                            <button class="btn btn-secondary" onclick="resetFilters()">
-                                <i class="fas fa-undo"></i> 重置
-                            </button>
-                        </div>
+                <div class="filter-section mt-4">
+                    <h6 class="mb-3"><i class="fas fa-filter"></i> 筛选条件</h6>
+                    <div class="mb-3">
+                        <label for="codeFilter" class="form-label">标的代码</label>
+                        <input type="text" class="form-control" id="codeFilter" placeholder="输入标的代码">
+                    </div>
+                    <div class="mb-3">
+                        <label for="startDate" class="form-label">开始日期</label>
+                        <input type="date" class="form-control" id="startDate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDate" class="form-label">结束日期</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="searchSummaries()">
+                            <i class="fas fa-search"></i> 搜索
+                        </button>
+                        <button class="btn btn-outline-secondary" onclick="resetFilters()">
+                            <i class="fas fa-undo"></i> 重置
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧内容区域 -->
+            <div class="content-area">
+                <div class="content-header">
+                    <div>
+                        <h1 class="content-title" id="contentTitle">全部市场研究报告</h1>
+                        <p class="content-subtitle" id="contentSubtitle">共 0 个报告</p>
                     </div>
                 </div>
                 
                 <!-- 加载状态 -->
                 <div id="loadingState" class="loading" style="display: none;">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                    <p class="mt-3">正在加载市场总结...</p>
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <h5 class="mt-3">正在加载市场总结...</h5>
+                    <p>请稍候</p>
                 </div>
                 
                 <!-- 空状态 -->
                 <div id="emptyState" class="empty-state" style="display: none;">
-                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                    <h4>暂无市场总结</h4>
+                    <i class="fas fa-inbox"></i>
+                    <h4 class="mt-3">暂无市场总结</h4>
                     <p>请尝试调整筛选条件或生成新的市场总结</p>
                 </div>
                 
-                <!-- 总结列表 -->
+                <!-- 报告列表 -->
                 <div id="summaryList"></div>
                 
                 <!-- 分页 -->
@@ -162,17 +534,119 @@
         </div>
     </div>
     
+    <!-- 删除确认模态框 -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">
+                        <i class="fas fa-exclamation-triangle text-danger"></i> 确认删除
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <strong>警告：</strong>此操作不可撤销！
+                    </div>
+                    <p>您确定要删除以下报告吗？</p>
+                    <div class="bg-light p-3 rounded mb-3">
+                        <strong id="deleteReportTitle"></strong>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deleteVerificationCode" class="form-label">
+                            <strong>请输入验证码以确认删除：</strong>
+                        </label>
+                        <input type="text" class="form-control" id="deleteVerificationCode" 
+                               placeholder="请输入验证码" autocomplete="off">
+                        <div class="form-text text-muted">请联系管理员获取验证码</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                        <i class="fas fa-trash"></i> 确认删除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         let currentPage = 1;
         let currentLimit = 10;
         let currentSummaryId = null;
+        let currentMarket = 'all';
+        let allSummaries = [];
+        let marketCounts = {};
         
         // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', function() {
+            initializeNavigation();
             loadSummaries();
         });
+        
+        // 初始化导航
+        function initializeNavigation() {
+            const categoryLinks = document.querySelectorAll('.category-link');
+            categoryLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const market = this.getAttribute('data-market');
+                    switchMarket(market);
+                });
+            });
+        }
+        
+        // 切换市场分类
+        function switchMarket(market) {
+            currentMarket = market;
+            currentPage = 1;
+            
+            // 更新导航状态
+            document.querySelectorAll('.category-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`[data-market="${market}"]`).classList.add('active');
+            
+            // 更新标题
+            const marketNames = {
+                'all': '全部市场研究报告',
+                'STOCK': 'A股市场研究报告',
+                'FOREX': '外汇市场研究报告',
+                'FUTURES': '期货市场研究报告',
+                'UNKNOWN': '其他市场研究报告'
+            };
+            document.getElementById('contentTitle').textContent = marketNames[market] || '市场研究报告';
+            
+            // 重新加载数据
+            loadSummaries();
+        }
+        
+        // 市场类型配置
+        const marketConfig = {
+            'STOCK': {
+                name: 'A股市场',
+                icon: 'fas fa-chart-line',
+                borderColor: '#007bff'
+            },
+            'FOREX': {
+                name: '外汇市场',
+                icon: 'fas fa-dollar-sign',
+                borderColor: '#28a745'
+            },
+            'FUTURES': {
+                name: '期货市场',
+                icon: 'fas fa-coins',
+                borderColor: '#ffc107'
+            },
+            'UNKNOWN': {
+                name: '其他市场',
+                icon: 'fas fa-question-circle',
+                borderColor: '#6c757d'
+            }
+        };
         
         // 加载市场总结列表
         function loadSummaries(page = 1) {
@@ -183,13 +657,12 @@
                 limit: currentLimit
             });
             
-            // 添加筛选参数
-            const market = document.getElementById('marketFilter').value;
+            // 注意：不再使用后端的market筛选，而是在前端进行筛选
+            
             const code = document.getElementById('codeFilter').value;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             
-            if (market) params.append('market', market);
             if (code) params.append('code', code);
             if (startDate) params.append('start_date', startDate);
             if (endDate) params.append('end_date', endDate);
@@ -200,18 +673,41 @@
             document.getElementById('emptyState').style.display = 'none';
             document.getElementById('paginationWrapper').style.display = 'none';
             
-            fetch(`/api/news/market_summary/list?${params.toString()}`)
+            // 获取所有数据进行前端筛选
+            fetch('/api/news/market_summary/list?limit=1000')
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('loadingState').style.display = 'none';
                     
-                    if (data.code === 0 && data.data.list.length > 0) {
-                        renderSummaryList(data.data.list);
-                        renderPagination(data.data.total, data.data.page, data.data.limit);
-                        document.getElementById('summaryList').style.display = 'block';
-                        document.getElementById('paginationWrapper').style.display = 'block';
+                    if (data.code === 0) {
+                        let allSummaries = data.data.list;
+                        
+                        // 更新统计数据
+                        updateMarketCounts(allSummaries);
+                        
+                        // 前端筛选数据
+                        let filteredSummaries = filterSummaries(allSummaries);
+                        
+                        // 分页处理
+                        const startIndex = (currentPage - 1) * currentLimit;
+                        const endIndex = startIndex + currentLimit;
+                        const paginatedSummaries = filteredSummaries.slice(startIndex, endIndex);
+                        
+                        if (paginatedSummaries.length > 0) {
+                            renderSummaryList(paginatedSummaries);
+                            renderPagination(filteredSummaries.length, currentPage, currentLimit);
+                            document.getElementById('summaryList').style.display = 'block';
+                            document.getElementById('paginationWrapper').style.display = 'block';
+                            
+                            // 更新副标题
+                            document.getElementById('contentSubtitle').textContent = `共 ${filteredSummaries.length} 个报告`;
+                        } else {
+                            document.getElementById('emptyState').style.display = 'block';
+                            document.getElementById('contentSubtitle').textContent = '共 0 个报告';
+                        }
                     } else {
                         document.getElementById('emptyState').style.display = 'block';
+                        document.getElementById('contentSubtitle').textContent = '共 0 个报告';
                     }
                 })
                 .catch(error => {
@@ -221,56 +717,182 @@
                 });
         }
         
+        // 根据标题内容分类市场类型
+        function classifyMarketByTitle(title) {
+            if (!title) return 'UNKNOWN';
+            
+            const titleUpper = title.toUpperCase();
+            
+            // 外汇市场：标题包含'FX'
+            if (titleUpper.includes('FX')) {
+                return 'FOREX';
+            }
+            
+            // 期货市场：标题包含'FUTURES'
+            if (titleUpper.includes('FUTURES')) {
+                return 'FUTURES';
+            }
+            
+            // A股市场：标题以'A'开头
+            if (titleUpper.startsWith('A')) {
+                return 'STOCK';
+            }
+            
+            return 'UNKNOWN';
+        }
+        
+        // 前端筛选数据
+        function filterSummaries(summaries) {
+            const code = document.getElementById('codeFilter').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            return summaries.filter(summary => {
+                // 市场类型筛选
+                if (currentMarket !== 'all') {
+                    const summaryMarket = classifyMarketByTitle(summary.title);
+                    if (summaryMarket !== currentMarket) {
+                        return false;
+                    }
+                }
+                
+                // 代码筛选
+                if (code && summary.code && !summary.code.toLowerCase().includes(code.toLowerCase())) {
+                    return false;
+                }
+                
+                // 日期筛选
+                if (startDate || endDate) {
+                    const summaryDate = new Date(summary.created_at);
+                    if (startDate && summaryDate < new Date(startDate)) {
+                        return false;
+                    }
+                    if (endDate && summaryDate > new Date(endDate + ' 23:59:59')) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+        }
+        
+        // 更新市场分类统计
+        function updateMarketCounts(summaries) {
+            marketCounts = {
+                'all': summaries.length,
+                'STOCK': 0,
+                'FOREX': 0,
+                'FUTURES': 0,
+                'UNKNOWN': 0
+            };
+            
+            summaries.forEach(summary => {
+                // 使用基于标题的分类逻辑
+                const market = classifyMarketByTitle(summary.title);
+                if (marketCounts[market] !== undefined) {
+                    marketCounts[market]++;
+                }
+            });
+            
+            // 更新导航中的数量显示
+            Object.keys(marketCounts).forEach(market => {
+                const countElement = document.getElementById(`count-${market}`);
+                if (countElement) {
+                    countElement.textContent = marketCounts[market];
+                }
+            });
+        }
+        
         // 渲染总结列表
         function renderSummaryList(summaries) {
             const listContainer = document.getElementById('summaryList');
             listContainer.innerHTML = '';
             
             summaries.forEach(summary => {
-                const summaryCard = document.createElement('div');
-                summaryCard.className = 'summary-card';
-                
-                // 截取内容预览
-                const contentPreview = summary.content ? 
-                    (summary.content.length > 200 ? summary.content.substring(0, 200) + '...' : summary.content) : 
-                    '暂无内容';
-                
-                summaryCard.innerHTML = `
-                    <div class="summary-header">
-                        <h5 class="mb-1">${summary.title || '市场总结'}</h5>
-                        <small>ID: ${summary.id}</small>
-                    </div>
-                    <div class="summary-content">
-                        <div class="markdown-content">${marked.parse(contentPreview)}</div>
-                    </div>
-                    <div class="summary-meta">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <small><strong>市场:</strong> ${summary.market || 'N/A'}</small>
-                            </div>
-                            <div class="col-md-3">
-                                <small><strong>标的:</strong> ${summary.code || 'N/A'}</small>
-                            </div>
-                            <div class="col-md-3">
-                                <small><strong>类型:</strong> ${summary.summary_type || 'N/A'}</small>
-                            </div>
-                            <div class="col-md-3">
-                                <small><strong>创建时间:</strong> ${summary.created_at || 'N/A'}</small>
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <button class="btn btn-primary btn-sm" onclick="viewSummaryDetail(${summary.id})">
-                                <i class="fas fa-eye"></i> 查看详情
-                            </button>
-                            <button class="btn btn-success btn-sm ms-2" onclick="downloadSummary(${summary.id})">
-                                <i class="fas fa-download"></i> 下载
-                            </button>
-                        </div>
-                    </div>
-                `;
-                
-                listContainer.appendChild(summaryCard);
+                const reportCard = createReportCard(summary);
+                listContainer.appendChild(reportCard);
             });
+        }
+        
+        // 创建报告卡片
+        function createReportCard(summary) {
+            // 使用基于标题的分类逻辑
+            const marketType = classifyMarketByTitle(summary.title);
+            const config = marketConfig[marketType] || marketConfig['UNKNOWN'];
+            
+            // 处理内容预览，显示前200字符
+            let contentPreview = summary.content || '暂无内容';
+            if (contentPreview.length > 200) {
+                contentPreview = contentPreview.substring(0, 200) + '...';
+            }
+            
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'report-card';
+            cardDiv.style.borderLeftColor = config.borderColor;
+            cardDiv.onclick = () => viewSummaryDetail(summary.id);
+            
+            cardDiv.innerHTML = `
+                <div class="report-header">
+                    <h3 class="report-title">${summary.title || '市场总结'}</h3>
+                    <div class="report-badges">
+                        <span class="report-id">ID: ${summary.id}</span>
+                        <span class="market-badge market-${marketType.toLowerCase()}">${config.name}</span>
+                    </div>
+                </div>
+                
+                <div class="report-content">
+                    <div class="report-preview">${contentPreview}</div>
+                </div>
+                
+                <div class="report-meta">
+                    <div class="meta-info">
+                        <div class="meta-item">
+                            <i class="fas fa-code"></i>
+                            <span>${summary.code || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-tag"></i>
+                            <span>${summary.summary_type || 'N/A'}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${formatDateTime(summary.created_at)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="report-actions">
+                        <button class="btn btn-primary btn-action" onclick="event.stopPropagation(); viewSummaryDetail(${summary.id})">
+                            <i class="fas fa-eye"></i> 查看详情
+                        </button>
+                        <button class="btn btn-success btn-action" onclick="event.stopPropagation(); downloadSummary(${summary.id})">
+                            <i class="fas fa-download"></i> 下载
+                        </button>
+                        <button class="btn btn-danger btn-action" onclick="event.stopPropagation(); deleteSummary(${summary.id}, '${summary.title || '市场总结'}')">
+                            <i class="fas fa-trash"></i> 删除
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return cardDiv;
+        }
+        
+        // 格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            if (!dateTimeStr) return 'N/A';
+            
+            try {
+                const date = new Date(dateTimeStr);
+                return date.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return dateTimeStr;
+            }
         }
         
         // 渲染分页
@@ -287,7 +909,7 @@
             
             // 上一页
             if (page > 1) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadSummaries(${page - 1})">上一页</a></li>`;
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="goToPage(${page - 1})">上一页</a></li>`;
             }
             
             // 页码
@@ -296,16 +918,22 @@
             
             for (let i = startPage; i <= endPage; i++) {
                 const activeClass = i === page ? 'active' : '';
-                paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="loadSummaries(${i})">${i}</a></li>`;
+                paginationHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="goToPage(${i})">${i}</a></li>`;
             }
             
             // 下一页
             if (page < totalPages) {
-                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="loadSummaries(${page + 1})">下一页</a></li>`;
+                paginationHtml += `<li class="page-item"><a class="page-link" href="#" onclick="goToPage(${page + 1})">下一页</a></li>`;
             }
             
             paginationHtml += '</ul></nav>';
             paginationWrapper.innerHTML = paginationHtml;
+        }
+        
+        // 跳转到指定页面
+        function goToPage(page) {
+            currentPage = page;
+            loadSummaries();
         }
         
         // 查看总结详情
@@ -362,24 +990,80 @@
             window.open(`/api/news/market_summary/${summaryId}/download`, '_blank');
         }
         
-        // 搜索总结
+        // 搜索功能
         function searchSummaries() {
-            loadSummaries(1);
+            currentPage = 1;
+            loadSummaries();
         }
         
-        // 重置筛选条件
+        // 重置筛选
         function resetFilters() {
-            document.getElementById('marketFilter').value = '';
             document.getElementById('codeFilter').value = '';
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';
-            loadSummaries(1);
+            currentPage = 1;
+            loadSummaries();
+        }
+        
+        // 删除总结
+        function deleteSummary(summaryId, title) {
+            // 设置删除模态框的标题
+            document.getElementById('deleteReportTitle').textContent = title;
+            
+            // 清空验证码输入框
+            document.getElementById('deleteVerificationCode').value = '';
+            
+            // 显示删除确认模态框
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            deleteModal.show();
+            
+            // 设置确认删除按钮的点击事件
+            document.getElementById('confirmDeleteBtn').onclick = function() {
+                const verificationCode = document.getElementById('deleteVerificationCode').value;
+                
+                if (!verificationCode) {
+                    alert('请输入验证码');
+                    return;
+                }
+                
+                // 发送删除请求
+                 fetch(`/api/news/market_summary/${summaryId}`, {
+                     method: 'DELETE',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify({
+                         code: verificationCode
+                     })
+                 })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code === 0) {
+                        alert('删除成功');
+                        deleteModal.hide();
+                        loadSummaries(); // 重新加载列表
+                    } else {
+                        alert('删除失败: ' + data.msg);
+                    }
+                })
+                .catch(error => {
+                    console.error('删除失败:', error);
+                    alert('删除失败，请稍后重试');
+                });
+            };
         }
         
         // 模态框下载按钮事件
         document.getElementById('downloadBtn').addEventListener('click', function() {
             if (currentSummaryId) {
                 downloadSummary(currentSummaryId);
+            }
+        });
+        
+        // 删除模态框的验证码输入框回车事件
+        document.getElementById('deleteVerificationCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('confirmDeleteBtn').click();
             }
         });
     </script>

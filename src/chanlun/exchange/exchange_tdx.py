@@ -219,6 +219,10 @@ class ExchangeTDX(Exchange):
             args["pages"] = 12
 
         market, tdx_code, _type = self.to_tdx_code(code)
+        print(f"获取 {code} {frequency} 数据")
+        print(f"market: {market}")
+        print(f"tdx_code: {tdx_code}")
+        print(f"_type: {_type}")
         if market is None or _type is None:
             return None
 
@@ -233,6 +237,8 @@ class ExchangeTDX(Exchange):
                 ks: pd.DataFrame = self.fdb.get_tdx_klines(
                     Market.A.value, code, frequency
                 )
+                print('Market.A.value',Market.A.value)
+                print('code',code)
                 if ks is None or len(ks) == 0:
                     # 获取 8*700 = 5600 条数据
                     ks = pd.concat(
@@ -289,7 +295,7 @@ class ExchangeTDX(Exchange):
 
             # 删除重复数据
             ks = ks.drop_duplicates(["date"], keep="last").sort_values("date")
-
+            print('ks',ks)
             self.fdb.save_tdx_klines(Market.A.value, code, frequency, ks)
 
             ks.loc[:, "code"] = code
@@ -368,6 +374,7 @@ class ExchangeTDX(Exchange):
             if _m is not None:
                 query_stocks.append((_m, _c))
         client = TdxHq_API(raise_exception=True, auto_retry=True)
+        print('query_stocks',query_stocks)
         with client.connect(self.connect_info["ip"], self.connect_info["port"]):
             # 获取总数据量
             total_quotes = len(query_stocks)

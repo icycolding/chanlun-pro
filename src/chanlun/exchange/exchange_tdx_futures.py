@@ -56,7 +56,9 @@ class ExchangeTDXFutures(Exchange):
                     ):
                         all_markets = client.get_markets()
                         for _m in all_markets:
-                            if _m["category"] == 3 and _m["market"] in [
+                            # 原有：仅加入常见期货市场（category == 3 且属于白名单）
+                            # 增强：同时识别 name 含“期权”的市场（例如商品期权），便于 all_stocks 搜索到期权合约
+                            is_futures_market = _m["category"] == 3 and _m["market"] in [
                                 # 23, # PR 香港金融期货
                                 28,  # QZ 郑州商品
                                 29,  # QD 大连商品
@@ -64,7 +66,10 @@ class ExchangeTDXFutures(Exchange):
                                 42,  # TI 商品指数
                                 47,  # CZ 中金所期货
                                 66,  # QG 广州期货
-                            ]:
+                            ]
+                            is_options_market = "期权" in str(_m.get("name", ""))
+
+                            if is_futures_market or is_options_market:
                                 self.market_maps[_m["short_name"]] = {
                                     "market": _m["market"],
                                     "category": _m["category"],
@@ -122,10 +127,9 @@ class ExchangeTDXFutures(Exchange):
             while True:
                 instruments = client.get_instrument_info(start_i, count)
                 for _i in instruments:
-                    if (
-                        _i["category"] != 3
-                        or _i["market"] not in market_map_short_names.keys()
-                    ):
+                    # 之前：仅 category == 3（期货）才加入；这会漏掉期权市场的合约
+                    # 现在：只要该合约所在市场被映射（包含期货与期权），即加入列表
+                    if _i["market"] not in market_map_short_names.keys():
                         continue
 
                     __all_stocks.append(
@@ -142,6 +146,16 @@ class ExchangeTDXFutures(Exchange):
         # print(f"期货获取数量：{len(self.g_all_stocks)}")
 
         return self.g_all_stocks
+    #  return fetch('/api/get_indicator_data', {
+    #       method: 'POST',
+    #       headers: { 'Content-Type': 'application/json' },
+    #       body: JSON.stringify({ indicator: 'vol' })   // 根据实际需求传参
+    #     })
+    #     .then(res => res.json())
+    #     .then(data => {
+    #       // 假设后端返回 { values: [/* 数组 */] }
+    #       console.log('data.values',data.values)
+    #       return data.values;
 
     def to_tdx_code(self, code):
         """
@@ -263,7 +277,7 @@ class ExchangeTDXFutures(Exchange):
             klines[["volume"]] = klines[["volume"]].astype(float)
             if frequency in ["2m", "3m"]:
                 klines = convert_tdx_futures_kline_frequency(klines, frequency)
-
+            print(f"获取tdx {code} {frequency} 数据 {len(klines)} 条")
             return klines[["code", "date", "open", "close", "high", "low", "volume"]]
         except TdxConnectionError:
             self.reset_tdx_ip()

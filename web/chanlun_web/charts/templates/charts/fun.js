@@ -20,6 +20,7 @@ function fetchKlinesData(chart_obj, market, code, frequency, update = false) {
                 chart_obj.clear();
             }
             chart_obj.setOption(re_obj);
+            loadBackendLine(chart_obj, market, code, frequency);
             $('#loading').loading('stop');
         }
     });

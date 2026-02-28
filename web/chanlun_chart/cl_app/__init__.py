@@ -260,6 +260,14 @@ def create_app(test_config=None):
         """
         return render_template("market_summary.html")
 
+    @app.route("/ai-chat")
+    @login_required
+    def ai_chat():
+        """
+        AGI 对话页面
+        """
+        return render_template("ai_chat.html")
+
     @app.route("/tv/config")
     @login_required
     def tv_config():
@@ -321,6 +329,17 @@ def create_app(test_config=None):
             "exchange-traded": group,
         }
         return info
+
+    @app.route("/api/get_indicator_data", methods=['POST'])
+    def get_indicator_data():
+        """
+        获取指标数据
+        """
+        # For now, just return some dummy data.
+        # We can implement the real data fetching logic later.
+        print('start1')
+        return {"values": 1}
+
 
     @app.route("/tv/symbols")
     @login_required
@@ -416,7 +435,6 @@ def create_app(test_config=None):
 
         ex = get_exchange(Market(exchange))
         all_stocks = ex.all_stocks()
-
         if exchange in ["currency", "currency_spot"]:
             res_stocks = [
                 stock for stock in all_stocks if query.lower() in stock["code"].lower()
@@ -452,6 +470,7 @@ def create_app(test_config=None):
                     ],
                 }
             )
+        print('infos',infos)
         return infos
 
     @app.route("/tv/history")
@@ -1946,7 +1965,7 @@ def create_app(test_config=None):
         """
         接收经济数据的API接口
         """
-        print('接收经济数据的API接口')
+       
 
         from .economic_data_receiver import receive_economic_data
         return receive_economic_data()
@@ -2073,7 +2092,12 @@ def create_app(test_config=None):
     # 注册向量数据库API路由
     register_vector_api_routes(app)
     
-
-
+    # 注册 AGI 知识库 API 蓝图
+    from .ai_agent.knowledge_api import knowledge_bp
+    app.register_blueprint(knowledge_bp)
+    
+    # 注册 AGI Chat API 蓝图
+    from .ai_agent.chat_api import chat_bp
+    app.register_blueprint(chat_bp)
 
     return app
