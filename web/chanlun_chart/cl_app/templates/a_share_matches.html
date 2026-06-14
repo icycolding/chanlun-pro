@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ catalog.title }}</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(10, 20, 38, 0.88);
+      --panel-strong: rgba(14, 27, 50, 0.98);
+      --panel-soft: rgba(255, 255, 255, 0.03);
+      --line: rgba(132, 169, 255, 0.18);
+      --text: #ecf3ff;
+      --muted: #9fb2d1;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+      --up: #fb7185;
+      --down: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(125, 211, 252, 0.16), transparent 26%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.16), transparent 30%),
+        linear-gradient(180deg, #09111e 0%, #050912 100%);
+    }
+    .page {
+      width: min(1480px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 40px 0 72px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
+      margin-top: 24px;
+    }
+    .theme-nav {
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      overflow-y: auto;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: rgba(10, 20, 38, 0.82);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+    .theme-nav-title {
+      margin: 0 0 12px;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+    .theme-nav-links {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .theme-nav-link {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 14px;
+      color: var(--muted);
+      text-decoration: none;
+      line-height: 1.6;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.02);
+      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+    .theme-nav-link:hover {
+      color: var(--text);
+      border-color: rgba(125, 211, 252, 0.2);
+      background: rgba(125, 211, 252, 0.08);
+    }
+    .theme-nav-link.is-active {
+      color: var(--text);
+      border-color: rgba(125, 211, 252, 0.28);
+      background: rgba(125, 211, 252, 0.14);
+    }
+    .content {
+      min-width: 0;
+    }
+    .hero,
+    .stock-card,
+    .match-card {
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+    .hero {
+      padding: 36px;
+      border-radius: 28px;
+      background: linear-gradient(180deg, rgba(10, 20, 38, 0.82), rgba(8, 15, 28, 0.92));
+    }
+    .eyebrow {
+      display: inline-flex;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.12);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      margin: 16px 0 12px;
+      font-size: clamp(32px, 4vw, 54px);
+      line-height: 1.04;
+    }
+    .hero p {
+      max-width: 980px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.8;
+    }
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .hero-stat {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(132, 169, 255, 0.1);
+    }
+    .hero-stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .hero-stat-value {
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .theme-section {
+      margin-top: 34px;
+    }
+    .theme-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .theme-header h2 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .theme-count {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .stock-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 18px;
+    }
+    .stock-card {
+      border-radius: 26px;
+      padding: 22px;
+      background: var(--panel);
+    }
+    .stock-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .stock-symbol {
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .stock-card h3 {
+      margin: 6px 0 0;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+    .theme-chip {
+      max-width: 46%;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(167, 139, 250, 0.12);
+      color: #d8cbff;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .meta-grid,
+    .research-grid,
+    .match-field-grid,
+    .stock-quote-grid,
+    .match-quote-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .meta-item,
+    .research-item,
+    .match-field,
+    .stock-quote,
+    .tweet-summary,
+    .matches-group {
+      border-radius: 18px;
+      border: 1px solid rgba(132, 169, 255, 0.12);
+    }
+    .meta-item,
+    .research-item,
+    .match-field {
+      padding: 12px 14px;
+      background: var(--panel-strong);
+    }
+    .meta-label,
+    .research-label,
+    .match-field-label,
+    .stock-quote-label,
+    .match-quote-label,
+    .group-description {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .meta-value,
+    .research-value,
+    .match-field-value {
+      display: block;
+      font-size: 14px;
+      line-height: 1.7;
+      word-break: break-word;
+    }
+    .stock-quote,
+    .tweet-summary {
+      margin-top: 18px;
+      padding: 14px 16px;
+      background: rgba(125, 211, 252, 0.08);
+    }
+    .tweet-summary {
+      background: rgba(167, 139, 250, 0.08);
+    }
+    .stock-quote.is-loading,
+    .stock-quote.is-error,
+    .stock-quote.is-muted,
+    .tweet-summary.is-loading,
+    .tweet-summary.is-error,
+    .tweet-summary.is-empty {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .stock-quote-item,
+    .match-quote-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stock-quote-value,
+    .match-quote-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .stock-quote-value.is-up,
+    .match-quote-value.is-up { color: var(--up); }
+    .stock-quote-value.is-down,
+    .match-quote-value.is-down { color: var(--down); }
+    .tweet-summary-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .tweet-summary-title {
+      color: var(--accent-2);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .tweet-summary-count {
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .tweet-summary-meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .tweet-summary-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent-2), #c4b5fd);
+      color: #08111f;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .research-block,
+    .matches-block {
+      margin-top: 18px;
+    }
+    .block-title {
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .research-summary {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    .reason-block {
+      margin-top: 18px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(167, 139, 250, 0.08);
+      border: 1px solid rgba(167, 139, 250, 0.18);
+    }
+    .reason-summary {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.85;
+      font-size: 14px;
+    }
+    .reason-highlights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .reason-tag {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.12);
+      color: #d8f4ff;
+      font-size: 12px;
+    }
+    .reason-actions {
+      margin-top: 14px;
+    }
+    .reason-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), #c4b5fd);
+      color: #08111f;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .matches-block {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .matches-group {
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .group-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .group-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .group-count {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .matches-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .match-card {
+      border-radius: 20px;
+      padding: 16px;
+      background: var(--panel-soft);
+    }
+    .match-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .match-heading {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .match-role {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .fit-badge {
+      min-width: 108px;
+      padding: 8px 10px;
+      border-radius: 16px;
+      text-align: right;
+      background: rgba(125, 211, 252, 0.1);
+      border: 1px solid rgba(125, 211, 252, 0.16);
+    }
+    .fit-score {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .fit-level {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .match-quote {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(125, 211, 252, 0.08);
+      border: 1px solid rgba(125, 211, 252, 0.18);
+    }
+    .match-quote.is-loading,
+    .match-quote.is-error {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      .theme-nav {
+        position: static;
+        max-height: none;
+      }
+      .theme-nav-links {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+    }
+    @media (max-width: 900px) {
+      .page { width: min(100vw - 24px, 1480px); padding: 24px 0 54px; }
+      .hero { padding: 24px; }
+      .stock-card { padding: 18px; }
+      .theme-chip { max-width: 100%; }
+      .theme-header,
+      .stock-card-top,
+      .match-card-top,
+      .tweet-summary-head,
+      .group-head { display: block; }
+      .theme-count,
+      .group-count { margin-top: 8px; }
+      .fit-badge {
+        margin-top: 12px;
+        text-align: left;
+      }
+      .meta-grid,
+      .research-grid,
+      .match-field-grid,
+      .stock-quote-grid,
+      .match-quote-grid {
+        grid-template-columns: 1fr;
+      }
+      .tweet-summary-btn { margin-top: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">{{ catalog.eyebrow }}</div>
+      <h1>{{ catalog.title }}</h1>
+      <p>{{ catalog.description }}</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-label">主题数量</span>
+          <span class="hero-stat-value">{{ catalog.theme_count }}</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">项目股票数量</span>
+          <span class="hero-stat-value">{{ catalog.project_stock_count }}</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">展示逻辑</span>
+          <span class="hero-stat-value">主映射 + 候选池</span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">评分体系</span>
+          <span class="hero-stat-value">Serenity Fit 数值 + 等级</span>
+        </div>
+      </div>
+    </section>
+    <div class="layout">
+      <aside class="theme-nav">
+        <div class="theme-nav-title">主题导航</div>
+        <div class="theme-nav-links">
+          {% for theme in catalog.themes %}
+          <a class="theme-nav-link{% if loop.first %} is-active{% endif %}" href="#theme-{{ theme.slug }}" data-theme-link="theme-{{ theme.slug }}">{{ theme.title }}</a>
+          {% endfor %}
+        </div>
+      </aside>
+
+      <div class="content">
+        {% for theme in catalog.themes %}
+        <section class="theme-section" id="theme-{{ theme.slug }}" data-theme-section>
+          <div class="theme-header">
+            <h2>{{ theme.title }}</h2>
+            <div class="theme-count">{{ theme.project_stock_count }} 只项目股票</div>
+          </div>
+
+          <div class="stock-grid">
+            {% for stock in theme.project_stocks %}
+            <article
+              class="stock-card"
+              data-symbol="{{ stock.symbol }}"
+              data-company-name="{{ stock.company_name }}"
+              data-exchange="{{ stock.exchange }}"
+              data-market="{{ stock.market }}"
+              data-display-name="{{ stock.display_name }}"
+            >
+              <div class="stock-card-top">
+                <div>
+                  <div class="stock-symbol">{{ stock.symbol }}</div>
+                  <h3>{{ stock.display_name }}</h3>
+                </div>
+                <div class="theme-chip">{{ stock.theme_chip }}</div>
+              </div>
+
+              <div class="meta-grid">
+                <div class="meta-item">
+                  <span class="meta-label">公司全称</span>
+                  <span class="meta-value">{{ stock.company_name }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">交易所</span>
+                  <span class="meta-value">{{ stock.exchange }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">Ticker</span>
+                  <span class="meta-value">{{ stock.symbol }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">数字代码</span>
+                  <span class="meta-value">{{ stock.numeric_code }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">ISIN</span>
+                  <span class="meta-value">{{ stock.isin }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">市场</span>
+                  <span class="meta-value">{{ stock.market }}</span>
+                </div>
+              </div>
+
+              <section class="research-block">
+                <div class="block-title">Serenity 视角</div>
+                <p class="research-summary">{{ stock.research_summary }}</p>
+              </section>
+
+              <section class="reason-block">
+                <div class="block-title">Serenity 推荐理由</div>
+                <p class="reason-summary">{{ stock.serenity_reason_summary }}</p>
+                {% if stock.serenity_reason_highlights %}
+                <div class="reason-highlights">
+                  {% for point in stock.serenity_reason_highlights %}
+                  <span class="reason-tag">{{ point }}</span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                {% if stock.tweet_detail_url %}
+                <div class="reason-actions">
+                  <a class="reason-btn" href="{{ stock.tweet_detail_url }}">{{ stock.tweet_detail_label }}</a>
+                </div>
+                {% endif %}
+              </section>
+
+              <section class="matches-block">
+                <div class="matches-group">
+                  <div class="group-head">
+                    <div>
+                      <div class="group-title">主映射</div>
+                      <div class="group-description">更接近上游 choke point、平台卡位或认证壁垒较强的 A 股映射。</div>
+                    </div>
+                    <div class="group-count">{{ stock.main_matches|length }} 只</div>
+                  </div>
+                  <div class="matches-grid">
+                    {% for match in stock.main_matches %}
+                    <article class="match-card" data-a-share-code="{{ match.code }}">
+                      <div class="match-card-top">
+                        <div>
+                          <div class="match-heading">{{ match.display_name }}</div>
+                          <div class="match-role">{{ match.role }}</div>
+                        </div>
+                        <div class="fit-badge">
+                          <span class="fit-score">{{ match.serenity_fit_score }}/20</span>
+                          <span class="fit-level">{{ match.serenity_fit_level }}</span>
+                        </div>
+                      </div>
+
+                      <div class="match-field-grid">
+                        <div class="match-field">
+                          <span class="match-field-label">供应链位置</span>
+                          <span class="match-field-value">{{ match.supply_chain_position }}</span>
+                        </div>
+                        <div class="match-field">
+                          <span class="match-field-label">映射路径</span>
+                          <span class="match-field-value">{{ match.mapping_path }}</span>
+                        </div>
+                        <div class="match-field">
+                          <span class="match-field-label">一句话判断</span>
+                          <span class="match-field-value">{{ match.judgement }}</span>
+                        </div>
+                        <div class="match-field">
+                          <span class="match-field-label">主要风险</span>
+                          <span class="match-field-value">{{ match.major_risk }}</span>
+                        </div>
+                      </div>
+                    </article>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <div class="matches-group">
+                  <div class="group-head">
+                    <div>
+                      <div class="group-title">候选池</div>
+                      <div class="group-description">保留链条相关性，但更多属于关键受益层、配套层或题材延伸映射。</div>
+                    </div>
+                    <div class="group-count">{{ stock.candidate_matches|length }} 只</div>
+                  </div>
+                  <div class="matches-grid">
+                    {% for match in stock.candidate_matches %}
+                    <article class="match-card" data-a-share-code="{{ match.code }}">
+                      <div class="match-card-top">
+                        <div>
+                          <div class="match-heading">{{ match.display_name }}</div>
+                          <div class="match-role">{{ match.role }}</div>
+                        </div>
+                        <div class="fit-badge">
+                          <span class="fit-score">{{ match.serenity_fit_score }}/20</span>
+                          <span class="fit-level">{{ match.serenity_fit_level }}</span>
+                        </div>
+                      </div>
+
+                      <div class="match-field-grid">
+                        <div class="match-field">
+                          <span class="match-field-label">供应链位置</span>
+                          <span class="match-field-value">{{ match.supply_chain_position }}</span>
+                        </div>
+                        <div class="match-field">
+                          <span class="match-field-label">映射路径</span>
+                          <span class="match-field-value">{{ match.mapping_path }}</span>
+                        </div>
+                        <div class="match-field">
+                          <span class="match-field-label">一句话判断</span>
+                          <span class="match-field-value">{{ match.judgement }}</span>
+                        </div>
+                        <div class="match-field">
+                          <span class="match-field-label">主要风险</span>
+                          <span class="match-field-value">{{ match.major_risk }}</span>
+                        </div>
+                      </div>
+                    </article>
+                    {% endfor %}
+                  </div>
+                </div>
+              </section>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function normalizeAShareCode(code) {
+      const normalized = String(code || "").trim().toUpperCase();
+      if (!normalized) {
+        return "";
+      }
+      if (normalized.includes(".")) {
+        return normalized;
+      }
+      if (/^(600|601|603|605|688|689|900)/.test(normalized)) {
+        return `SH.${normalized}`;
+      }
+      if (/^(000|001|002|003|159|200|300|301)/.test(normalized)) {
+        return `SZ.${normalized}`;
+      }
+      if (/^(430|440|83|87|88)/.test(normalized)) {
+        return `BJ.${normalized}`;
+      }
+      return normalized;
+    }
+
+    function formatPrice(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) {
+        return "--";
+      }
+      if (Math.abs(number) >= 100) {
+        return number.toFixed(2);
+      }
+      if (Math.abs(number) >= 1) {
+        return number.toFixed(3);
+      }
+      return number.toFixed(4);
+    }
+
+    function formatPercent(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) {
+        return "--";
+      }
+      const prefix = number > 0 ? "+" : "";
+      return prefix + number.toFixed(2) + "%";
+    }
+
+    function buildQuoteNode(card) {
+      let node = card.querySelector(".match-quote");
+      if (node) {
+        return node;
+      }
+      node = document.createElement("div");
+      node.className = "match-quote is-loading";
+      node.textContent = "加载行情中...";
+      const anchor = card.querySelector(".match-field-grid");
+      if (anchor) {
+        anchor.insertAdjacentElement("afterend", node);
+      } else {
+        card.appendChild(node);
+      }
+      return node;
+    }
+
+    function buildStockQuoteNode(card) {
+      let node = card.querySelector(".stock-quote");
+      if (node) {
+        return node;
+      }
+      node = document.createElement("div");
+      node.className = "stock-quote is-loading";
+      node.textContent = "加载项目股票行情中...";
+      const anchor = card.querySelector(".meta-grid");
+      if (anchor) {
+        anchor.insertAdjacentElement("afterend", node);
+      } else {
+        card.appendChild(node);
+      }
+      return node;
+    }
+
+    function buildTweetSummaryNode(card) {
+      let node = card.querySelector(".tweet-summary");
+      if (node) {
+        return node;
+      }
+      node = document.createElement("div");
+      node.className = "tweet-summary is-loading";
+      node.textContent = "整理相关 Tweets 中...";
+      const anchor = card.querySelector(".stock-quote") || card.querySelector(".meta-grid");
+      if (anchor) {
+        anchor.insertAdjacentElement("afterend", node);
+      } else {
+        card.appendChild(node);
+      }
+      return node;
+    }
+
+    function renderStockQuote(node, quote) {
+      const rate = Number(quote.rate || 0);
+      const toneClass = rate > 0 ? "is-up" : (rate < 0 ? "is-down" : "");
+      node.className = "stock-quote";
+      node.innerHTML = `
+        <div class="stock-quote-grid">
+          <div class="stock-quote-item">
+            <span class="stock-quote-label">项目股票价格</span>
+            <span class="stock-quote-value ${toneClass}">${formatPrice(quote.price)}</span>
+          </div>
+          <div class="stock-quote-item">
+            <span class="stock-quote-label">涨跌幅</span>
+            <span class="stock-quote-value ${toneClass}">${formatPercent(quote.rate)}</span>
+          </div>
+          <div class="stock-quote-item">
+            <span class="stock-quote-label">日内波幅</span>
+            <span class="stock-quote-value">${formatPercent(quote.swing_rate)}</span>
+          </div>
+          <div class="stock-quote-item">
+            <span class="stock-quote-label">行情市场</span>
+            <span class="stock-quote-value">${String(quote.market || "").toUpperCase()}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderQuote(node, tick) {
+      const rate = Number(tick.rate || 0);
+      const toneClass = rate > 0 ? "is-up" : (rate < 0 ? "is-down" : "");
+      node.className = "match-quote";
+      node.innerHTML = `
+        <div class="match-quote-grid">
+          <div class="match-quote-item">
+            <span class="match-quote-label">最新价格</span>
+            <span class="match-quote-value ${toneClass}">${formatPrice(tick.price)}</span>
+          </div>
+          <div class="match-quote-item">
+            <span class="match-quote-label">涨跌幅</span>
+            <span class="match-quote-value ${toneClass}">${formatPercent(tick.rate)}</span>
+          </div>
+          <div class="match-quote-item">
+            <span class="match-quote-label">日内波幅</span>
+            <span class="match-quote-value">${formatPercent(tick.swing_rate)}</span>
+          </div>
+          <div class="match-quote-item">
+            <span class="match-quote-label">日内区间</span>
+            <span class="match-quote-value">${formatPrice(tick.low)} - ${formatPrice(tick.high)}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTweetSummary(node, summary) {
+      node.className = "tweet-summary";
+      node.innerHTML = `
+        <div class="tweet-summary-head">
+          <div>
+            <div class="tweet-summary-title">Serenity Tweets</div>
+            <div class="tweet-summary-count">提及 ${Number(summary.mention_count || 0)} 次</div>
+          </div>
+          <a class="tweet-summary-btn" href="${summary.detail_url || "#"}">查看相关 Tweets</a>
+        </div>
+        <div class="tweet-summary-meta">最近提及：${summary.latest_mention_at || "--"}</div>
+      `;
+    }
+
+    async function loadAShareMatchQuotes() {
+      const cards = Array.from(document.querySelectorAll(".match-card[data-a-share-code]"));
+      const cardGroups = new Map();
+
+      cards.forEach((card) => {
+        const code = normalizeAShareCode(card.dataset.aShareCode || "");
+        if (!code) {
+          return;
+        }
+        buildQuoteNode(card);
+        const current = cardGroups.get(code) || [];
+        current.push(card);
+        cardGroups.set(code, current);
+      });
+
+      const codes = Array.from(cardGroups.keys());
+      if (!codes.length) {
+        return;
+      }
+
+      const body = new URLSearchParams();
+      body.set("market", "a");
+      body.set("codes", JSON.stringify(codes));
+
+      try {
+        const response = await fetch("/ticks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+          },
+          body: body.toString(),
+          credentials: "same-origin",
+        });
+        if (!response.ok) {
+          throw new Error("request_failed");
+        }
+
+        const payload = await response.json();
+        const tickMap = new Map((payload.ticks || []).map((item) => [String(item.code || ""), item]));
+
+        cardGroups.forEach((groupCards, code) => {
+          const tick = tickMap.get(code);
+          groupCards.forEach((card) => {
+            const quoteNode = buildQuoteNode(card);
+            if (!tick) {
+              quoteNode.className = "match-quote is-error";
+              quoteNode.textContent = "未获取到最新行情";
+              return;
+            }
+            renderQuote(quoteNode, tick);
+          });
+        });
+      } catch (error) {
+        cardGroups.forEach((groupCards) => {
+          groupCards.forEach((card) => {
+            const quoteNode = buildQuoteNode(card);
+            quoteNode.className = "match-quote is-error";
+            quoteNode.textContent = "行情加载失败";
+          });
+        });
+      }
+    }
+
+    async function loadProjectStockQuotes() {
+      const cards = Array.from(document.querySelectorAll(".stock-card"));
+      const items = [];
+      const cardMap = new Map();
+
+      cards.forEach((card) => {
+        const symbol = String(card.dataset.symbol || "").trim();
+        if (!symbol) {
+          return;
+        }
+        buildStockQuoteNode(card);
+        items.push({
+          symbol,
+          exchange: String(card.dataset.exchange || "").trim(),
+          market: String(card.dataset.market || "").trim(),
+          company_name: String(card.dataset.companyName || "").trim(),
+          display_name: String(card.dataset.displayName || "").trim(),
+        });
+        const existing = cardMap.get(symbol) || [];
+        existing.push(card);
+        cardMap.set(symbol, existing);
+      });
+
+      if (!items.length) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/a_share_matches/project_ticks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({ items }),
+        });
+        if (!response.ok) {
+          throw new Error("request_failed");
+        }
+
+        const payload = await response.json();
+        const quoteMap = new Map();
+        (payload.quotes || []).forEach((quote) => {
+          (quote.symbols || []).forEach((symbol) => {
+            quoteMap.set(String(symbol || ""), quote);
+          });
+        });
+        const unsupportedMap = new Map();
+        (payload.unsupported || []).forEach((item) => {
+          unsupportedMap.set(String(item.symbol || ""), item);
+        });
+
+        cardMap.forEach((groupCards, symbol) => {
+          const quote = quoteMap.get(symbol);
+          const unsupported = unsupportedMap.get(symbol);
+          groupCards.forEach((card) => {
+            const node = buildStockQuoteNode(card);
+            if (quote) {
+              renderStockQuote(node, quote);
+              return;
+            }
+            if (unsupported) {
+              node.className = "stock-quote is-muted";
+              node.textContent = unsupported.reason === "unsupported_market"
+                ? "当前未接入该市场行情"
+                : "项目股票行情获取失败";
+              return;
+            }
+            node.className = "stock-quote is-error";
+            node.textContent = "未获取到项目股票行情";
+          });
+        });
+      } catch (error) {
+        cardMap.forEach((groupCards) => {
+          groupCards.forEach((card) => {
+            const node = buildStockQuoteNode(card);
+            node.className = "stock-quote is-error";
+            node.textContent = "项目股票行情加载失败";
+          });
+        });
+      }
+    }
+
+    const TWEET_SUMMARY_REFRESH = {
+      dataVersion: "0",
+      pollIntervalMs: 60 * 60 * 1000,
+      lastPollStartedAt: Date.now(),
+    };
+
+    async function loadProjectTweetSummaries(forceRender = false) {
+      const cards = Array.from(document.querySelectorAll(".stock-card"));
+      const items = [];
+      const cardMap = new Map();
+
+      cards.forEach((card) => {
+        const symbol = String(card.dataset.symbol || "").trim();
+        if (!symbol) {
+          return;
+        }
+        buildTweetSummaryNode(card);
+        items.push({
+          symbol,
+          company_name: String(card.dataset.companyName || "").trim(),
+          exchange: String(card.dataset.exchange || "").trim(),
+          market: String(card.dataset.market || "").trim(),
+          display_name: String(card.dataset.displayName || "").trim(),
+        });
+        const current = cardMap.get(symbol) || [];
+        current.push(card);
+        cardMap.set(symbol, current);
+      });
+
+      if (!items.length) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/a_share_matches/tweet_summaries", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({ items }),
+        });
+        if (!response.ok) {
+          throw new Error("request_failed");
+        }
+
+        const payload = await response.json();
+        const nextVersion = String(payload.data_version || "0");
+        if (!forceRender && TWEET_SUMMARY_REFRESH.dataVersion && nextVersion === TWEET_SUMMARY_REFRESH.dataVersion) {
+          return;
+        }
+        const summaryMap = new Map((payload.summaries || []).map((item) => [String(item.symbol || ""), item]));
+
+        cardMap.forEach((groupCards, symbol) => {
+          const summary = summaryMap.get(symbol);
+          groupCards.forEach((card) => {
+            const node = buildTweetSummaryNode(card);
+            if (!summary) {
+              node.className = "tweet-summary is-error";
+              node.textContent = "Tweets 摘要加载失败";
+              return;
+            }
+            if (!Number(summary.mention_count || 0)) {
+              node.className = "tweet-summary is-empty";
+              node.textContent = "未检索到相关 Tweets";
+              return;
+            }
+            renderTweetSummary(node, summary);
+          });
+        });
+        TWEET_SUMMARY_REFRESH.dataVersion = nextVersion;
+      } catch (error) {
+        cardMap.forEach((groupCards) => {
+          groupCards.forEach((card) => {
+            const node = buildTweetSummaryNode(card);
+            node.className = "tweet-summary is-error";
+            node.textContent = "Tweets 摘要加载失败";
+          });
+        });
+      }
+    }
+
+    async function refreshProjectTweetSummariesIfNeeded() {
+      if (document.hidden) {
+        return;
+      }
+      TWEET_SUMMARY_REFRESH.lastPollStartedAt = Date.now();
+      await loadProjectTweetSummaries(false);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && Date.now() - TWEET_SUMMARY_REFRESH.lastPollStartedAt >= TWEET_SUMMARY_REFRESH.pollIntervalMs) {
+        refreshProjectTweetSummariesIfNeeded();
+      }
+    });
+
+    function initThemeNavigation() {
+      const sections = Array.from(document.querySelectorAll("[data-theme-section]"));
+      const navLinks = Array.from(document.querySelectorAll("[data-theme-link]"));
+      if (!sections.length || !navLinks.length) {
+        return;
+      }
+
+      const linkMap = new Map(navLinks.map((link) => [String(link.dataset.themeLink || ""), link]));
+      const setActiveTheme = (id) => {
+        navLinks.forEach((link) => {
+          link.classList.toggle("is-active", String(link.dataset.themeLink || "") === id);
+        });
+      };
+
+      const observer = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
+        if (!visible.length) {
+          return;
+        }
+        setActiveTheme(String(visible[0].target.id || ""));
+      }, {
+        rootMargin: "-20% 0px -65% 0px",
+        threshold: [0.2, 0.4, 0.6],
+      });
+
+      sections.forEach((section) => observer.observe(section));
+      navLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          const id = String(link.dataset.themeLink || "");
+          if (id && linkMap.has(id)) {
+            setActiveTheme(id);
+          }
+        });
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initThemeNavigation();
+      loadProjectStockQuotes();
+      loadProjectTweetSummaries(true);
+      loadAShareMatchQuotes();
+      window.setInterval(refreshProjectTweetSummariesIfNeeded, TWEET_SUMMARY_REFRESH.pollIntervalMs);
+    });
+  </script>
+</body>
+</html>

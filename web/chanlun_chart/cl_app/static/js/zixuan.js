@@ -421,7 +421,7 @@ var ZiXuan = (function () {
           },
           on: function (data) {
             if (data.arr.length > 0) {
-              change_chart_ticker(Utils.get_market(), data.arr[0]["value"]);
+              change_chart_ticker(Utils.get_market(), data.arr[0]["value"], data.arr[0]["name"]);
               Utils.add_to_cache(data);
             }
           },

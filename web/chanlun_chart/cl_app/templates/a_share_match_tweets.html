@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ symbol }} 相关 Tweets</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(10, 20, 38, 0.88);
+      --panel-strong: rgba(14, 27, 50, 0.98);
+      --line: rgba(132, 169, 255, 0.18);
+      --text: #ecf3ff;
+      --muted: #9fb2d1;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+      --tag: rgba(125, 211, 252, 0.12);
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(125, 211, 252, 0.16), transparent 26%),
+        radial-gradient(circle at top right, rgba(167, 139, 250, 0.16), transparent 30%),
+        linear-gradient(180deg, #09111e 0%, #050912 100%);
+    }
+    .page {
+      width: min(1120px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 36px 0 72px;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 14px;
+      margin-bottom: 18px;
+    }
+    .hero, .tweet-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+    .hero {
+      border-radius: 28px;
+      padding: 30px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.12);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      margin: 14px 0 10px;
+      font-size: clamp(28px, 4vw, 42px);
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .summary-item {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(132, 169, 255, 0.1);
+    }
+    .summary-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .summary-value {
+      font-size: 16px;
+      font-weight: 700;
+      word-break: break-word;
+    }
+    .tweets-section {
+      margin-top: 28px;
+    }
+    .overview-section,
+    .timeline-section {
+      margin-top: 24px;
+    }
+    .section-title {
+      margin: 0 0 16px;
+      font-size: 22px;
+    }
+    .overview-card,
+    .timeline-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+    .overview-card {
+      padding: 22px;
+      border-radius: 24px;
+    }
+    .overview-block + .overview-block {
+      margin-top: 16px;
+    }
+    .overview-title {
+      margin: 0 0 8px;
+      color: var(--accent);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .overview-text {
+      margin: 0;
+      line-height: 1.85;
+      color: var(--text);
+    }
+    .timeline-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    .timeline-card {
+      padding: 20px 22px;
+      border-radius: 22px;
+    }
+    .timeline-stage {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(167, 139, 250, 0.12);
+      color: #d8cbff;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    .timeline-summary {
+      margin: 14px 0 0;
+      line-height: 1.8;
+      color: var(--text);
+    }
+    .timeline-points {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .timeline-point {
+      padding-left: 16px;
+      color: var(--muted);
+      line-height: 1.7;
+      position: relative;
+    }
+    .timeline-point::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+    .tweet-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .tweet-card {
+      border-radius: 24px;
+      padding: 22px;
+    }
+    .tweet-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+    .tweet-reasons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .tag {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--tag);
+      color: #d8f4ff;
+      font-size: 12px;
+    }
+    .tweet-copy {
+      margin-top: 14px;
+    }
+    .tweet-copy:first-of-type {
+      margin-top: 0;
+    }
+    .tweet-copy-label {
+      display: inline-flex;
+      margin-bottom: 8px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(132, 169, 255, 0.1);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+    }
+    .tweet-text, .tweet-quoted-text {
+      margin: 0;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .tweet-quoted {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(132, 169, 255, 0.12);
+      color: var(--muted);
+    }
+    .tweet-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .tweet-stat {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(132, 169, 255, 0.1);
+    }
+    .tweet-stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .tweet-stat-value {
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .tweet-actions {
+      margin-top: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      color: #06111e;
+      background: linear-gradient(135deg, var(--accent), #c4b5fd);
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .empty {
+      padding: 28px;
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--muted);
+      line-height: 1.8;
+      box-shadow: var(--shadow);
+    }
+    @media (max-width: 720px) {
+      .page { width: min(100vw - 20px, 1120px); padding: 20px 0 48px; }
+      .hero, .tweet-card, .empty { padding: 20px; border-radius: 22px; }
+      .tweet-stats, .summary-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main
+    class="page"
+    data-symbol="{{ symbol }}"
+    data-company-name="{{ company_name }}"
+    data-exchange="{{ exchange }}"
+    data-market="{{ market }}"
+    data-display-name="{{ display_name }}"
+    data-version="{{ data_version }}"
+  >
+    <a class="back-link" href="/a_share_matches">← 返回项目推荐股与A股映射表</a>
+
+    <section class="hero">
+      <div class="eyebrow">Serenity Tweets</div>
+      <h1>{{ display_name or company_name or symbol }}</h1>
+      <p>整理 Serenity（@aleabitoreddit）在原始 tweet 档案中对该股票的相关提及，按时间倒序展示，匹配范围包含 ticker、ticker 别名、公司名和引用 tweet。</p>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label">股票代码</span>
+          <span class="summary-value">{{ symbol }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">公司全称</span>
+          <span class="summary-value">{{ company_name or '-' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">交易所 / 市场</span>
+          <span class="summary-value">{{ exchange or '-' }} / {{ market or '-' }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">提及数量</span>
+          <span class="summary-value" id="mention-count">{{ mention_count }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">最近提及时间</span>
+          <span class="summary-value" id="latest-mention-at">{{ latest_mention_at or '-' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="overview-section">
+      <h2 class="section-title">Serenity 推荐理由</h2>
+      <div class="overview-card">
+        <div class="overview-block">
+          <div class="overview-title">为什么 Serenity 看它</div>
+          <p class="overview-text" id="why-serenity-likes-it">{{ why_serenity_likes_it or '当前未整理静态推荐理由。' }}</p>
+        </div>
+        <div class="overview-block">
+          <div class="overview-title" id="overview-title">{{ overview_title or '观点总览' }}</div>
+          <p class="overview-text" id="overview-summary">{{ overview_summary or '当前未整理静态观点总览。' }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="timeline-section">
+      <h2 class="section-title">时间线</h2>
+      <div class="timeline-list" id="timeline-list">
+        {% if timeline_sections %}
+          {% for section in timeline_sections %}
+          <article class="timeline-card">
+            <span class="timeline-stage">{{ section.title }}</span>
+            <p class="timeline-summary">{{ section.summary }}</p>
+            {% if section.focus_points %}
+            <div class="timeline-points">
+              {% for point in section.focus_points %}
+              <div class="timeline-point">{{ point }}</div>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </article>
+          {% endfor %}
+        {% else %}
+          <article class="timeline-card">
+            <span class="timeline-stage">时间线待补充</span>
+            <p class="timeline-summary">当前还没有整理这只股票的静态阶段总结，下面仍可查看原始相关 tweets。</p>
+          </article>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="tweets-section">
+      <h2 class="section-title">相关 Tweets</h2>
+
+      {% if tweets %}
+      <div class="tweet-list" id="tweet-list">
+        {% for tweet in tweets %}
+        <article class="tweet-card">
+          <div class="tweet-meta">
+            <span>{{ tweet.created_at_local or '-' }}</span>
+            <span>ID: {{ tweet.id }}</span>
+          </div>
+
+          <div class="tweet-reasons">
+            {% for reason in tweet.match_reasons %}
+            <span class="tag">{{ reason }}</span>
+            {% endfor %}
+          </div>
+
+          <div class="tweet-copy">
+            <span class="tweet-copy-label">原文</span>
+            <p class="tweet-text">{{ tweet.text }}</p>
+          </div>
+
+          {% if tweet.text_zh and tweet.text_zh != tweet.text %}
+          <div class="tweet-copy">
+            <span class="tweet-copy-label">中文翻译</span>
+            <p class="tweet-text">{{ tweet.text_zh }}</p>
+          </div>
+          {% endif %}
+
+          {% if tweet.quoted_text %}
+          <div class="tweet-quoted">
+            <div class="tweet-copy">
+              <span class="tweet-copy-label">引用原文</span>
+              <p class="tweet-quoted-text">{{ tweet.quoted_text }}</p>
+            </div>
+            {% if tweet.quoted_text_zh and tweet.quoted_text_zh != tweet.quoted_text %}
+            <div class="tweet-copy">
+              <span class="tweet-copy-label">引用中文翻译</span>
+              <p class="tweet-quoted-text">{{ tweet.quoted_text_zh }}</p>
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          <div class="tweet-stats">
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">点赞</span>
+              <span class="tweet-stat-value">{{ tweet.likes }}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">转推</span>
+              <span class="tweet-stat-value">{{ tweet.retweets }}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">回复</span>
+              <span class="tweet-stat-value">{{ tweet.replies }}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">引用</span>
+              <span class="tweet-stat-value">{{ tweet.quotes }}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">浏览</span>
+              <span class="tweet-stat-value">{{ tweet.views }}</span>
+            </div>
+          </div>
+
+          {% if tweet.url %}
+          <div class="tweet-actions">
+            <a class="btn" href="{{ tweet.url }}" target="_blank" rel="noopener noreferrer">打开原帖</a>
+          </div>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty" id="tweet-empty">当前未检索到与该股票相关的 Serenity tweets。</div>
+      {% endif %}
+    </section>
+  </main>
+  <script>
+    const pageNode = document.querySelector(".page");
+    const TWEET_DETAIL_CONTEXT = {
+      symbol: pageNode ? (pageNode.dataset.symbol || "") : "",
+      companyName: pageNode ? (pageNode.dataset.companyName || "") : "",
+      exchange: pageNode ? (pageNode.dataset.exchange || "") : "",
+      market: pageNode ? (pageNode.dataset.market || "") : "",
+      displayName: pageNode ? (pageNode.dataset.displayName || "") : "",
+      dataVersion: pageNode ? (pageNode.dataset.version || "0") : "0",
+      pollIntervalMs: 60 * 60 * 1000,
+      lastPollStartedAt: Date.now(),
+    };
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function renderReasonTags(reasons) {
+      return (reasons || [])
+        .map((reason) => `<span class="tag">${escapeHtml(reason)}</span>`)
+        .join("");
+    }
+
+    function renderTweetCopy(label, value, className) {
+      return `
+        <div class="tweet-copy">
+          <span class="tweet-copy-label">${escapeHtml(label)}</span>
+          <p class="${className}">${escapeHtml(value)}</p>
+        </div>
+      `;
+    }
+
+    function renderTweetCard(tweet) {
+      const textBlock = renderTweetCopy("原文", tweet.text || "", "tweet-text");
+      const textZhBlock = tweet.text_zh && tweet.text_zh !== tweet.text
+        ? renderTweetCopy("中文翻译", tweet.text_zh, "tweet-text")
+        : "";
+      const quotedBlock = tweet.quoted_text
+        ? `
+          <div class="tweet-quoted">
+            ${renderTweetCopy("引用原文", tweet.quoted_text, "tweet-quoted-text")}
+            ${tweet.quoted_text_zh && tweet.quoted_text_zh !== tweet.quoted_text
+              ? renderTweetCopy("引用中文翻译", tweet.quoted_text_zh, "tweet-quoted-text")
+              : ""}
+          </div>
+        `
+        : "";
+      const actionBlock = tweet.url
+        ? `
+          <div class="tweet-actions">
+            <a class="btn" href="${escapeHtml(tweet.url)}" target="_blank" rel="noopener noreferrer">打开原帖</a>
+          </div>
+        `
+        : "";
+
+      return `
+        <article class="tweet-card">
+          <div class="tweet-meta">
+            <span>${escapeHtml(tweet.created_at_local || "-")}</span>
+            <span>ID: ${escapeHtml(tweet.id || "-")}</span>
+          </div>
+          <div class="tweet-reasons">
+            ${renderReasonTags(tweet.match_reasons)}
+          </div>
+          ${textBlock}
+          ${textZhBlock}
+          ${quotedBlock}
+          <div class="tweet-stats">
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">点赞</span>
+              <span class="tweet-stat-value">${escapeHtml(tweet.likes ?? 0)}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">转推</span>
+              <span class="tweet-stat-value">${escapeHtml(tweet.retweets ?? 0)}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">回复</span>
+              <span class="tweet-stat-value">${escapeHtml(tweet.replies ?? 0)}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">引用</span>
+              <span class="tweet-stat-value">${escapeHtml(tweet.quotes ?? 0)}</span>
+            </div>
+            <div class="tweet-stat">
+              <span class="tweet-stat-label">浏览</span>
+              <span class="tweet-stat-value">${escapeHtml(tweet.views ?? 0)}</span>
+            </div>
+          </div>
+          ${actionBlock}
+        </article>
+      `;
+    }
+
+    function renderTimelineSection(section) {
+      const points = Array.isArray(section.focus_points) ? section.focus_points : [];
+      return `
+        <article class="timeline-card">
+          <span class="timeline-stage">${escapeHtml(section.title || "阶段")}</span>
+          <p class="timeline-summary">${escapeHtml(section.summary || "")}</p>
+          ${points.length
+            ? `<div class="timeline-points">${points.map((point) => `<div class="timeline-point">${escapeHtml(point)}</div>`).join("")}</div>`
+            : ""}
+        </article>
+      `;
+    }
+
+    function ensureTweetListNode() {
+      let list = document.getElementById("tweet-list");
+      if (list) {
+        return list;
+      }
+      const empty = document.getElementById("tweet-empty");
+      if (!empty) {
+        return null;
+      }
+      list = document.createElement("div");
+      list.className = "tweet-list";
+      list.id = "tweet-list";
+      empty.insertAdjacentElement("beforebegin", list);
+      empty.remove();
+      return list;
+    }
+
+    function ensureEmptyNode() {
+      let empty = document.getElementById("tweet-empty");
+      if (empty) {
+        return empty;
+      }
+      const list = document.getElementById("tweet-list");
+      if (!list || !list.parentElement) {
+        return null;
+      }
+      empty = document.createElement("div");
+      empty.className = "empty";
+      empty.id = "tweet-empty";
+      list.insertAdjacentElement("afterend", empty);
+      return empty;
+    }
+
+    function renderTweetDetailPayload(payload) {
+      const mentionNode = document.getElementById("mention-count");
+      const latestNode = document.getElementById("latest-mention-at");
+      const whyNode = document.getElementById("why-serenity-likes-it");
+      const overviewTitleNode = document.getElementById("overview-title");
+      const overviewSummaryNode = document.getElementById("overview-summary");
+      const timelineNode = document.getElementById("timeline-list");
+      if (mentionNode) {
+        mentionNode.textContent = String(payload.mention_count ?? 0);
+      }
+      if (latestNode) {
+        latestNode.textContent = String(payload.latest_mention_at || "-");
+      }
+      if (whyNode) {
+        whyNode.textContent = String(payload.why_serenity_likes_it || "当前未整理静态推荐理由。");
+      }
+      if (overviewTitleNode) {
+        overviewTitleNode.textContent = String(payload.overview_title || "观点总览");
+      }
+      if (overviewSummaryNode) {
+        overviewSummaryNode.textContent = String(payload.overview_summary || "当前未整理静态观点总览。");
+      }
+      if (timelineNode) {
+        const timelineSections = Array.isArray(payload.timeline_sections) ? payload.timeline_sections : [];
+        timelineNode.innerHTML = timelineSections.length
+          ? timelineSections.map(renderTimelineSection).join("")
+          : `
+            <article class="timeline-card">
+              <span class="timeline-stage">时间线待补充</span>
+              <p class="timeline-summary">当前还没有整理这只股票的静态阶段总结，下面仍可查看原始相关 tweets。</p>
+            </article>
+          `;
+      }
+
+      const tweets = Array.isArray(payload.tweets) ? payload.tweets : [];
+      if (!tweets.length) {
+        const list = document.getElementById("tweet-list");
+        if (list) {
+          list.remove();
+        }
+        const empty = ensureEmptyNode();
+        if (empty) {
+          empty.textContent = "当前未检索到与该股票相关的 Serenity tweets。";
+        }
+        return;
+      }
+
+      const list = ensureTweetListNode();
+      if (list) {
+        list.innerHTML = tweets.map(renderTweetCard).join("");
+      }
+      const empty = document.getElementById("tweet-empty");
+      if (empty) {
+        empty.remove();
+      }
+    }
+
+    async function fetchTweetDetailPayload() {
+      const params = new URLSearchParams();
+      if (TWEET_DETAIL_CONTEXT.companyName) {
+        params.set("company_name", TWEET_DETAIL_CONTEXT.companyName);
+      }
+      if (TWEET_DETAIL_CONTEXT.exchange) {
+        params.set("exchange", TWEET_DETAIL_CONTEXT.exchange);
+      }
+      if (TWEET_DETAIL_CONTEXT.market) {
+        params.set("market", TWEET_DETAIL_CONTEXT.market);
+      }
+      if (TWEET_DETAIL_CONTEXT.displayName) {
+        params.set("display_name", TWEET_DETAIL_CONTEXT.displayName);
+      }
+      const response = await fetch(`/a_share_matches/tweets/${encodeURIComponent(TWEET_DETAIL_CONTEXT.symbol)}/data?${params.toString()}`, {
+        credentials: "same-origin",
+      });
+      if (!response.ok) {
+        throw new Error("request_failed");
+      }
+      return response.json();
+    }
+
+    async function refreshTweetDetailIfNeeded() {
+      if (document.hidden) {
+        return;
+      }
+      TWEET_DETAIL_CONTEXT.lastPollStartedAt = Date.now();
+      try {
+        const payload = await fetchTweetDetailPayload();
+        const nextVersion = String(payload.data_version || "0");
+        if (nextVersion === TWEET_DETAIL_CONTEXT.dataVersion) {
+          return;
+        }
+        renderTweetDetailPayload(payload);
+        TWEET_DETAIL_CONTEXT.dataVersion = nextVersion;
+      } catch (error) {
+        console.warn("tweet detail auto refresh failed", error);
+      }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && Date.now() - TWEET_DETAIL_CONTEXT.lastPollStartedAt >= TWEET_DETAIL_CONTEXT.pollIntervalMs) {
+        refreshTweetDetailIfNeeded();
+      }
+    });
+
+    window.setInterval(refreshTweetDetailIfNeeded, TWEET_DETAIL_CONTEXT.pollIntervalMs);
+  </script>
+</body>
+</html>

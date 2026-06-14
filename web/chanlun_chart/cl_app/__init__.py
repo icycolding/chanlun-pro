@@ -1,8 +1,13 @@
 import datetime
 import json
 import os
+import pathlib
+import sys
 import time
 import traceback
+
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 import pinyin
 import pytz
@@ -23,7 +28,7 @@ from apscheduler.events import (
 )
 from apscheduler.executors.tornado import TornadoExecutor
 from apscheduler.schedulers.tornado import TornadoScheduler
-from flask import Flask, redirect, render_template, request, send_file
+from flask import Flask, jsonify, redirect, render_template, request, send_file
 from flask_login import LoginManager, UserMixin, login_required, login_user
 from tzlocal import get_localzone
 
@@ -48,6 +53,93 @@ from .alert_tasks import AlertTasks
 from .other_tasks import OtherTasks
 from .xuangu_tasks import XuanguTasks
 from .news_vector_api import register_vector_api_routes
+from .smart_news_api import register_smart_news_api
+from .asset_news_mapping import build_asset_link_rows
+from .a_share_matches_quotes import (
+    fetch_tick_snapshots,
+    infer_project_quote_target,
+    normalize_market_codes,
+)
+from .a_share_matches_catalog import get_a_share_match_catalog
+from .a_share_matches_tweets import (
+    build_tweet_detail_url,
+    build_tweet_detail_payload,
+    build_tweet_summaries,
+    get_tweets_data_version,
+)
+
+_PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[3]
+_NEWS_DIR = _PROJECT_ROOT / "news"
+if str(_NEWS_DIR) not in sys.path:
+    sys.path.append(str(_NEWS_DIR))
+
+from watch_jin10 import sync_jin10_news_once
+
+
+def _resolve_tv_symbol_stock_info(ex, market: str, code: str):
+    """
+    TradingView symbol metadata needs to be resilient for markets like FX where
+    the incoming code may be `audusd` while exchange metadata stores `FX.AUDUSD`.
+    """
+    normalized_code = str(code or "").strip()
+    if not normalized_code:
+        return None
+
+    try:
+        stock = ex.stock_info(normalized_code)
+        if stock:
+            return stock
+    except Exception:
+        pass
+
+    try:
+        all_stocks = ex.all_stocks() or []
+    except Exception:
+        all_stocks = []
+
+    target_upper = normalized_code.upper()
+    target_lower = normalized_code.lower()
+    suffix_patterns = {
+        target_upper,
+        target_lower,
+        f"{market.upper()}.{target_upper}",
+        f"{market.lower()}.{target_lower}",
+    }
+
+    for item in all_stocks:
+        item_code = str(item.get("code") or "").strip()
+        if not item_code:
+            continue
+        item_upper = item_code.upper()
+        item_lower = item_code.lower()
+        if (
+            item_upper in suffix_patterns
+            or item_lower in suffix_patterns
+            or item_upper.endswith(f".{target_upper}")
+            or item_lower.endswith(f".{target_lower}")
+        ):
+            resolved = dict(item)
+            resolved.setdefault("code", item_code)
+            resolved.setdefault("name", normalized_code.upper())
+            return resolved
+
+    return {
+        "code": normalized_code.upper(),
+        "name": normalized_code.upper(),
+        "precision": 10000 if market in ["fx", "currency", "currency_spot"] else 1000,
+    }
+
+
+def _parse_tv_symbol(symbol: str):
+    normalized_symbol = str(symbol or "").strip()
+    if ":" not in normalized_symbol:
+        return None, None
+    market, code = normalized_symbol.split(":", 1)
+    market = market.strip().lower()
+    code = code.strip()
+    if not market or not code:
+        return None, None
+    return market, code
 
 
 def create_app(test_config=None):
@@ -195,6 +287,97 @@ def create_app(test_config=None):
     _other_tasks = OtherTasks(scheduler)
 
     __log = fun.get_logger()
+    jin10_watch_job_id = "jin10_news_watch"
+    jin10_watch_state_path = get_data_path() / "jin10_seen.json"
+    jin10_watch_status = {
+        "interval": 30,
+        "max_items": 50,
+        "url": "https://www.jin10.com/",
+        "state_path": str(jin10_watch_state_path),
+        "started_at": None,
+        "last_run_at": None,
+        "last_inserted": 0,
+        "last_skipped": 0,
+        "last_vector_synced": 0,
+        "last_error": "",
+    }
+
+    def _jin10_watch_snapshot():
+        job = scheduler.get_job(jin10_watch_job_id)
+        return {
+            "running": job is not None,
+            "job_id": jin10_watch_job_id,
+            "interval": jin10_watch_status["interval"],
+            "max_items": jin10_watch_status["max_items"],
+            "url": jin10_watch_status["url"],
+            "state_path": jin10_watch_status["state_path"],
+            "started_at": jin10_watch_status["started_at"],
+            "last_run_at": jin10_watch_status["last_run_at"],
+            "last_inserted": jin10_watch_status["last_inserted"],
+            "last_skipped": jin10_watch_status["last_skipped"],
+            "last_vector_synced": jin10_watch_status["last_vector_synced"],
+            "last_error": jin10_watch_status["last_error"],
+            "next_run_at": fun.datetime_to_str(job.next_run_time)
+            if job is not None and job.next_run_time is not None
+            else None,
+        }
+
+    def _run_jin10_watch_job(url: str, state_path: str, max_items: int):
+        run_at = datetime.datetime.now()
+        try:
+            inserted_count, skipped_count, vector_synced_count = sync_jin10_news_once(
+                db=db,
+                url=url,
+                state_path=pathlib.Path(state_path),
+                max_items=max_items,
+            )
+            jin10_watch_status["last_run_at"] = run_at.isoformat()
+            jin10_watch_status["last_inserted"] = inserted_count
+            jin10_watch_status["last_skipped"] = skipped_count
+            jin10_watch_status["last_vector_synced"] = vector_synced_count
+            jin10_watch_status["last_error"] = ""
+            __log.info(
+                f"金十新闻同步完成 inserted={inserted_count} skipped={skipped_count} "
+                f"vector_synced={vector_synced_count}"
+            )
+        except Exception as e:
+            jin10_watch_status["last_run_at"] = run_at.isoformat()
+            jin10_watch_status["last_error"] = str(e)
+            __log.error(f"金十新闻同步失败: {str(e)}")
+            raise
+
+    def _start_jin10_watch(interval: int, max_items: int, url: str, state_path: str):
+        resolved_state_path = pathlib.Path(state_path).expanduser().resolve()
+        resolved_state_path.parent.mkdir(parents=True, exist_ok=True)
+        jin10_watch_status["interval"] = interval
+        jin10_watch_status["max_items"] = max_items
+        jin10_watch_status["url"] = url
+        jin10_watch_status["state_path"] = str(resolved_state_path)
+        jin10_watch_status["started_at"] = datetime.datetime.now().isoformat()
+        scheduler.add_job(
+            _run_jin10_watch_job,
+            trigger="interval",
+            seconds=interval,
+            id=jin10_watch_job_id,
+            name="金十新闻定时入库",
+            kwargs={
+                "url": url,
+                "state_path": str(resolved_state_path),
+                "max_items": max_items,
+            },
+            replace_existing=True,
+            next_run_time=datetime.datetime.now(),
+            coalesce=True,
+            max_instances=1,
+            misfire_grace_time=max(interval, 30),
+        )
+
+    def _stop_jin10_watch():
+        job = scheduler.get_job(jin10_watch_job_id)
+        if job is not None:
+            scheduler.remove_job(jin10_watch_job_id)
+        if jin10_watch_job_id in scheduler.my_task_list:
+            del scheduler.my_task_list[jin10_watch_job_id]
 
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
@@ -250,6 +433,10 @@ def create_app(test_config=None):
             "index.html",
             market_default_codes=market_default_codes,
             market_frequencys=market_frequencys,
+            jin10_watch_defaults={
+                "interval": jin10_watch_status["interval"],
+                "max_items": jin10_watch_status["max_items"],
+            },
         )
 
     @app.route("/market_summary")
@@ -259,6 +446,158 @@ def create_app(test_config=None):
         市场总结页面
         """
         return render_template("market_summary.html")
+
+    @app.route("/asset_news")
+    @login_required
+    def asset_news():
+        """
+        资产新闻页面
+        """
+        return render_template("asset_news.html")
+
+    @app.route("/a_share_matches")
+    @login_required
+    def a_share_matches():
+        """
+        项目推荐股与A股映射表页面
+        """
+        catalog = get_a_share_match_catalog()
+        for theme in catalog.get("themes", []):
+            for stock in theme.get("project_stocks", []):
+                stock["tweet_detail_url"] = build_tweet_detail_url(
+                    symbol=str(stock.get("symbol") or "").strip(),
+                    company_name=str(stock.get("company_name") or "").strip(),
+                    exchange=str(stock.get("exchange") or "").strip(),
+                    market=str(stock.get("market") or "").strip(),
+                    display_name=str(stock.get("display_name") or "").strip(),
+                )
+        return render_template("a_share_matches.html", catalog=catalog)
+
+    @app.route("/a_share_matches/project_ticks", methods=["POST"])
+    @login_required
+    def a_share_matches_project_ticks():
+        payload = request.get_json(silent=True) or {}
+        items = payload.get("items") or []
+
+        grouped_codes = {}
+        code_sources = {}
+        unsupported = []
+
+        for item in items:
+            symbol = str(item.get("symbol") or "").strip()
+            exchange_name = str(item.get("exchange") or "").strip()
+            market_name = str(item.get("market") or "").strip()
+            company_name = str(item.get("company_name") or "").strip()
+            target = infer_project_quote_target(symbol, exchange_name, market_name, company_name)
+            if not target:
+                unsupported.append(
+                    {
+                        "symbol": symbol,
+                        "exchange": exchange_name,
+                        "market": market_name,
+                        "reason": "unsupported_market",
+                    }
+                )
+                continue
+            market_key = target["market"]
+            code = target["code"]
+            grouped_codes.setdefault(market_key, [])
+            if code not in grouped_codes[market_key]:
+                grouped_codes[market_key].append(code)
+            code_sources.setdefault((market_key, code), []).append(symbol)
+
+        quotes = []
+        for market_key, codes in grouped_codes.items():
+            try:
+                ex = get_exchange(Market(market_key))
+                snapshots = fetch_tick_snapshots(ex, codes)
+                for code, snapshot in snapshots.items():
+                    snapshot["market"] = market_key
+                    snapshot["symbols"] = code_sources.get((market_key, code), [code])
+                    quotes.append(snapshot)
+                missing_codes = [code for code in codes if code not in snapshots]
+                for code in missing_codes:
+                    unsupported.append(
+                        {
+                            "symbol": ",".join(code_sources.get((market_key, code), [code])),
+                            "exchange": market_key,
+                            "market": market_key,
+                            "reason": "quote_unavailable",
+                        }
+                    )
+            except Exception:
+                traceback.print_exc()
+                for code in codes:
+                    unsupported.append(
+                        {
+                            "symbol": ",".join(code_sources.get((market_key, code), [code])),
+                            "exchange": market_key,
+                            "market": market_key,
+                            "reason": "tick_fetch_failed",
+                        }
+                    )
+
+        return jsonify({"quotes": quotes, "unsupported": unsupported})
+
+    @app.route("/a_share_matches/tweet_summaries", methods=["POST"])
+    @login_required
+    def a_share_matches_tweet_summaries():
+        payload = request.get_json(silent=True) or {}
+        items = payload.get("items") or []
+        return jsonify(
+            {
+                "summaries": build_tweet_summaries(items),
+                "data_version": get_tweets_data_version(),
+            }
+        )
+
+    @app.route("/a_share_matches/tweets/<symbol>/data")
+    @login_required
+    def a_share_matches_tweet_detail_data(symbol):
+        company_name = str(request.args.get("company_name") or "").strip()
+        exchange_name = str(request.args.get("exchange") or "").strip()
+        market_name = str(request.args.get("market") or "").strip()
+        display_name = str(request.args.get("display_name") or "").strip()
+        return jsonify(
+            build_tweet_detail_payload(
+                symbol=symbol,
+                company_name=company_name,
+                exchange=exchange_name,
+                market=market_name,
+                display_name=display_name,
+            )
+        )
+
+    @app.route("/a_share_matches/tweets/<symbol>")
+    @login_required
+    def a_share_matches_tweet_detail(symbol):
+        company_name = str(request.args.get("company_name") or "").strip()
+        exchange_name = str(request.args.get("exchange") or "").strip()
+        market_name = str(request.args.get("market") or "").strip()
+        display_name = str(request.args.get("display_name") or "").strip()
+        detail_payload = build_tweet_detail_payload(
+            symbol=symbol,
+            company_name=company_name,
+            exchange=exchange_name,
+            market=market_name,
+            display_name=display_name,
+        )
+        return render_template(
+            "a_share_match_tweets.html",
+            symbol=symbol,
+            company_name=company_name,
+            exchange=exchange_name,
+            market=market_name,
+            display_name=display_name,
+            mention_count=detail_payload["mention_count"],
+            latest_mention_at=detail_payload["latest_mention_at"],
+            overview_title=detail_payload["overview_title"],
+            overview_summary=detail_payload["overview_summary"],
+            why_serenity_likes_it=detail_payload["why_serenity_likes_it"],
+            timeline_sections=detail_payload["timeline_sections"],
+            data_version=detail_payload["data_version"],
+            tweets=detail_payload["tweets"],
+        )
 
     @app.route("/ai-chat")
     @login_required
@@ -347,13 +686,16 @@ def create_app(test_config=None):
         """
         商品解析
         """
-        symbol: str = request.args.get("symbol")
-        symbol: list = symbol.split(":")
-        market: str = symbol[0].lower()
-        code: str = symbol[1]
+        market, code = _parse_tv_symbol(request.args.get("symbol"))
+        if market is None or code is None:
+            return {"error": "invalid symbol"}, 400
+        if market not in market_types:
+            return {"error": "unsupported market"}, 404
 
         ex = get_exchange(Market(market))
-        stocks = ex.stock_info(code)
+        stocks = _resolve_tv_symbol_stock_info(ex, market, code)
+        if stocks is None:
+            return {"error": "symbol not found"}, 404
 
         sector = ""
         industry = ""
@@ -996,16 +1338,13 @@ def create_app(test_config=None):
     def ticks():
         market = request.form["market"]
         codes = request.form["codes"]
-        codes = json.loads(codes)
+        codes = normalize_market_codes(market, json.loads(codes))
         ex = get_exchange(Market(market))
         try:
-            stock_ticks = ex.ticks(codes)
-            
+            snapshots = fetch_tick_snapshots(ex, codes)
+
             now_trading = ex.now_trading()
-            res_ticks = [
-                {"code": _c, "price": _t.last, "rate": round(float(_t.rate), 2)}
-                for _c, _t in stock_ticks.items()
-            ]
+            res_ticks = list(snapshots.values())
             return {"now_trading": now_trading, "ticks": res_ticks}
         except Exception:
             traceback.print_exc()
@@ -1564,9 +1903,6 @@ def create_app(test_config=None):
 
         return {"code": 0, "msg": "", "data": stocks, "count": len(stocks)}
     from .news_vector_db import NewsVectorDB
-        
-        # 创建临时实例来使用时间标准化函数
-    temp_vector_db = NewsVectorDB()
     
     def convert_db_news_to_vector_format(db_news) -> dict:
         """
@@ -1640,7 +1976,7 @@ def create_app(test_config=None):
         for i, news_data in enumerate(news_data_list):
             try:
                 # 处理发布时间格式 - 统一转换为中国时区
-                published_at_str = temp_vector_db._normalize_datetime(news_data.get('published_at'))
+                published_at_str = NewsVectorDB.normalize_datetime(news_data.get('published_at'))
                 print(f'第{i+1}条新闻 - 原published_at', news_data.get('published_at'))
                 print(f'第{i+1}条新闻 - published_at_str', published_at_str)
                 
@@ -1676,6 +2012,16 @@ def create_app(test_config=None):
                 db_save_success = False
                 try:
                     db.news_insert(news_db_data)
+                    db.news_asset_links_replace(
+                        news_db_data["news_id"],
+                        build_asset_link_rows(
+                            news_id=news_db_data["news_id"],
+                            title=news_db_data["title"],
+                            body=news_db_data["body"],
+                            product_info=news_data.get("product_info"),
+                            product_code=news_data.get("product_code"),
+                        ),
+                    )
                     __log.info(f"第{i+1}条新闻数据已保存到关系数据库: {news_db_data['title']}")
                     db_save_success = True
                     total_db_success += 1
@@ -1751,6 +2097,90 @@ def create_app(test_config=None):
         #         "msg": f"处理新闻数据时发生错误: {str(e)}",
         #         "data": None
         #     }
+
+    @app.route("/api/news/jin10_watch", methods=["GET", "POST"])
+    @login_required
+    def jin10_watch_control():
+        if request.method == "GET":
+            return {
+                "code": 0,
+                "msg": "查询成功",
+                "data": _jin10_watch_snapshot(),
+            }
+
+        try:
+            payload = request.get_json(silent=True) or request.form
+            action = str(payload.get("action", "start")).strip().lower()
+            interval = int(payload.get("interval", jin10_watch_status["interval"]))
+            max_items = int(payload.get("max_items", jin10_watch_status["max_items"]))
+            url = str(payload.get("url", jin10_watch_status["url"])).strip()
+            state_path = str(
+                payload.get("state_path", jin10_watch_status["state_path"])
+            ).strip()
+
+            if action == "status":
+                return {
+                    "code": 0,
+                    "msg": "查询成功",
+                    "data": _jin10_watch_snapshot(),
+                }
+
+            if action == "stop":
+                _stop_jin10_watch()
+                return {
+                    "code": 0,
+                    "msg": "金十新闻脚本已停止",
+                    "data": _jin10_watch_snapshot(),
+                }
+
+            if interval < 10:
+                return {
+                    "code": 400,
+                    "msg": "轮询间隔不能小于10秒",
+                    "data": _jin10_watch_snapshot(),
+                }
+
+            if max_items < 1:
+                return {
+                    "code": 400,
+                    "msg": "每次处理数量必须大于0",
+                    "data": _jin10_watch_snapshot(),
+                }
+
+            if action == "run_once":
+                _run_jin10_watch_job(url=url, state_path=state_path, max_items=max_items)
+                return {
+                    "code": 0,
+                    "msg": "金十新闻已同步一次",
+                    "data": _jin10_watch_snapshot(),
+                }
+
+            if action == "start":
+                _start_jin10_watch(
+                    interval=interval,
+                    max_items=max_items,
+                    url=url,
+                    state_path=state_path,
+                )
+                return {
+                    "code": 0,
+                    "msg": "金十新闻脚本已启动",
+                    "data": _jin10_watch_snapshot(),
+                }
+
+            return {
+                "code": 400,
+                "msg": f"不支持的操作: {action}",
+                "data": _jin10_watch_snapshot(),
+            }
+        except Exception as e:
+            jin10_watch_status["last_error"] = str(e)
+            __log.error(f"金十新闻脚本控制失败: {str(e)}")
+            return {
+                "code": 500,
+                "msg": f"金十新闻脚本控制失败: {str(e)}",
+                "data": _jin10_watch_snapshot(),
+            }
 
     @app.route("/api/news", methods=["GET"])
     @login_required
@@ -2091,6 +2521,7 @@ def create_app(test_config=None):
 
     # 注册向量数据库API路由
     register_vector_api_routes(app)
+    register_smart_news_api(app)
     
     # 注册 AGI 知识库 API 蓝图
     from .ai_agent.knowledge_api import knowledge_bp
