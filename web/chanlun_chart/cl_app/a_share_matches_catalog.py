@@ -1327,7 +1327,7 @@ _THEMES: list[dict[str, Any]] = [
 def get_a_share_match_catalog() -> dict[str, Any]:
     total_project_stocks = sum(theme["project_stock_count"] for theme in _THEMES)
     return {
-        "title": "项目推荐股与A股映射表",
+        "title": "Serenity推荐股与A股映射表",
         "eyebrow": "Serenity Mapping",
         "description": (
             "基于 Serenity 的上游瓶颈、供应链映射和前瞻错配框架，对项目推荐股做 A 股主映射与候选池重排。"
