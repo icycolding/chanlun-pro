@@ -2,6 +2,62 @@ from __future__ import annotations
 
 from typing import Any
 
+from .a_share_matches_tweet_notes import get_project_tweet_note
+
+
+_THEME_ACCENTS: dict[str, dict[str, str]] = {
+    "光模块 / CPO / 光子器件": {
+        "accent": "#7dd3fc",
+        "accent_soft": "rgba(125, 211, 252, 0.12)",
+        "accent_line": "rgba(125, 211, 252, 0.28)",
+    },
+    "光子材料 / 衬底 / 外延 / SOI": {
+        "accent": "#a78bfa",
+        "accent_soft": "rgba(167, 139, 250, 0.12)",
+        "accent_line": "rgba(167, 139, 250, 0.28)",
+    },
+    "AI互连 / 连接芯片 / AEC": {
+        "accent": "#38bdf8",
+        "accent_soft": "rgba(56, 189, 248, 0.12)",
+        "accent_line": "rgba(56, 189, 248, 0.28)",
+    },
+    "存储 / SSD / Memory Cycle": {
+        "accent": "#fb7185",
+        "accent_soft": "rgba(251, 113, 133, 0.12)",
+        "accent_line": "rgba(251, 113, 133, 0.28)",
+    },
+    "Neocloud / 算力租赁 / GPU供给": {
+        "accent": "#22d3ee",
+        "accent_soft": "rgba(34, 211, 238, 0.12)",
+        "accent_line": "rgba(34, 211, 238, 0.28)",
+    },
+    "晶圆代工 / Specialty Foundry": {
+        "accent": "#f59e0b",
+        "accent_soft": "rgba(245, 158, 11, 0.12)",
+        "accent_line": "rgba(245, 158, 11, 0.28)",
+    },
+    "先进封装 / HBM / 玻璃基板": {
+        "accent": "#f97316",
+        "accent_soft": "rgba(249, 115, 22, 0.12)",
+        "accent_line": "rgba(249, 115, 22, 0.28)",
+    },
+    "商业航天": {
+        "accent": "#34d399",
+        "accent_soft": "rgba(52, 211, 153, 0.12)",
+        "accent_line": "rgba(52, 211, 153, 0.28)",
+    },
+    "电力 / 电网 / Power Bottleneck": {
+        "accent": "#fde047",
+        "accent_soft": "rgba(253, 224, 71, 0.12)",
+        "accent_line": "rgba(253, 224, 71, 0.28)",
+    },
+    "关键矿物 / 战略材料": {
+        "accent": "#c084fc",
+        "accent_soft": "rgba(192, 132, 252, 0.12)",
+        "accent_line": "rgba(192, 132, 252, 0.28)",
+    },
+}
+
 
 _PROJECT_STOCK_REASON_DATA: dict[str, dict[str, Any]] = {
     "SIVE": {
@@ -162,6 +218,7 @@ def _stock(
     candidate_matches: list[dict[str, Any]],
 ) -> dict[str, Any]:
     reason_data = _PROJECT_STOCK_REASON_DATA.get(symbol, {})
+    note = get_project_tweet_note(symbol)
     return {
         "symbol": symbol,
         "display_name": display_name,
@@ -175,15 +232,34 @@ def _stock(
         "serenity_reason_summary": reason_data.get("serenity_reason_summary", research_summary),
         "serenity_reason_highlights": reason_data.get("serenity_reason_highlights", []),
         "tweet_detail_label": reason_data.get("tweet_detail_label", "查看推荐脉络"),
+        "stage_snapshot": {
+            "name": str((note.get("stage_view") or {}).get("name") or ""),
+            "next_step": str((note.get("stage_view") or {}).get("next_step") or ""),
+        },
+        "market_cap_snapshot": {
+            "current_anchor": str((note.get("market_cap_view") or {}).get("current_anchor") or ""),
+            "top_scenario": str((((note.get("market_cap_view") or {}).get("scenarios") or [{}])[-1]).get("market_cap") or ""),
+        },
         "main_matches": main_matches,
         "candidate_matches": candidate_matches,
     }
 
 
 def _theme(title: str, project_stocks: list[dict[str, Any]]) -> dict[str, Any]:
+    theme_style = _THEME_ACCENTS.get(
+        title,
+        {
+            "accent": "#7dd3fc",
+            "accent_soft": "rgba(125, 211, 252, 0.12)",
+            "accent_line": "rgba(125, 211, 252, 0.28)",
+        },
+    )
     return {
         "title": title,
         "slug": title.replace(" / ", "-").replace(" ", "").replace("/", "-"),
+        "accent": theme_style["accent"],
+        "accent_soft": theme_style["accent_soft"],
+        "accent_line": theme_style["accent_line"],
         "project_stocks": project_stocks,
         "project_stock_count": len(project_stocks),
     }

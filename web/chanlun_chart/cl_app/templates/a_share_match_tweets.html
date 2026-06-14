@@ -98,6 +98,9 @@
       margin-top: 28px;
     }
     .overview-section,
+    .chain-section,
+    .stage-section,
+    .market-cap-section,
     .timeline-section {
       margin-top: 24px;
     }
@@ -116,6 +119,16 @@
       padding: 22px;
       border-radius: 24px;
     }
+    .chain-card,
+    .stage-card,
+    .market-cap-card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+      border-radius: 24px;
+      padding: 22px;
+    }
     .overview-block + .overview-block {
       margin-top: 16px;
     }
@@ -130,6 +143,172 @@
       margin: 0;
       line-height: 1.85;
       color: var(--text);
+    }
+    .subtle-text {
+      margin: 10px 0 0;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+    .chain-diagram {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .chain-node {
+      position: relative;
+      border-radius: 20px;
+      padding: 18px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(132, 169, 255, 0.12);
+      min-height: 170px;
+    }
+    .chain-node.is-focus {
+      border-color: rgba(125, 211, 252, 0.42);
+      box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.12);
+    }
+    .chain-node::after {
+      content: "→";
+      position: absolute;
+      right: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(159, 178, 209, 0.55);
+      font-size: 20px;
+      display: none;
+    }
+    .chain-node:not(:last-child)::after {
+      display: block;
+    }
+    .chain-node-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .focus-chip {
+      display: inline-flex;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.14);
+      color: var(--accent);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    .chain-node-text {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 13px;
+    }
+    .stage-grid,
+    .market-cap-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .stage-progress {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .stage-step {
+      padding: 14px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(132, 169, 255, 0.1);
+      background: var(--panel-strong);
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .stage-step.is-done {
+      color: #d8f4ff;
+      background: rgba(125, 211, 252, 0.16);
+    }
+    .stage-step.is-current {
+      color: #08111f;
+      background: linear-gradient(135deg, var(--accent), #c4b5fd);
+      font-weight: 700;
+    }
+    .stage-side-title {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .point-list {
+      display: grid;
+      gap: 8px;
+    }
+    .point-item {
+      position: relative;
+      padding-left: 16px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+    .point-item::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+    .market-cap-anchor {
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(132, 169, 255, 0.12);
+      background: var(--panel-strong);
+    }
+    .market-cap-anchor-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .market-cap-anchor-value {
+      font-size: 20px;
+      line-height: 1.6;
+      font-weight: 700;
+    }
+    .scenario-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .scenario-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid rgba(132, 169, 255, 0.1);
+    }
+    .scenario-label {
+      display: inline-flex;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: rgba(167, 139, 250, 0.12);
+      color: #d8cbff;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+    }
+    .scenario-value {
+      margin: 12px 0 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .scenario-text {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 13px;
     }
     .timeline-list {
       display: grid;
@@ -288,6 +467,8 @@
       .page { width: min(100vw - 20px, 1120px); padding: 20px 0 48px; }
       .hero, .tweet-card, .empty { padding: 20px; border-radius: 22px; }
       .tweet-stats, .summary-grid { grid-template-columns: 1fr 1fr; }
+      .stage-progress { grid-template-columns: 1fr 1fr; }
+      .chain-node::after { display: none !important; }
     }
   </style>
 </head>
@@ -343,6 +524,87 @@
           <div class="overview-title" id="overview-title">{{ overview_title or '观点总览' }}</div>
           <p class="overview-text" id="overview-summary">{{ overview_summary or '当前未整理静态观点总览。' }}</p>
         </div>
+      </div>
+    </section>
+
+    <section class="chain-section">
+      <h2 class="section-title">产业链全景</h2>
+      <div class="chain-card">
+        <div class="overview-title" id="industry-chain-title">{{ industry_chain.title or '产业链全景' }}</div>
+        <p class="overview-text" id="industry-chain-summary">{{ industry_chain.summary or '当前未整理完整产业链说明。' }}</p>
+        <div class="chain-diagram" id="industry-chain-diagram">
+          {% if industry_chain.nodes %}
+            {% for node in industry_chain.nodes %}
+            <article class="chain-node{% if node.is_focus %} is-focus{% endif %}">
+              <div class="chain-node-title">
+                <span>{{ node.title }}</span>
+                {% if node.is_focus %}
+                <span class="focus-chip">该票所在环节</span>
+                {% endif %}
+              </div>
+              <p class="chain-node-text">{{ node.summary }}</p>
+            </article>
+            {% endfor %}
+          {% else %}
+            <article class="chain-node">
+              <div class="chain-node-title"><span>产业链待补充</span></div>
+              <p class="chain-node-text">当前还没有整理这只股票的完整产业链结构。</p>
+            </article>
+          {% endif %}
+        </div>
+        <p class="subtle-text" id="industry-chain-takeaway">{{ industry_chain.takeaway or '当前未整理产业链关键结论。' }}</p>
+      </div>
+    </section>
+
+    <section class="stage-section">
+      <h2 class="section-title">当前阶段</h2>
+      <div class="stage-grid">
+        <div class="stage-card">
+          <div class="overview-title">当前判断</div>
+          <p class="overview-text" id="stage-name">{{ stage_view.name or '阶段待补充' }}</p>
+          <p class="subtle-text" id="stage-summary">{{ stage_view.summary or '当前未整理阶段判断。' }}</p>
+          <div class="stage-progress" id="stage-progress">
+            {% for item in stage_view.progress or [] %}
+            <div class="stage-step{% if item.status == 'done' %} is-done{% elif item.status == 'current' %} is-current{% endif %}">{{ item.label }}</div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="stage-card">
+          <h3 class="stage-side-title">阶段信号</h3>
+          <div class="point-list" id="stage-signals">
+            {% for item in stage_view.signals or [] %}
+            <div class="point-item">{{ item }}</div>
+            {% endfor %}
+          </div>
+          <h3 class="stage-side-title" style="margin-top: 18px;">主要阻力</h3>
+          <div class="point-list" id="stage-blockers">
+            {% for item in stage_view.blockers or [] %}
+            <div class="point-item">{{ item }}</div>
+            {% endfor %}
+          </div>
+          <h3 class="stage-side-title" style="margin-top: 18px;">下一步关注</h3>
+          <p class="subtle-text" id="stage-next-step">{{ stage_view.next_step or '当前未整理下一步观察重点。' }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="market-cap-section">
+      <h2 class="section-title">市值空间</h2>
+      <div class="market-cap-card">
+        <div class="market-cap-anchor">
+          <span class="market-cap-anchor-label">当前锚定</span>
+          <div class="market-cap-anchor-value" id="market-cap-anchor">{{ market_cap_view.current_anchor or '当前未整理市值锚定。' }}</div>
+        </div>
+        <div class="scenario-grid" id="market-cap-scenarios">
+          {% for scenario in market_cap_view.scenarios or [] %}
+          <article class="scenario-card">
+            <span class="scenario-label">{{ scenario.label }}</span>
+            <div class="scenario-value">{{ scenario.market_cap }}</div>
+            <p class="scenario-text">{{ scenario.condition }}</p>
+          </article>
+          {% endfor %}
+        </div>
+        <p class="subtle-text" id="market-cap-note">{{ market_cap_view.note or '当前未整理市值空间备注。' }}</p>
       </div>
     </section>
 
@@ -565,6 +827,44 @@
       `;
     }
 
+    function renderIndustryChainNode(node, isLast) {
+      return `
+        <article class="chain-node${node && node.is_focus ? " is-focus" : ""}">
+          <div class="chain-node-title">
+            <span>${escapeHtml((node && node.title) || "环节")}</span>
+            ${node && node.is_focus ? '<span class="focus-chip">该票所在环节</span>' : ""}
+          </div>
+          <p class="chain-node-text">${escapeHtml((node && node.summary) || "")}</p>
+        </article>
+      `;
+    }
+
+    function renderStageProgress(items) {
+      return (items || [])
+        .map((item) => {
+          const status = item && item.status ? item.status : "next";
+          const className = status === "done" ? " is-done" : (status === "current" ? " is-current" : "");
+          return `<div class="stage-step${className}">${escapeHtml((item && item.label) || "阶段")}</div>`;
+        })
+        .join("");
+    }
+
+    function renderPointList(items) {
+      return (items || [])
+        .map((item) => `<div class="point-item">${escapeHtml(item)}</div>`)
+        .join("");
+    }
+
+    function renderScenarioCard(item) {
+      return `
+        <article class="scenario-card">
+          <span class="scenario-label">${escapeHtml((item && item.label) || "场景")}</span>
+          <div class="scenario-value">${escapeHtml((item && item.market_cap) || "-")}</div>
+          <p class="scenario-text">${escapeHtml((item && item.condition) || "")}</p>
+        </article>
+      `;
+    }
+
     function ensureTweetListNode() {
       let list = document.getElementById("tweet-list");
       if (list) {
@@ -604,6 +904,19 @@
       const whyNode = document.getElementById("why-serenity-likes-it");
       const overviewTitleNode = document.getElementById("overview-title");
       const overviewSummaryNode = document.getElementById("overview-summary");
+      const industryChainTitleNode = document.getElementById("industry-chain-title");
+      const industryChainSummaryNode = document.getElementById("industry-chain-summary");
+      const industryChainDiagramNode = document.getElementById("industry-chain-diagram");
+      const industryChainTakeawayNode = document.getElementById("industry-chain-takeaway");
+      const stageNameNode = document.getElementById("stage-name");
+      const stageSummaryNode = document.getElementById("stage-summary");
+      const stageProgressNode = document.getElementById("stage-progress");
+      const stageSignalsNode = document.getElementById("stage-signals");
+      const stageBlockersNode = document.getElementById("stage-blockers");
+      const stageNextStepNode = document.getElementById("stage-next-step");
+      const marketCapAnchorNode = document.getElementById("market-cap-anchor");
+      const marketCapScenariosNode = document.getElementById("market-cap-scenarios");
+      const marketCapNoteNode = document.getElementById("market-cap-note");
       const timelineNode = document.getElementById("timeline-list");
       if (mentionNode) {
         mentionNode.textContent = String(payload.mention_count ?? 0);
@@ -619,6 +932,57 @@
       }
       if (overviewSummaryNode) {
         overviewSummaryNode.textContent = String(payload.overview_summary || "当前未整理静态观点总览。");
+      }
+      const industryChain = payload.industry_chain || {};
+      if (industryChainTitleNode) {
+        industryChainTitleNode.textContent = String(industryChain.title || "产业链全景");
+      }
+      if (industryChainSummaryNode) {
+        industryChainSummaryNode.textContent = String(industryChain.summary || "当前未整理完整产业链说明。");
+      }
+      if (industryChainDiagramNode) {
+        const nodes = Array.isArray(industryChain.nodes) ? industryChain.nodes : [];
+        industryChainDiagramNode.innerHTML = nodes.length
+          ? nodes.map(renderIndustryChainNode).join("")
+          : `
+            <article class="chain-node">
+              <div class="chain-node-title"><span>产业链待补充</span></div>
+              <p class="chain-node-text">当前还没有整理这只股票的完整产业链结构。</p>
+            </article>
+          `;
+      }
+      if (industryChainTakeawayNode) {
+        industryChainTakeawayNode.textContent = String(industryChain.takeaway || "当前未整理产业链关键结论。");
+      }
+      const stageView = payload.stage_view || {};
+      if (stageNameNode) {
+        stageNameNode.textContent = String(stageView.name || "阶段待补充");
+      }
+      if (stageSummaryNode) {
+        stageSummaryNode.textContent = String(stageView.summary || "当前未整理阶段判断。");
+      }
+      if (stageProgressNode) {
+        stageProgressNode.innerHTML = renderStageProgress(Array.isArray(stageView.progress) ? stageView.progress : []);
+      }
+      if (stageSignalsNode) {
+        stageSignalsNode.innerHTML = renderPointList(Array.isArray(stageView.signals) ? stageView.signals : []);
+      }
+      if (stageBlockersNode) {
+        stageBlockersNode.innerHTML = renderPointList(Array.isArray(stageView.blockers) ? stageView.blockers : []);
+      }
+      if (stageNextStepNode) {
+        stageNextStepNode.textContent = String(stageView.next_step || "当前未整理下一步观察重点。");
+      }
+      const marketCapView = payload.market_cap_view || {};
+      if (marketCapAnchorNode) {
+        marketCapAnchorNode.textContent = String(marketCapView.current_anchor || "当前未整理市值锚定。");
+      }
+      if (marketCapScenariosNode) {
+        const scenarios = Array.isArray(marketCapView.scenarios) ? marketCapView.scenarios : [];
+        marketCapScenariosNode.innerHTML = scenarios.map(renderScenarioCard).join("");
+      }
+      if (marketCapNoteNode) {
+        marketCapNoteNode.textContent = String(marketCapView.note || "当前未整理市值空间备注。");
       }
       if (timelineNode) {
         const timelineSections = Array.isArray(payload.timeline_sections) ? payload.timeline_sections : [];

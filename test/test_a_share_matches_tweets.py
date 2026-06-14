@@ -165,6 +165,10 @@ def test_build_tweet_detail_payload_includes_version_and_bilingual_fields(monkey
     assert payload["overview_title"]
     assert payload["overview_summary"]
     assert payload["why_serenity_likes_it"]
+    assert payload["industry_chain"]["title"]
+    assert payload["industry_chain"]["nodes"]
+    assert payload["stage_view"]["name"]
+    assert payload["market_cap_view"]["scenarios"]
     assert payload["timeline_sections"]
     assert payload["tweets"][0]["text_zh"] == "ZH: Main text for $SIVE."
     assert payload["tweets"][0]["quoted_text_zh"] == "ZH: Quoted text for $SIVE."
@@ -175,6 +179,10 @@ def test_get_project_tweet_note_returns_static_timeline():
     assert note["overview_title"]
     assert note["overview_summary"]
     assert note["why_serenity_likes_it"]
+    assert note["industry_chain"]["title"]
+    assert len(note["industry_chain"]["nodes"]) >= 3
+    assert note["stage_view"]["name"]
+    assert note["market_cap_view"]["scenarios"]
     assert len(note["timeline_sections"]) >= 1
     assert note["timeline_sections"][0]["title"]
 
@@ -198,11 +206,17 @@ def test_tweet_detail_template_renders_overview_and_timeline():
         overview_title=payload["overview_title"],
         overview_summary=payload["overview_summary"],
         why_serenity_likes_it=payload["why_serenity_likes_it"],
+        industry_chain=payload["industry_chain"],
+        stage_view=payload["stage_view"],
+        market_cap_view=payload["market_cap_view"],
         timeline_sections=payload["timeline_sections"],
         data_version=payload["data_version"],
         tweets=payload["tweets"],
     )
     assert "Serenity 推荐理由" in html
+    assert "产业链全景" in html
+    assert "当前阶段" in html
+    assert "市值空间" in html
     assert "时间线" in html
     assert "为什么 Serenity 看它" in html
 

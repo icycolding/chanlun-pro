@@ -87,6 +87,9 @@
       border-color: rgba(125, 211, 252, 0.28);
       background: rgba(125, 211, 252, 0.14);
     }
+    .theme-nav-link[data-theme-accent] {
+      border-left: 3px solid transparent;
+    }
     .content {
       min-width: 0;
     }
@@ -149,6 +152,9 @@
     .theme-section {
       margin-top: 34px;
     }
+    .theme-section[data-theme-accent] .theme-header h2 {
+      color: var(--theme-accent, var(--text));
+    }
     .theme-header {
       display: flex;
       justify-content: space-between;
@@ -173,6 +179,16 @@
       border-radius: 26px;
       padding: 22px;
       background: var(--panel);
+      position: relative;
+      overflow: hidden;
+    }
+    .stock-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 4px;
+      background: var(--theme-accent, var(--accent));
+      opacity: 0.92;
     }
     .stock-card-top {
       display: flex;
@@ -196,8 +212,8 @@
       max-width: 46%;
       padding: 8px 10px;
       border-radius: 14px;
-      background: rgba(167, 139, 250, 0.12);
-      color: #d8cbff;
+      background: var(--theme-accent-soft, rgba(167, 139, 250, 0.12));
+      color: var(--theme-accent, #d8cbff);
       font-size: 12px;
       line-height: 1.5;
     }
@@ -335,8 +351,8 @@
       margin-top: 18px;
       padding: 16px;
       border-radius: 18px;
-      background: rgba(167, 139, 250, 0.08);
-      border: 1px solid rgba(167, 139, 250, 0.18);
+      background: var(--theme-accent-soft, rgba(167, 139, 250, 0.08));
+      border: 1px solid var(--theme-accent-line, rgba(167, 139, 250, 0.18));
     }
     .reason-summary {
       margin: 0;
@@ -354,9 +370,33 @@
       display: inline-flex;
       padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(125, 211, 252, 0.12);
-      color: #d8f4ff;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
       font-size: 12px;
+    }
+    .snapshot-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .snapshot-card {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .snapshot-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .snapshot-value {
+      display: block;
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
     }
     .reason-actions {
       margin-top: 14px;
@@ -489,7 +529,8 @@
       .research-grid,
       .match-field-grid,
       .stock-quote-grid,
-      .match-quote-grid {
+      .match-quote-grid,
+      .snapshot-grid {
         grid-template-columns: 1fr;
       }
       .tweet-summary-btn { margin-top: 12px; }
@@ -526,14 +567,14 @@
         <div class="theme-nav-title">主题导航</div>
         <div class="theme-nav-links">
           {% for theme in catalog.themes %}
-          <a class="theme-nav-link{% if loop.first %} is-active{% endif %}" href="#theme-{{ theme.slug }}" data-theme-link="theme-{{ theme.slug }}">{{ theme.title }}</a>
+          <a class="theme-nav-link{% if loop.first %} is-active{% endif %}" href="#theme-{{ theme.slug }}" data-theme-link="theme-{{ theme.slug }}" data-theme-accent style="border-left-color: {{ theme.accent }};">{{ theme.title }}</a>
           {% endfor %}
         </div>
       </aside>
 
       <div class="content">
         {% for theme in catalog.themes %}
-        <section class="theme-section" id="theme-{{ theme.slug }}" data-theme-section>
+        <section class="theme-section" id="theme-{{ theme.slug }}" data-theme-section data-theme-accent style="--theme-accent: {{ theme.accent }}; --theme-accent-soft: {{ theme.accent_soft }}; --theme-accent-line: {{ theme.accent_line }};">
           <div class="theme-header">
             <h2>{{ theme.title }}</h2>
             <div class="theme-count">{{ theme.project_stock_count }} 只项目股票</div>
@@ -548,6 +589,7 @@
               data-exchange="{{ stock.exchange }}"
               data-market="{{ stock.market }}"
               data-display-name="{{ stock.display_name }}"
+              style="--theme-accent: {{ theme.accent }}; --theme-accent-soft: {{ theme.accent_soft }}; --theme-accent-line: {{ theme.accent_line }};"
             >
               <div class="stock-card-top">
                 <div>
@@ -599,6 +641,16 @@
                   {% endfor %}
                 </div>
                 {% endif %}
+                <div class="snapshot-grid">
+                  <div class="snapshot-card">
+                    <span class="snapshot-label">当前阶段</span>
+                    <span class="snapshot-value">{{ stock.stage_snapshot.name or '阶段待补充' }}</span>
+                  </div>
+                  <div class="snapshot-card">
+                    <span class="snapshot-label">市值空间</span>
+                    <span class="snapshot-value">{{ stock.market_cap_snapshot.top_scenario or stock.market_cap_snapshot.current_anchor or '空间待补充' }}</span>
+                  </div>
+                </div>
                 {% if stock.tweet_detail_url %}
                 <div class="reason-actions">
                   <a class="reason-btn" href="{{ stock.tweet_detail_url }}">{{ stock.tweet_detail_label }}</a>
