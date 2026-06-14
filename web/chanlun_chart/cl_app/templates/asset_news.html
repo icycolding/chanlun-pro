@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资产新闻中心 - 缠论量化分析平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            background:
+                radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 30%),
+                radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 35%),
+                linear-gradient(180deg, #f6f8fb 0%, #eef2f7 100%);
+            color: #102033;
+            min-height: 100vh;
+        }
+        .page-shell {
+            max-width: 1540px;
+            margin: 0 auto;
+            padding: 28px 22px 40px;
+        }
+        .hero {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(15, 118, 110, 0.92));
+            color: #fff;
+            border-radius: 24px;
+            padding: 28px 30px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+            margin-bottom: 22px;
+        }
+        .hero h1 {
+            margin: 0 0 10px;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+        }
+        .hero p {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.82);
+            max-width: 860px;
+            line-height: 1.7;
+        }
+        .control-panel {
+            background: rgba(255, 255, 255, 0.88);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            box-shadow: 0 16px 48px rgba(15, 23, 42, 0.08);
+            border-radius: 22px;
+            padding: 22px;
+            margin-bottom: 22px;
+            backdrop-filter: blur(14px);
+        }
+        .stat-card {
+            border-radius: 18px;
+            padding: 18px 20px;
+            background: #fff;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            height: 100%;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 800;
+        }
+        .bucket-direct .stat-value { color: #0f766e; }
+        .bucket-driver .stat-value { color: #c2410c; }
+        .bucket-background .stat-value { color: #475569; }
+        .bucket-column {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 24px;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.07);
+            padding: 18px;
+            height: 100%;
+        }
+        .bucket-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+        }
+        .bucket-title {
+            font-size: 1.02rem;
+            font-weight: 800;
+            margin: 0;
+        }
+        .bucket-chip {
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        .chip-direct { background: rgba(15, 118, 110, 0.12); color: #0f766e; }
+        .chip-driver { background: rgba(251, 146, 60, 0.16); color: #c2410c; }
+        .chip-background { background: rgba(100, 116, 139, 0.14); color: #475569; }
+        .news-card {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 14px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .news-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+        }
+        .news-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        .news-meta {
+            font-size: 0.78rem;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+        .news-body {
+            font-size: 0.88rem;
+            color: #334155;
+            line-height: 1.65;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .mini-tag {
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: rgba(59, 130, 246, 0.08);
+            color: #1d4ed8;
+            font-size: 0.74rem;
+            font-weight: 600;
+        }
+        .tag-bullish { background: rgba(16, 185, 129, 0.14); color: #047857; }
+        .tag-bearish { background: rgba(239, 68, 68, 0.14); color: #b91c1c; }
+        .tag-neutral { background: rgba(100, 116, 139, 0.14); color: #475569; }
+        .empty-box {
+            padding: 28px 14px;
+            text-align: center;
+            color: #64748b;
+            border: 1px dashed rgba(148, 163, 184, 0.4);
+            border-radius: 16px;
+            background: rgba(248, 250, 252, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="page-shell">
+        <section class="hero">
+            <h1><i class="fas fa-bullseye"></i> 资产新闻中心</h1>
+            <p>按资产聚合新闻证据，区分直接相关、驱动相关与背景参考。适合核查 USDCNY、黄金、原油等资产到底被哪些新闻直接影响，哪些只是宏观背景。</p>
+        </section>
+
+        <section class="control-panel">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">资产代码</label>
+                    <input id="assetCode" class="form-control" value="USDCNY" placeholder="如 USDCNY / EURUSD / XAUUSD">
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label">市场</label>
+                    <select id="assetMarket" class="form-select">
+                        <option value="fx">外汇</option>
+                        <option value="futures">期货/商品</option>
+                        <option value="a">A股/股票</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label">新闻天数</label>
+                    <input id="assetDays" type="number" min="1" max="90" class="form-control" value="7">
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label">每桶数量</label>
+                    <input id="assetLimit" type="number" min="5" max="100" class="form-control" value="15">
+                </div>
+                <div class="col-lg-3">
+                    <div class="d-flex gap-2">
+                        <button id="searchAssetNewsBtn" class="btn btn-dark flex-fill">
+                            <i class="fas fa-search"></i> 查询资产新闻
+                        </button>
+                        <button id="backfillAssetLinksBtn" class="btn btn-outline-success">
+                            <i class="fas fa-rotate"></i> 回填
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="row g-3 mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-label">标准资产</div>
+                    <div id="canonicalAsset" class="stat-value" style="font-size:1.3rem;color:#0f172a;">--</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card bucket-direct">
+                    <div class="stat-label">直接相关</div>
+                    <div id="directCount" class="stat-value">0</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card bucket-driver">
+                    <div class="stat-label">驱动相关</div>
+                    <div id="driverCount" class="stat-value">0</div>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card bucket-background">
+                    <div class="stat-label">背景参考</div>
+                    <div id="backgroundCount" class="stat-value">0</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="row g-4">
+            <div class="col-lg-4">
+                <div class="bucket-column">
+                    <div class="bucket-header">
+                        <h3 class="bucket-title">直接相关</h3>
+                        <span class="bucket-chip chip-direct" id="directBucketChip">0 条</span>
+                    </div>
+                    <div id="directNewsList" class="bucket-list"></div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="bucket-column">
+                    <div class="bucket-header">
+                        <h3 class="bucket-title">驱动相关</h3>
+                        <span class="bucket-chip chip-driver" id="driverBucketChip">0 条</span>
+                    </div>
+                    <div id="driverNewsList" class="bucket-list"></div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="bucket-column">
+                    <div class="bucket-header">
+                        <h3 class="bucket-title">背景参考</h3>
+                        <span class="bucket-chip chip-background" id="backgroundBucketChip">0 条</span>
+                    </div>
+                    <div id="backgroundNewsList" class="bucket-list"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function renderNewsCard(item) {
+            const metadata = item.metadata || {};
+            const direction = item.impact_direction || 'neutral';
+            const directionMap = {
+                bullish: {text: '利多', cls: 'tag-bullish'},
+                bearish: {text: '利空', cls: 'tag-bearish'},
+                neutral: {text: '中性', cls: 'tag-neutral'}
+            };
+            const directionMeta = directionMap[direction] || directionMap.neutral;
+            const tags = []
+                .concat(metadata.direct_assets || [])
+                .concat(metadata.driver_assets || [])
+                .concat(item.matched_terms || [])
+                .filter(Boolean)
+                .slice(0, 8);
+
+            return `
+                <article class="news-card">
+                    <div class="news-title">${escapeHtml(metadata.title || '未命名新闻')}</div>
+                    <div class="news-meta">${escapeHtml(metadata.source || '未知来源')} · ${escapeHtml(metadata.published_at || '--')}</div>
+                    <div class="news-body">${escapeHtml(item.document || '')}</div>
+                    <div class="tag-row">
+                        <span class="mini-tag ${directionMeta.cls}">${directionMeta.text}</span>
+                        ${tags.map(tag => `<span class="mini-tag">${escapeHtml(tag)}</span>`).join('')}
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderBucket(listId, chipId, items, emptyText) {
+            const container = document.getElementById(listId);
+            const chip = document.getElementById(chipId);
+            chip.textContent = `${items.length} 条`;
+            if (!items.length) {
+                container.innerHTML = `<div class="empty-box">${escapeHtml(emptyText)}</div>`;
+                return;
+            }
+            container.innerHTML = items.map(renderNewsCard).join('');
+        }
+
+        async function loadAssetNews() {
+            const asset = document.getElementById('assetCode').value.trim();
+            const market = document.getElementById('assetMarket').value;
+            const days = document.getElementById('assetDays').value;
+            const limit = document.getElementById('assetLimit').value;
+
+            if (!asset) {
+                alert('请输入资产代码');
+                return;
+            }
+
+            const params = new URLSearchParams({asset, market, days, limit});
+            const response = await fetch(`/api/news/asset_news?${params.toString()}`);
+            const result = await response.json();
+            if (result.code !== 0 || !result.data) {
+                alert(result.msg || '加载资产新闻失败');
+                return;
+            }
+
+            const data = result.data;
+            document.getElementById('canonicalAsset').textContent = data.canonical_asset || asset;
+            document.getElementById('directCount').textContent = data.counts.direct || 0;
+            document.getElementById('driverCount').textContent = data.counts.driver || 0;
+            document.getElementById('backgroundCount').textContent = data.counts.background || 0;
+
+            renderBucket('directNewsList', 'directBucketChip', data.buckets.direct || [], '暂无直接相关新闻');
+            renderBucket('driverNewsList', 'driverBucketChip', data.buckets.driver || [], '暂无驱动相关新闻');
+            renderBucket('backgroundNewsList', 'backgroundBucketChip', data.buckets.background || [], '暂无背景参考新闻');
+        }
+
+        async function backfillAssetLinks() {
+            const days = document.getElementById('assetDays').value;
+            const limit = Math.max(200, Number(document.getElementById('assetLimit').value || 15) * 20);
+            const response = await fetch('/api/news/asset_links/backfill', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({days: Number(days || 30), limit})
+            });
+            const result = await response.json();
+            if (result.code !== 0 || !result.data) {
+                alert(result.msg || '回填失败');
+                return;
+            }
+            alert(`回填完成：处理 ${result.data.processed} 条新闻，建立 ${result.data.total_links} 条资产关系`);
+            loadAssetNews();
+        }
+
+        document.getElementById('searchAssetNewsBtn').addEventListener('click', loadAssetNews);
+        document.getElementById('backfillAssetLinksBtn').addEventListener('click', backfillAssetLinks);
+        window.addEventListener('load', loadAssetNews);
+    </script>
+</body>
+</html>

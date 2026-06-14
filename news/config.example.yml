@@ -1,0 +1,52 @@
+ibkr:
+  host: "127.0.0.1"
+  port: 7497          # Paper 常用 7497；Live 常用 7496（以你本机为准）
+  client_id: 17
+  connect_timeout_sec: 10
+
+data:
+  # 历史数据拉取参数（IBKR reqHistoricalData）
+  duration: "5 Y"         # 回测窗口（建议至少 2-5 年）
+  bar_size: "1 day"       # 研究/回测用日线（你也可以改成 "4 hours" 等）
+  what_to_show: "MIDPOINT"
+  use_rth: false
+
+universe:
+  # 外汇：IDEALPRO；黄金：是否可用取决于账户/权限（不行就换合约）
+  # USDCNY 在 IBKR 常用替代为 USDCNH
+  symbols:
+    - { name: "EURUSD", type: "FX", pair: "EURUSD" }
+    - { name: "USDJPY", type: "FX", pair: "USDJPY" }
+    - { name: "GBPUSD", type: "FX", pair: "GBPUSD" }
+    - { name: "XAUUSD", type: "FX", pair: "XAUUSD" }
+    - { name: "USDCNY", type: "FX", pair: "USDCNH" }
+
+research:
+  ema_fast: 20
+  ema_slow: 50
+  rsi_period: 14
+  atr_period: 14
+  key_level_lookback: 20   # 近N根K线高低点作为关键位参考
+
+backtest:
+  enabled: true
+  # 简易“趋势跟随”回测：pos = sign(EMA_fast - EMA_slow)
+  # 用上一根的pos去乘下一根收益，得到策略收益曲线
+  annualization: 252
+
+output:
+  reports_dir: "reports"
+  write_pdf: false   # 也可用命令行 --pdf 覆盖
+
+news:
+  enabled: true
+  source: "ibkr"          # ibkr | jin10_web（网页抓取，易变动；推荐有条件用官方open-data-api）
+  lookback_hours: 24
+  max_items_per_symbol: 15
+  # 留空则自动探测你账户可用的 providers；也可手动指定（用 provider code）
+  providers: []
+  timezone: "Asia/Shanghai"
+
+jin10_web:
+  url: "https://www.jin10.com/"
+  poll_interval_sec: 30   # watch_jin10.py 用

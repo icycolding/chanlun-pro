@@ -1,8 +1,9 @@
 import datetime
+import hashlib
 import json
 import time
 import warnings
-from typing import List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -19,8 +20,10 @@ from sqlalchemy import (
     create_engine,
     func,
     inspect,
+    or_,
 )
 from sqlalchemy.dialects.mysql import insert
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.pool import QueuePool
 
@@ -256,6 +259,26 @@ class TableByNews(Base):
     __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
 
 
+class TableByNewsAssetLink(Base):
+    # 新闻资产关系表
+    __tablename__ = "cl_news_asset_link"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    news_id = Column(String(50), index=True, comment="新闻ID")
+    asset_code = Column(String(50), index=True, comment="资产代码")
+    canonical_asset = Column(String(50), index=True, comment="标准资产代码")
+    relation_type = Column(String(20), comment="关系类型 direct/driver/background")
+    confidence = Column(Float, comment="置信度", default=0.5)
+    reason = Column(String(200), comment="关联原因")
+    matched_terms = Column(String(500), comment="命中的关键词")
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)
+
+    __table_args__ = (
+        UniqueConstraint("news_id", "canonical_asset", "relation_type", name="uq_news_asset_relation"),
+        {"mysql_collate": "utf8mb4_general_ci"},
+    )
+
+
 class TableByMarketSummary(Base):
     # 市场总结数据表
     __tablename__ = "cl_market_summary"
@@ -295,6 +318,158 @@ class TableByEconomicData(Base):
     __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
 
 
+class TableByMarketEventFact(Base):
+    __tablename__ = "cl_market_event_facts"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    event_uid = Column(String(64), nullable=False, unique=True, index=True, comment="事件唯一标识")
+    event_type = Column(String(64), nullable=False, index=True, comment="事件类型")
+    asset_class = Column(String(32), nullable=True, index=True, comment="资产分类")
+    region = Column(String(64), nullable=True, index=True, comment="区域")
+    symbol = Column(String(64), nullable=True, index=True, comment="标的代码")
+    title = Column(String(255), nullable=False, comment="事件标题")
+    source_name = Column(String(100), nullable=False, index=True, comment="数据来源")
+    importance_score = Column(Float, nullable=True, comment="重要度")
+    actual_value = Column(Float, nullable=True, comment="实际值")
+    forecast_value = Column(Float, nullable=True, comment="预期值")
+    previous_value = Column(Float, nullable=True, comment="前值")
+    surprise_value = Column(Float, nullable=True, comment="预期差")
+    published_at = Column(DateTime, nullable=True, index=True, comment="发布时间")
+    effective_at = Column(DateTime, nullable=True, comment="生效时间")
+    payload_json = Column(Text, nullable=True, comment="原始内容")
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
+class TableByMarketFactorSnapshot(Base):
+    __tablename__ = "cl_market_factor_snapshots"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    snapshot_uid = Column(String(64), nullable=False, unique=True, index=True, comment="快照唯一标识")
+    factor_group = Column(String(64), nullable=False, index=True, comment="因子组")
+    factor_name = Column(String(128), nullable=False, index=True, comment="因子名")
+    asset_class = Column(String(32), nullable=True, index=True, comment="资产分类")
+    symbol = Column(String(64), nullable=True, index=True, comment="标的代码")
+    tenor = Column(String(32), nullable=True, index=True, comment="期限")
+    value = Column(Float, nullable=True, comment="数值")
+    unit = Column(String(32), nullable=True, comment="单位")
+    change_1d = Column(Float, nullable=True, comment="1日变化")
+    change_5d = Column(Float, nullable=True, comment="5日变化")
+    zscore_60d = Column(Float, nullable=True, comment="60日标准分")
+    source_name = Column(String(100), nullable=False, index=True, comment="数据来源")
+    as_of_time = Column(DateTime, nullable=False, index=True, comment="快照时间")
+    metadata_json = Column(Text, nullable=True, comment="扩展字段")
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
+class TableByMarketStructureMetric(Base):
+    __tablename__ = "cl_market_structure_metrics"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    metric_uid = Column(String(64), nullable=False, unique=True, index=True, comment="结构指标唯一标识")
+    asset_class = Column(String(32), nullable=True, index=True, comment="资产分类")
+    symbol = Column(String(64), nullable=True, index=True, comment="标的代码")
+    metric_name = Column(String(128), nullable=False, index=True, comment="指标名称")
+    metric_value = Column(Float, nullable=True, comment="指标数值")
+    window = Column(String(32), nullable=True, comment="窗口")
+    cross_section_rank = Column(Float, nullable=True, comment="横截面排名")
+    source_name = Column(String(100), nullable=False, index=True, comment="数据来源")
+    as_of_time = Column(DateTime, nullable=False, index=True, comment="指标时间")
+    metadata_json = Column(Text, nullable=True, comment="扩展字段")
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
+class TableByAgentInferenceLog(Base):
+    __tablename__ = "cl_agent_inference_logs"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    run_id = Column(String(80), nullable=False, index=True, comment="推演运行ID")
+    agent_name = Column(String(80), nullable=False, index=True, comment="Agent名称")
+    asset_class = Column(String(32), nullable=True, index=True, comment="资产分类")
+    symbol = Column(String(64), nullable=True, index=True, comment="标的代码")
+    question = Column(Text, nullable=True, comment="问题")
+    thesis = Column(Text, nullable=True, comment="结论")
+    confidence_before = Column(Float, nullable=True, comment="结论前置信度")
+    confidence_after = Column(Float, nullable=True, comment="结论后置信度")
+    used_event_ids = Column(Text, nullable=True, comment="使用事件ID")
+    used_factor_ids = Column(Text, nullable=True, comment="使用因子ID")
+    changed_conclusion = Column(String(16), nullable=True, comment="是否改变结论")
+    metadata_json = Column(Text, nullable=True, comment="扩展字段")
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now, index=True)
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
+class TableByEventPriceReaction(Base):
+    __tablename__ = "cl_event_price_reactions"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    reaction_uid = Column(String(64), nullable=False, unique=True, index=True, comment="验证唯一标识")
+    event_uid = Column(String(64), nullable=False, index=True, comment="事件唯一标识")
+    symbol = Column(String(64), nullable=False, index=True, comment="标的代码")
+    frequency = Column(String(16), nullable=False, index=True, comment="频率")
+    return_30m_pct = Column(Float, nullable=True, comment="30分钟收益")
+    return_120m_pct = Column(Float, nullable=True, comment="120分钟收益")
+    return_1d_pct = Column(Float, nullable=True, comment="1日收益")
+    return_5d_pct = Column(Float, nullable=True, comment="5日收益")
+    direction_aligned = Column(Integer, nullable=True, comment="方向一致")
+    reaction_label = Column(String(32), nullable=True, comment="验证标签")
+    validated_at = Column(DateTime, nullable=True, index=True, comment="验证时间")
+    metadata_json = Column(Text, nullable=True, comment="扩展字段")
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.now)
+    updated_at = Column(DateTime, nullable=False, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
+def _to_datetime_value(value: Any) -> Optional[datetime.datetime]:
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime.datetime):
+        return value.replace(tzinfo=None)
+    if isinstance(value, datetime.date):
+        return datetime.datetime.combine(value, datetime.time.min)
+    try:
+        parsed = pd.to_datetime(value, errors="coerce")
+        if pd.isna(parsed):
+            return None
+        if hasattr(parsed, "to_pydatetime"):
+            parsed = parsed.to_pydatetime()
+        if isinstance(parsed, datetime.datetime):
+            return parsed.replace(tzinfo=None)
+    except Exception:
+        return None
+    return None
+
+
+def _to_float_value(value: Any) -> Optional[float]:
+    if value is None or value == "":
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _to_json_text(value: Any) -> Optional[str]:
+    if value is None or value == "":
+        return None
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(value, ensure_ascii=False, default=str)
+    except Exception:
+        return str(value)
+
+
+def _build_uid(prefix: str, payload: Dict[str, Any]) -> str:
+    normalized = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
+    return hashlib.md5(f"{prefix}:{normalized}".encode("utf-8")).hexdigest()
+
+
 @fun.singleton
 class DB(object):
     global Base
@@ -328,7 +503,15 @@ class DB(object):
 
         self.Session = sessionmaker(bind=self.engine)
 
-        Base.metadata.create_all(self.engine)
+        self.__news_asset_table_ready = True
+        try:
+            Base.metadata.create_all(self.engine)
+        except OperationalError as e:
+            if "readonly" in str(e).lower() or "read-only" in str(e).lower():
+                self.__news_asset_table_ready = False
+                print(f"DB create_all skipped in readonly mode: {e}")
+            else:
+                raise
 
         self.__cache_tables = {}
 
@@ -1411,6 +1594,70 @@ class DB(object):
             
             return query.order_by(TableByNews.published_at.desc()).offset(offset).limit(limit).all()
 
+    def news_search(
+        self,
+        query_text: str = None,
+        keywords: List[str] = None,
+        limit: int = 100,
+        start_date: datetime.datetime = None,
+        end_date: datetime.datetime = None,
+        source: str = None,
+        category: str = None,
+    ) -> List[TableByNews]:
+        """
+        按关键词搜索新闻
+        :param query_text: 主查询词
+        :param keywords: 关键词列表
+        :param limit: 返回数量
+        :param start_date: 开始日期
+        :param end_date: 结束日期
+        :param source: 新闻来源
+        :param category: 新闻分类
+        :return: 新闻列表
+        """
+        with self.Session() as session:
+            query = session.query(TableByNews)
+
+            if start_date:
+                query = query.filter(TableByNews.published_at >= start_date)
+            if end_date:
+                query = query.filter(TableByNews.published_at <= end_date)
+            if source:
+                query = query.filter(TableByNews.source == source)
+            if category:
+                query = query.filter(TableByNews.category == category)
+
+            search_terms = []
+            if query_text:
+                cleaned_query = query_text.strip()
+                if cleaned_query:
+                    search_terms.append(cleaned_query)
+            if keywords:
+                for keyword in keywords:
+                    cleaned_keyword = str(keyword).strip()
+                    if cleaned_keyword:
+                        search_terms.append(cleaned_keyword)
+
+            if search_terms:
+                search_terms = list(dict.fromkeys(search_terms))
+                keyword_filters = []
+                for term in search_terms:
+                    like_term = f"%{term}%"
+                    keyword_filters.append(
+                        or_(
+                            TableByNews.title.like(like_term),
+                            TableByNews.body.like(like_term),
+                            TableByNews.source.like(like_term),
+                            TableByNews.tags.like(like_term),
+                        )
+                    )
+                query = query.filter(or_(*keyword_filters))
+
+            return query.order_by(
+                TableByNews.importance_score.desc().nullslast(),
+                TableByNews.published_at.desc(),
+            ).limit(limit).all()
+
     def news_get_by_id(self, news_id: str) -> TableByNews:
         """
         根据新闻ID获取新闻
@@ -1419,6 +1666,71 @@ class DB(object):
         """
         with self.Session() as session:
             return session.query(TableByNews).filter(TableByNews.news_id == news_id).first()
+
+    def news_asset_links_replace(self, news_id: str, asset_links: List[dict]) -> bool:
+        """
+        替换新闻的资产关联关系
+        """
+        if self.__news_asset_table_ready is False:
+            return False
+        if not news_id:
+            return False
+
+        try:
+            with self.Session() as session:
+                session.query(TableByNewsAssetLink).filter(
+                    TableByNewsAssetLink.news_id == news_id
+                ).delete()
+
+                for link in asset_links:
+                    session.add(
+                        TableByNewsAssetLink(
+                            news_id=news_id,
+                            asset_code=link.get("asset_code") or link.get("canonical_asset"),
+                            canonical_asset=link.get("canonical_asset") or link.get("asset_code"),
+                            relation_type=link.get("relation_type", "direct"),
+                            confidence=float(link.get("confidence", 0.5)),
+                            reason=link.get("reason"),
+                            matched_terms=",".join(link.get("matched_terms", []) or []),
+                        )
+                    )
+                session.commit()
+        except OperationalError:
+            self.__news_asset_table_ready = False
+            return False
+        return True
+
+    def news_asset_links_query(
+        self,
+        canonical_asset: str = None,
+        relation_type: str = None,
+        news_ids: List[str] = None,
+        limit: int = 500,
+    ) -> List[TableByNewsAssetLink]:
+        """
+        查询新闻资产关联关系
+        """
+        if self.__news_asset_table_ready is False:
+            return []
+
+        try:
+            with self.Session() as session:
+                query = session.query(TableByNewsAssetLink)
+
+                if canonical_asset:
+                    query = query.filter(TableByNewsAssetLink.canonical_asset == canonical_asset)
+                if relation_type:
+                    query = query.filter(TableByNewsAssetLink.relation_type == relation_type)
+                if news_ids:
+                    query = query.filter(TableByNewsAssetLink.news_id.in_(news_ids))
+
+                return query.order_by(
+                    TableByNewsAssetLink.confidence.desc(),
+                    TableByNewsAssetLink.updated_at.desc(),
+                ).limit(limit).all()
+        except OperationalError:
+            self.__news_asset_table_ready = False
+            return []
 
     def news_delete(self, news_id: str) -> bool:
         """
@@ -1468,7 +1780,8 @@ class DB(object):
                 content=summary_data.get('content'),
                 market=summary_data.get('market'),
                 code=summary_data.get('code'),
-                summary_type=summary_data.get('summary_type', 'market_analysis')
+                summary_type=summary_data.get('summary_type', 'market_analysis'),
+                chart_snapshot=summary_data.get('chart_snapshot'),
             )
             session.add(summary_record)
             session.commit()
@@ -1662,6 +1975,294 @@ class DB(object):
                 query = query.filter(TableByEconomicData.indicator_name.like(f'%{indicator_name}%'))
             
             return query.count()
+
+    def market_event_fact_upsert(self, event_fact: Dict[str, Any]) -> bool:
+        payload = dict(event_fact or {})
+        event_uid = str(payload.get("event_uid") or "").strip() or _build_uid(
+            "event",
+            {
+                "event_type": payload.get("event_type"),
+                "asset_class": payload.get("asset_class"),
+                "region": payload.get("region"),
+                "symbol": payload.get("symbol"),
+                "title": payload.get("title"),
+                "source_name": payload.get("source_name"),
+                "published_at": _to_datetime_value(payload.get("published_at")),
+            },
+        )
+        payload["event_uid"] = event_uid
+        with self.Session() as session:
+            record = session.query(TableByMarketEventFact).filter(
+                TableByMarketEventFact.event_uid == event_uid
+            ).first()
+            if record is None:
+                record = TableByMarketEventFact(event_uid=event_uid)
+                session.add(record)
+            record.event_type = str(payload.get("event_type") or "unknown")
+            record.asset_class = payload.get("asset_class")
+            record.region = payload.get("region")
+            record.symbol = payload.get("symbol")
+            record.title = str(payload.get("title") or payload.get("event_type") or event_uid)
+            record.source_name = str(payload.get("source_name") or "unknown")
+            record.importance_score = _to_float_value(payload.get("importance_score"))
+            record.actual_value = _to_float_value(payload.get("actual_value"))
+            record.forecast_value = _to_float_value(payload.get("forecast_value"))
+            record.previous_value = _to_float_value(payload.get("previous_value"))
+            record.surprise_value = _to_float_value(payload.get("surprise_value"))
+            record.published_at = _to_datetime_value(payload.get("published_at"))
+            record.effective_at = _to_datetime_value(payload.get("effective_at"))
+            record.payload_json = _to_json_text(payload.get("payload") or payload.get("raw_payload"))
+            record.updated_at = datetime.datetime.now()
+            session.commit()
+        return True
+
+    def market_event_fact_query(
+        self,
+        asset_class: str = None,
+        symbol: str = None,
+        event_type: str = None,
+        source_name: str = None,
+        start_datetime: datetime.datetime = None,
+        end_datetime: datetime.datetime = None,
+        limit: int = 500,
+    ) -> List[TableByMarketEventFact]:
+        with self.Session() as session:
+            query = session.query(TableByMarketEventFact)
+            if asset_class:
+                query = query.filter(TableByMarketEventFact.asset_class == asset_class)
+            if symbol:
+                query = query.filter(TableByMarketEventFact.symbol == symbol)
+            if event_type:
+                query = query.filter(TableByMarketEventFact.event_type == event_type)
+            if source_name:
+                query = query.filter(TableByMarketEventFact.source_name == source_name)
+            if start_datetime:
+                query = query.filter(TableByMarketEventFact.published_at >= start_datetime)
+            if end_datetime:
+                query = query.filter(TableByMarketEventFact.published_at <= end_datetime)
+            return (
+                query.order_by(TableByMarketEventFact.published_at.desc(), TableByMarketEventFact.id.desc())
+                .limit(limit)
+                .all()
+            )
+
+    def market_factor_snapshot_upsert(self, snapshot: Dict[str, Any]) -> bool:
+        payload = dict(snapshot or {})
+        snapshot_uid = str(payload.get("snapshot_uid") or "").strip() or _build_uid(
+            "factor",
+            {
+                "factor_group": payload.get("factor_group"),
+                "factor_name": payload.get("factor_name"),
+                "asset_class": payload.get("asset_class"),
+                "symbol": payload.get("symbol"),
+                "tenor": payload.get("tenor"),
+                "source_name": payload.get("source_name"),
+                "as_of_time": _to_datetime_value(payload.get("as_of_time")),
+            },
+        )
+        payload["snapshot_uid"] = snapshot_uid
+        with self.Session() as session:
+            record = session.query(TableByMarketFactorSnapshot).filter(
+                TableByMarketFactorSnapshot.snapshot_uid == snapshot_uid
+            ).first()
+            if record is None:
+                record = TableByMarketFactorSnapshot(snapshot_uid=snapshot_uid)
+                session.add(record)
+            record.factor_group = str(payload.get("factor_group") or "unknown")
+            record.factor_name = str(payload.get("factor_name") or "unknown")
+            record.asset_class = payload.get("asset_class")
+            record.symbol = payload.get("symbol")
+            record.tenor = payload.get("tenor")
+            record.value = _to_float_value(payload.get("value"))
+            record.unit = payload.get("unit")
+            record.change_1d = _to_float_value(payload.get("change_1d"))
+            record.change_5d = _to_float_value(payload.get("change_5d"))
+            record.zscore_60d = _to_float_value(payload.get("zscore_60d"))
+            record.source_name = str(payload.get("source_name") or "unknown")
+            record.as_of_time = _to_datetime_value(payload.get("as_of_time")) or datetime.datetime.now()
+            record.metadata_json = _to_json_text(payload.get("metadata") or payload.get("payload"))
+            record.updated_at = datetime.datetime.now()
+            session.commit()
+        return True
+
+    def market_factor_snapshot_query(
+        self,
+        factor_group: str = None,
+        factor_name: str = None,
+        asset_class: str = None,
+        symbol: str = None,
+        source_name: str = None,
+        limit: int = 500,
+    ) -> List[TableByMarketFactorSnapshot]:
+        with self.Session() as session:
+            query = session.query(TableByMarketFactorSnapshot)
+            if factor_group:
+                query = query.filter(TableByMarketFactorSnapshot.factor_group == factor_group)
+            if factor_name:
+                query = query.filter(TableByMarketFactorSnapshot.factor_name == factor_name)
+            if asset_class:
+                query = query.filter(TableByMarketFactorSnapshot.asset_class == asset_class)
+            if symbol:
+                query = query.filter(TableByMarketFactorSnapshot.symbol == symbol)
+            if source_name:
+                query = query.filter(TableByMarketFactorSnapshot.source_name == source_name)
+            return (
+                query.order_by(TableByMarketFactorSnapshot.as_of_time.desc(), TableByMarketFactorSnapshot.id.desc())
+                .limit(limit)
+                .all()
+            )
+
+    def market_structure_metric_upsert(self, metric: Dict[str, Any]) -> bool:
+        payload = dict(metric or {})
+        metric_uid = str(payload.get("metric_uid") or "").strip() or _build_uid(
+            "metric",
+            {
+                "asset_class": payload.get("asset_class"),
+                "symbol": payload.get("symbol"),
+                "metric_name": payload.get("metric_name"),
+                "window": payload.get("window"),
+                "source_name": payload.get("source_name"),
+                "as_of_time": _to_datetime_value(payload.get("as_of_time")),
+            },
+        )
+        payload["metric_uid"] = metric_uid
+        with self.Session() as session:
+            record = session.query(TableByMarketStructureMetric).filter(
+                TableByMarketStructureMetric.metric_uid == metric_uid
+            ).first()
+            if record is None:
+                record = TableByMarketStructureMetric(metric_uid=metric_uid)
+                session.add(record)
+            record.asset_class = payload.get("asset_class")
+            record.symbol = payload.get("symbol")
+            record.metric_name = str(payload.get("metric_name") or "unknown")
+            record.metric_value = _to_float_value(payload.get("metric_value"))
+            record.window = payload.get("window")
+            record.cross_section_rank = _to_float_value(payload.get("cross_section_rank"))
+            record.source_name = str(payload.get("source_name") or "unknown")
+            record.as_of_time = _to_datetime_value(payload.get("as_of_time")) or datetime.datetime.now()
+            record.metadata_json = _to_json_text(payload.get("metadata") or payload.get("payload"))
+            record.updated_at = datetime.datetime.now()
+            session.commit()
+        return True
+
+    def market_structure_metric_query(
+        self,
+        asset_class: str = None,
+        symbol: str = None,
+        metric_name: str = None,
+        source_name: str = None,
+        limit: int = 500,
+    ) -> List[TableByMarketStructureMetric]:
+        with self.Session() as session:
+            query = session.query(TableByMarketStructureMetric)
+            if asset_class:
+                query = query.filter(TableByMarketStructureMetric.asset_class == asset_class)
+            if symbol:
+                query = query.filter(TableByMarketStructureMetric.symbol == symbol)
+            if metric_name:
+                query = query.filter(TableByMarketStructureMetric.metric_name == metric_name)
+            if source_name:
+                query = query.filter(TableByMarketStructureMetric.source_name == source_name)
+            return (
+                query.order_by(TableByMarketStructureMetric.as_of_time.desc(), TableByMarketStructureMetric.id.desc())
+                .limit(limit)
+                .all()
+            )
+
+    def agent_inference_log_insert(self, log_data: Dict[str, Any]) -> bool:
+        payload = dict(log_data or {})
+        with self.Session() as session:
+            record = TableByAgentInferenceLog(
+                run_id=str(payload.get("run_id") or "unknown"),
+                agent_name=str(payload.get("agent_name") or "unknown"),
+                asset_class=payload.get("asset_class"),
+                symbol=payload.get("symbol"),
+                question=payload.get("question"),
+                thesis=payload.get("thesis"),
+                confidence_before=_to_float_value(payload.get("confidence_before")),
+                confidence_after=_to_float_value(payload.get("confidence_after")),
+                used_event_ids=_to_json_text(payload.get("used_event_ids")),
+                used_factor_ids=_to_json_text(payload.get("used_factor_ids")),
+                changed_conclusion=str(payload.get("changed_conclusion") or ""),
+                metadata_json=_to_json_text(payload.get("metadata") or payload.get("payload")),
+                created_at=_to_datetime_value(payload.get("created_at")) or datetime.datetime.now(),
+            )
+            session.add(record)
+            session.commit()
+        return True
+
+    def agent_inference_log_query(
+        self,
+        run_id: str = None,
+        agent_name: str = None,
+        symbol: str = None,
+        limit: int = 500,
+    ) -> List[TableByAgentInferenceLog]:
+        with self.Session() as session:
+            query = session.query(TableByAgentInferenceLog)
+            if run_id:
+                query = query.filter(TableByAgentInferenceLog.run_id == run_id)
+            if agent_name:
+                query = query.filter(TableByAgentInferenceLog.agent_name == agent_name)
+            if symbol:
+                query = query.filter(TableByAgentInferenceLog.symbol == symbol)
+            return query.order_by(TableByAgentInferenceLog.created_at.desc(), TableByAgentInferenceLog.id.desc()).limit(limit).all()
+
+    def event_price_reaction_upsert(self, reaction: Dict[str, Any]) -> bool:
+        payload = dict(reaction or {})
+        reaction_uid = str(payload.get("reaction_uid") or "").strip() or _build_uid(
+            "reaction",
+            {
+                "event_uid": payload.get("event_uid"),
+                "symbol": payload.get("symbol"),
+                "frequency": payload.get("frequency"),
+                "validated_at": _to_datetime_value(payload.get("validated_at")),
+            },
+        )
+        payload["reaction_uid"] = reaction_uid
+        with self.Session() as session:
+            record = session.query(TableByEventPriceReaction).filter(
+                TableByEventPriceReaction.reaction_uid == reaction_uid
+            ).first()
+            if record is None:
+                record = TableByEventPriceReaction(reaction_uid=reaction_uid)
+                session.add(record)
+            record.event_uid = str(payload.get("event_uid") or "")
+            record.symbol = str(payload.get("symbol") or "")
+            record.frequency = str(payload.get("frequency") or "30m")
+            record.return_30m_pct = _to_float_value(payload.get("return_30m_pct"))
+            record.return_120m_pct = _to_float_value(payload.get("return_120m_pct"))
+            record.return_1d_pct = _to_float_value(payload.get("return_1d_pct"))
+            record.return_5d_pct = _to_float_value(payload.get("return_5d_pct"))
+            aligned_value = payload.get("direction_aligned")
+            if aligned_value is None or aligned_value == "":
+                record.direction_aligned = None
+            else:
+                record.direction_aligned = 1 if bool(aligned_value) else 0
+            record.reaction_label = payload.get("reaction_label")
+            record.validated_at = _to_datetime_value(payload.get("validated_at")) or datetime.datetime.now()
+            record.metadata_json = _to_json_text(payload.get("metadata") or payload.get("payload"))
+            record.updated_at = datetime.datetime.now()
+            session.commit()
+        return True
+
+    def event_price_reaction_query(
+        self,
+        event_uid: str = None,
+        symbol: str = None,
+        frequency: str = None,
+        limit: int = 500,
+    ) -> List[TableByEventPriceReaction]:
+        with self.Session() as session:
+            query = session.query(TableByEventPriceReaction)
+            if event_uid:
+                query = query.filter(TableByEventPriceReaction.event_uid == event_uid)
+            if symbol:
+                query = query.filter(TableByEventPriceReaction.symbol == symbol)
+            if frequency:
+                query = query.filter(TableByEventPriceReaction.frequency == frequency)
+            return query.order_by(TableByEventPriceReaction.validated_at.desc(), TableByEventPriceReaction.id.desc()).limit(limit).all()
 
     def company_financials_insert(self, code: str, name: str, statement_type: str, report_date: datetime.date, financials: List[dict]) -> bool:
         """

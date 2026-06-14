@@ -33,6 +33,7 @@ akshare
 tqsdk
 openai
 playwright
+pypdf>=4.0.0
 
 pyfolio-reloaded
 dtaidistance

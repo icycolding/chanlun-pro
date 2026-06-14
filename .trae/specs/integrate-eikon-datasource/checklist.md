@@ -1,0 +1,10 @@
+- [x] Eikon 首期范围明确：仅 A 股/外汇、仅 1D、新闻与快照不纳入首期
+- [x] 存在可配置的 EIKON_APP_KEY（且不在日志中泄露）
+- [x] 启动预检能识别 SDK/App Key 状态，并给出可操作提示
+- [x] symbol_resolver 支持“茅台 -> 600519.SH”，且歧义时返回候选不默认选择
+- [x] eikon_symbology 支持缓存命中与缓存回写，缓存命中不触发外部查询
+- [x] eikon_loader 使用 get_timeseries 拉取历史行情并输出统一 OHLCV（volume 缺失补 0）
+- [x] registry 回退链按规范接入（A 股：eikon->tushare->akshare；外汇：eikon->akshare->yfinance）
+- [x] 未配置/不可用 Eikon 时自动回退且行为与现有版本一致
+- [x] 单元测试覆盖解析、映射缓存、标准化与回退链关键路径
+- [x] 本地冒烟：前端代理 `/sessions` 不再因后端缺失而报 ECONNREFUSED（后端启动后）

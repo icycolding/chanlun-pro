@@ -16,6 +16,8 @@ import uuid
 from typing import List, Dict, Optional, Any
 from dataclasses import asdict
 
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+
 try:
     import chromadb
     from chromadb.config import Settings

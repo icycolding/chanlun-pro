@@ -1,0 +1,32 @@
+{
+	"folders": [
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../../GitHub/timesfm"
+		},
+		{
+			"path": "../../../../../GitHub/MiroFish"
+		},
+		{
+			"path": "../../../../../GitHub/akshare-main"
+		},
+		{
+			"path": "../../../../OpenBB-develop"
+		},
+		{
+			"path": "../../../../../GitHub/hermes-agent"
+		},
+		{
+			"path": "../../../../../GitHub/myspdb"
+		},
+		{
+			"path": "../../../../../GitHub/open-webui"
+		}
+	],
+	"settings": {
+		"taipyStudio.gUI.elementsFilePaths": [],
+		"taipyStudio.config.mainPythonFile": "diagnose_vector_db.py"
+	}
+}

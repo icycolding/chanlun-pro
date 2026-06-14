@@ -459,6 +459,15 @@
                 <div class="filter-section mt-4">
                     <h6 class="mb-3"><i class="fas fa-filter"></i> 筛选条件</h6>
                     <div class="mb-3">
+                        <label for="summaryTypeFilter" class="form-label">总结类型</label>
+                        <select class="form-select" id="summaryTypeFilter">
+                            <option value="">全部类型</option>
+                            <option value="market_analysis">市场总结</option>
+                            <option value="daily_news_summary">每日新闻总结</option>
+                            <option value="historical_analysis">历史分析</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label for="codeFilter" class="form-label">标的代码</label>
                         <input type="text" class="form-control" id="codeFilter" placeholder="输入标的代码">
                     </div>
@@ -578,7 +587,7 @@
         let currentLimit = 10;
         let currentSummaryId = null;
         let currentMarket = 'all';
-        let allSummaries = [];
+        let currentSummaryType = '';
         let marketCounts = {};
         
         // 页面加载完成后初始化
@@ -657,13 +666,15 @@
                 limit: currentLimit
             });
             
-            // 注意：不再使用后端的market筛选，而是在前端进行筛选
-            
             const code = document.getElementById('codeFilter').value;
+            const summaryType = document.getElementById('summaryTypeFilter').value;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
             
+            currentSummaryType = summaryType;
+            if (currentMarket && currentMarket !== 'all') params.append('market', currentMarket);
             if (code) params.append('code', code);
+            if (summaryType) params.append('summary_type', summaryType);
             if (startDate) params.append('start_date', startDate);
             if (endDate) params.append('end_date', endDate);
             
@@ -673,34 +684,22 @@
             document.getElementById('emptyState').style.display = 'none';
             document.getElementById('paginationWrapper').style.display = 'none';
             
-            // 获取所有数据进行前端筛选
-            fetch('/api/news/market_summary/list?limit=1000')
+            fetch('/api/news/market_summary/list?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById('loadingState').style.display = 'none';
                     
                     if (data.code === 0) {
-                        let allSummaries = data.data.list;
+                        let summaries = data.data.list || [];
+                        loadSummaryStats();
                         
-                        // 更新统计数据
-                        updateMarketCounts(allSummaries);
-                        
-                        // 前端筛选数据
-                        let filteredSummaries = filterSummaries(allSummaries);
-                        
-                        // 分页处理
-                        const startIndex = (currentPage - 1) * currentLimit;
-                        const endIndex = startIndex + currentLimit;
-                        const paginatedSummaries = filteredSummaries.slice(startIndex, endIndex);
-                        
-                        if (paginatedSummaries.length > 0) {
-                            renderSummaryList(paginatedSummaries);
-                            renderPagination(filteredSummaries.length, currentPage, currentLimit);
+                        if (summaries.length > 0) {
+                            renderSummaryList(summaries);
+                            renderPagination(data.data.total || summaries.length, currentPage, currentLimit);
                             document.getElementById('summaryList').style.display = 'block';
                             document.getElementById('paginationWrapper').style.display = 'block';
                             
-                            // 更新副标题
-                            document.getElementById('contentSubtitle').textContent = `共 ${filteredSummaries.length} 个报告`;
+                            document.getElementById('contentSubtitle').textContent = `共 ${data.data.total || summaries.length} 个报告`;
                         } else {
                             document.getElementById('emptyState').style.display = 'block';
                             document.getElementById('contentSubtitle').textContent = '共 0 个报告';
@@ -716,91 +715,44 @@
                     document.getElementById('emptyState').style.display = 'block';
                 });
         }
-        
-        // 根据标题内容分类市场类型
-        function classifyMarketByTitle(title) {
-            if (!title) return 'UNKNOWN';
-            
-            const titleUpper = title.toUpperCase();
-            
-            // 外汇市场：标题包含'FX'
-            if (titleUpper.includes('FX')) {
-                return 'FOREX';
-            }
-            
-            // 期货市场：标题包含'FUTURES'
-            if (titleUpper.includes('FUTURES')) {
-                return 'FUTURES';
-            }
-            
-            // A股市场：标题以'A'开头
-            if (titleUpper.startsWith('A')) {
-                return 'STOCK';
-            }
-            
+
+        function normalizeSummaryMarket(summary) {
+            const market = (summary.market || '').toLowerCase();
+            if (market === 'a') return 'STOCK';
+            if (market === 'fx') return 'FOREX';
+            if (market === 'futures') return 'FUTURES';
             return 'UNKNOWN';
         }
-        
-        // 前端筛选数据
-        function filterSummaries(summaries) {
+
+        function loadSummaryStats() {
+            const params = new URLSearchParams();
             const code = document.getElementById('codeFilter').value;
+            const summaryType = document.getElementById('summaryTypeFilter').value;
             const startDate = document.getElementById('startDate').value;
             const endDate = document.getElementById('endDate').value;
-            
-            return summaries.filter(summary => {
-                // 市场类型筛选
-                if (currentMarket !== 'all') {
-                    const summaryMarket = classifyMarketByTitle(summary.title);
-                    if (summaryMarket !== currentMarket) {
-                        return false;
+
+            if (code) params.append('code', code);
+            if (summaryType) params.append('summary_type', summaryType);
+            if (startDate) params.append('start_date', startDate);
+            if (endDate) params.append('end_date', endDate);
+
+            fetch('/api/news/market_summary/stats?' + params.toString())
+                .then(response => response.json())
+                .then(data => {
+                    if (data.code !== 0 || !data.data || !data.data.markets) {
+                        return;
                     }
-                }
-                
-                // 代码筛选
-                if (code && summary.code && !summary.code.toLowerCase().includes(code.toLowerCase())) {
-                    return false;
-                }
-                
-                // 日期筛选
-                if (startDate || endDate) {
-                    const summaryDate = new Date(summary.created_at);
-                    if (startDate && summaryDate < new Date(startDate)) {
-                        return false;
-                    }
-                    if (endDate && summaryDate > new Date(endDate + ' 23:59:59')) {
-                        return false;
-                    }
-                }
-                
-                return true;
-            });
-        }
-        
-        // 更新市场分类统计
-        function updateMarketCounts(summaries) {
-            marketCounts = {
-                'all': summaries.length,
-                'STOCK': 0,
-                'FOREX': 0,
-                'FUTURES': 0,
-                'UNKNOWN': 0
-            };
-            
-            summaries.forEach(summary => {
-                // 使用基于标题的分类逻辑
-                const market = classifyMarketByTitle(summary.title);
-                if (marketCounts[market] !== undefined) {
-                    marketCounts[market]++;
-                }
-            });
-            
-            // 更新导航中的数量显示
-            Object.keys(marketCounts).forEach(market => {
-                const countElement = document.getElementById(`count-${market}`);
-                if (countElement) {
-                    countElement.textContent = marketCounts[market];
-                }
-            });
+                    marketCounts = data.data.markets;
+                    Object.keys(marketCounts).forEach(market => {
+                        const countElement = document.getElementById(`count-${market}`);
+                        if (countElement) {
+                            countElement.textContent = marketCounts[market];
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('加载统计失败:', error);
+                });
         }
         
         // 渲染总结列表
@@ -816,8 +768,7 @@
         
         // 创建报告卡片
         function createReportCard(summary) {
-            // 使用基于标题的分类逻辑
-            const marketType = classifyMarketByTitle(summary.title);
+            const marketType = normalizeSummaryMarket(summary);
             const config = marketConfig[marketType] || marketConfig['UNKNOWN'];
             
             // 处理内容预览，显示前200字符
@@ -998,6 +949,7 @@
         
         // 重置筛选
         function resetFilters() {
+            document.getElementById('summaryTypeFilter').value = '';
             document.getElementById('codeFilter').value = '';
             document.getElementById('startDate').value = '';
             document.getElementById('endDate').value = '';

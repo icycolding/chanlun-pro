@@ -9,23 +9,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
-        /* Custom Scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
         }
         ::-webkit-scrollbar-track {
-            background: #1f2937; 
+            background: rgba(15, 23, 42, 0.06);
         }
         ::-webkit-scrollbar-thumb {
-            background: #4b5563; 
+            background: rgba(15, 23, 42, 0.16);
             border-radius: 4px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: #6b7280; 
+            background: rgba(15, 23, 42, 0.24);
         }
-
-        /* Markdown Styles */
+        body {
+            font-family: "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(191, 219, 254, 0.7), transparent 28%),
+                radial-gradient(circle at top right, rgba(254, 249, 195, 0.6), transparent 24%),
+                linear-gradient(180deg, #f7f8fb 0%, #eef2f7 100%);
+            color: #0f172a;
+        }
         .prose p {
             margin-bottom: 0.5em;
         }
@@ -57,17 +62,15 @@
             padding: 0;
         }
         .prose a {
-            color: #60a5fa;
+            color: #2563eb;
             text-decoration: underline;
         }
         .prose blockquote {
-            border-left: 4px solid #4b5563;
+            border-left: 4px solid rgba(15, 23, 42, 0.12);
             padding-left: 1em;
-            color: #9ca3af;
+            color: #64748b;
             font-style: italic;
         }
-
-        /* Typing Indicator */
         .typing-dot {
             animation: typing 1.4s infinite ease-in-out both;
         }
@@ -77,92 +80,267 @@
             0%, 80%, 100% { transform: scale(0); }
             40% { transform: scale(1); }
         }
+        .apple-shell {
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow:
+                0 20px 60px rgba(15, 23, 42, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.85);
+        }
+        .apple-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            box-shadow: 0 12px 40px rgba(15, 23, 42, 0.06);
+        }
+        .apple-divider {
+            border-color: rgba(15, 23, 42, 0.08);
+        }
+        .message-card {
+            border-radius: 24px;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .message-card-ai {
+            background: rgba(255, 255, 255, 0.82);
+        }
+        .message-card-user {
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(51, 65, 85, 0.92));
+            color: #f8fafc;
+        }
+        .starter-btn {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            color: #334155;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+        }
+        .starter-btn:hover {
+            background: rgba(255, 255, 255, 0.94);
+            border-color: rgba(59, 130, 246, 0.22);
+            color: #0f172a;
+        }
+        .soft-badge {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            color: #64748b;
+        }
+        .action-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 9999px;
+            font-size: 11px;
+            line-height: 1;
+            font-weight: 600;
+            border: 1px solid transparent;
+            transition: all 180ms ease;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .action-chip:hover {
+            transform: translateY(-1px);
+        }
+        .action-chip-primary {
+            background: rgba(37, 99, 235, 0.08);
+            border-color: rgba(37, 99, 235, 0.12);
+            color: #1d4ed8;
+        }
+        .action-chip-primary:hover {
+            background: rgba(37, 99, 235, 0.14);
+        }
+        .action-chip-secondary {
+            background: rgba(15, 23, 42, 0.05);
+            border-color: rgba(15, 23, 42, 0.07);
+            color: #334155;
+        }
+        .action-chip-secondary:hover {
+            background: rgba(15, 23, 42, 0.09);
+        }
+        .action-chip-emerald {
+            background: rgba(5, 150, 105, 0.08);
+            border-color: rgba(5, 150, 105, 0.12);
+            color: #047857;
+        }
+        .action-chip-emerald:hover {
+            background: rgba(5, 150, 105, 0.14);
+        }
+        .action-chip-amber {
+            background: rgba(217, 119, 6, 0.09);
+            border-color: rgba(217, 119, 6, 0.12);
+            color: #b45309;
+        }
+        .action-chip-amber:hover {
+            background: rgba(217, 119, 6, 0.14);
+        }
+        .action-chip-rose {
+            background: rgba(225, 29, 72, 0.08);
+            border-color: rgba(225, 29, 72, 0.12);
+            color: #be123c;
+        }
+        .action-chip-rose:hover {
+            background: rgba(225, 29, 72, 0.14);
+        }
+        .welcome-surface {
+            background:
+                linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.66)),
+                radial-gradient(circle at top right, rgba(191, 219, 254, 0.45), transparent 28%);
+        }
+        .mini-panel {
+            border-radius: 22px;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            background: rgba(255, 255, 255, 0.58);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82);
+        }
+        .chart-surface {
+            border-radius: 28px;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            background: rgba(255, 255, 255, 0.86);
+            box-shadow: 0 18px 50px rgba(15, 23, 42, 0.07);
+            overflow: hidden;
+        }
+        .chart-meta {
+            color: #64748b;
+            letter-spacing: 0.01em;
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 font-sans antialiased h-screen flex overflow-hidden">
+<body class="antialiased h-screen flex overflow-hidden p-4 md:p-5">
 
-    <!-- Left Sidebar (History/Nav) -->
-    <div class="w-16 md:w-64 bg-gray-950 border-r border-gray-800 flex flex-col">
-        <div class="p-4 border-b border-gray-800 flex items-center justify-center md:justify-start">
-            <a href="/" class="text-xl font-bold text-blue-500 tracking-wider">AGI<span class="hidden md:inline text-gray-400 text-sm ml-2">Market Intel</span></a>
+    <div class="apple-shell w-full flex overflow-hidden rounded-[32px]">
+    <div class="w-16 md:w-72 border-r apple-divider flex flex-col bg-white/22">
+        <div class="p-4 border-b apple-divider flex items-center justify-center md:justify-start">
+            <a href="/" class="text-lg font-semibold tracking-tight text-slate-900">Chanlun<span class="hidden md:inline text-slate-400 text-sm ml-2 font-medium">Chat</span></a>
         </div>
         <div class="flex-1 overflow-y-auto p-2">
-            <!-- New Chat Button -->
-            <button onclick="window.location.reload()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded mb-4 flex items-center justify-center transition-colors">
+            <button id="new-chat-btn" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 px-4 rounded-2xl mb-4 flex items-center justify-center transition-colors shadow-lg shadow-slate-900/10">
                 <svg class="w-5 h-5 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span class="hidden md:inline">New Chat</span>
             </button>
+            <button id="delete-current-session-btn" class="w-full border border-rose-200/80 text-rose-500 hover:bg-rose-50 py-2.5 px-4 rounded-2xl mb-4 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                <svg class="w-5 h-5 md:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-7 0h8"></path></svg>
+                <span class="hidden md:inline">Delete Chat</span>
+            </button>
             
-            <div class="text-xs text-gray-500 uppercase font-semibold mb-2 px-2 hidden md:block">Recent</div>
-            <!-- History Items (Placeholder) -->
-            <div class="space-y-1">
-                <div class="p-2 rounded hover:bg-gray-800 cursor-pointer text-sm text-gray-400 truncate hidden md:block">
-                    Market Outlook 2024
+            <div class="text-[11px] text-slate-400 uppercase font-semibold mb-2 px-2 hidden md:block tracking-[0.22em]">Recent</div>
+            <div id="session-list" class="space-y-1">
+                <div class="p-2 rounded-2xl text-sm text-slate-400 hidden md:block">
+                    暂无会话
                 </div>
             </div>
         </div>
-        <div class="p-4 border-t border-gray-800">
+        <div class="p-4 border-t apple-divider">
             <div class="flex items-center">
-                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs">U</div>
+                <div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs shadow-sm">U</div>
                 <div class="ml-2 hidden md:block">
-                    <div class="text-sm font-medium">User</div>
-                    <div class="text-xs text-gray-500">Pro Plan</div>
+                    <div class="text-sm font-medium text-slate-900">User</div>
+                    <div class="text-xs text-slate-400">Workspace</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Main Chat Area -->
-    <div class="flex-1 flex flex-col min-w-0 bg-gray-900">
-        <!-- Header -->
-        <div class="h-14 border-b border-gray-800 flex items-center px-6 justify-between">
-            <h2 class="text-lg font-medium text-gray-200">Market Assistant</h2>
-            <div class="text-xs text-gray-500">Model: Gemini-Pro-Preview</div>
-        </div>
-
-        <!-- Messages -->
-        <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-6">
-            <!-- Welcome Message -->
-            <div class="flex flex-col space-y-2">
-                <div class="flex items-center space-x-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">AI</div>
-                    <div class="text-sm font-medium text-gray-300">Market Intelligence</div>
+    <div class="flex-1 flex flex-col min-w-0 bg-transparent">
+        <div class="border-b apple-divider bg-white/28 backdrop-blur-xl">
+            <div class="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl md:text-[30px] font-semibold tracking-tight text-slate-950">Chanlun</h2>
                 </div>
-                <div class="ml-10 bg-gray-800 rounded-lg p-4 text-gray-200 shadow-sm max-w-3xl">
-                    <p>你好！我是你的专业市场助手。我可以帮你：</p>
-                    <ul class="list-disc ml-4 mt-2 text-sm text-gray-400 space-y-1">
-                        <li>追踪市场新闻和宏观事件 ("最近黄金为什么跌？")</li>
-                        <li>挖掘投资标的和机会 ("看涨美元买什么？")</li>
-                        <li>分析特定资产的基本面逻辑</li>
-                    </ul>
+                <div class="hidden xl:flex items-center gap-2 text-xs">
+                    <span class="soft-badge px-3 py-1.5 rounded-full">Charts</span>
+                    <span class="soft-badge px-3 py-1.5 rounded-full">News</span>
+                    <span class="soft-badge px-3 py-1.5 rounded-full">Research</span>
                 </div>
             </div>
         </div>
 
-        <!-- Input Area -->
-        <div class="p-4 bg-gray-900 border-t border-gray-800">
-            <div class="max-w-4xl mx-auto relative">
-                <div class="absolute bottom-12 left-0 right-0 flex justify-center space-x-2 pointer-events-none" id="suggestions">
-                    <!-- Suggestions will be injected here -->
+        <div id="messages" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6"></div>
+
+        <div class="p-4 bg-transparent border-t apple-divider">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex flex-wrap items-center gap-2 mb-3" id="starter-prompts">
+                    <button type="button" class="starter-btn px-3.5 py-2 rounded-full text-sm transition-colors" data-starter-prompt="看 AUDUSD 价格图">价格图</button>
+                    <button type="button" class="starter-btn px-3.5 py-2 rounded-full text-sm transition-colors" data-starter-prompt="黄金今天有什么重要新闻">新闻</button>
+                    <button type="button" class="starter-btn px-3.5 py-2 rounded-full text-sm transition-colors" data-starter-prompt="给我一份 AUDUSD 的研究报告">研究</button>
+                    <button type="button" class="starter-btn px-3.5 py-2 rounded-full text-sm transition-colors" data-starter-prompt="点击交易 AUDUSD">交易</button>
                 </div>
-                <textarea id="user-input" rows="1" class="w-full bg-gray-800 text-gray-200 border border-gray-700 rounded-xl px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden" placeholder="Ask anything about the market..." style="min-height: 50px; max-height: 200px;"></textarea>
-                <button id="send-btn" class="absolute right-2 bottom-2 p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                </button>
-            </div>
-            <div class="text-center text-xs text-gray-600 mt-2">
-                AI can make mistakes. Please verify important information.
+                <div class="apple-panel rounded-[28px]">
+                    <div class="flex items-center justify-between px-5 pt-4 pb-2">
+                        <div>
+                            <div class="text-sm text-slate-900 font-medium">今天想看什么</div>
+                            <div class="text-xs text-slate-400 mt-1">输入一个标的或直接说需求</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input id="attachment-input" type="file" class="hidden" />
+                            <button id="upload-btn" class="text-xs px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 hover:bg-white transition-colors">上传附件</button>
+                        </div>
+                    </div>
+                    <div class="px-5 pb-5 relative">
+                        <textarea id="user-input" rows="1" class="w-full bg-transparent text-slate-900 border-0 px-0 py-3 pr-16 focus:outline-none resize-none overflow-hidden placeholder:text-slate-400" placeholder="例如：usdcny 价格图 / 苹果最新新闻 / 给我一份黄金研究" style="min-height: 72px; max-height: 220px;"></textarea>
+                        <button id="send-btn" class="absolute right-1 bottom-5 p-3 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-slate-900/10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-center text-xs text-slate-400 mt-3">请在交易前自行确认价格、风险与仓位。</div>
             </div>
         </div>
     </div>
+    </div>
 
-    <!-- Right Context Panel -->
-    <div class="w-80 bg-gray-950 border-l border-gray-800 flex flex-col hidden lg:flex">
-        <div class="p-4 border-b border-gray-800 font-medium text-sm text-gray-400 uppercase tracking-wider">Context / Citations</div>
-        <div id="context-panel" class="flex-1 overflow-y-auto p-4 space-y-4">
-            <!-- Empty State -->
-            <div id="context-empty" class="text-center text-gray-600 mt-10 text-sm">
-                No citations yet.<br>Ask a question to search knowledge base.
+    <div class="hidden">
+        <input id="context-market" />
+        <input id="context-code" />
+        <input id="context-theme" />
+        <select id="context-skill">
+            <option value="">自动匹配技能</option>
+        </select>
+        <select id="context-frequency">
+            <option value="5m">5m</option>
+            <option value="15m">15m</option>
+            <option value="30m" selected>30m</option>
+            <option value="1h">1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+        </select>
+        <div id="attachment-list"></div>
+        <select id="memory-target">
+            <option value="memory">MEMORY</option>
+            <option value="user">USER</option>
+        </select>
+        <input id="memory-input" />
+        <button id="save-memory-btn" type="button"></button>
+        <button id="refresh-memories-btn" type="button"></button>
+        <div id="memory-list"></div>
+        <input id="skill-name-input" />
+        <textarea id="skill-description-input"></textarea>
+        <button id="create-skill-btn" type="button"></button>
+        <button id="refresh-skills-btn" type="button"></button>
+        <div id="skill-list"></div>
+        <div id="context-panel"></div>
+        <div id="context-empty"></div>
+    </div>
+
+    <div id="chart-viewer-modal" class="fixed inset-0 z-50 hidden bg-black/70 backdrop-blur-sm">
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="w-full max-w-7xl h-[88vh] bg-gray-950 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+                    <div>
+                        <div id="chart-viewer-title" class="text-sm font-medium text-gray-100">价格图形</div>
+                        <div id="chart-viewer-meta" class="text-xs text-gray-500 mt-1"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="chart-viewer-home-btn" class="text-xs px-3 py-1.5 rounded border border-blue-900 text-blue-300 hover:bg-blue-950">主页图形</button>
+                        <button id="chart-viewer-db-btn" class="text-xs px-3 py-1.5 rounded border border-emerald-900 text-emerald-300 hover:bg-emerald-950">数据库图形</button>
+                        <button id="chart-viewer-close-btn" class="text-xs px-3 py-1.5 rounded border border-gray-700 text-gray-300 hover:bg-gray-800">关闭</button>
+                    </div>
+                </div>
+                <iframe id="chart-viewer-frame" class="w-full flex-1 bg-white" style="border:0;"></iframe>
             </div>
         </div>
     </div>
@@ -171,16 +349,46 @@
         const messagesDiv = document.getElementById('messages');
         const userInput = document.getElementById('user-input');
         const sendBtn = document.getElementById('send-btn');
+        const contextMarketInput = document.getElementById('context-market');
+        const contextCodeInput = document.getElementById('context-code');
+        const contextThemeInput = document.getElementById('context-theme');
+        const contextSkillSelect = document.getElementById('context-skill');
+        const contextFrequencySelect = document.getElementById('context-frequency');
+        const uploadBtn = document.getElementById('upload-btn');
+        const attachmentInput = document.getElementById('attachment-input');
+        const attachmentListDiv = document.getElementById('attachment-list');
+        const memoryTargetSelect = document.getElementById('memory-target');
+        const memoryInput = document.getElementById('memory-input');
+        const saveMemoryBtn = document.getElementById('save-memory-btn');
+        const refreshMemoriesBtn = document.getElementById('refresh-memories-btn');
+        const memoryListDiv = document.getElementById('memory-list');
+        const skillNameInput = document.getElementById('skill-name-input');
+        const skillDescriptionInput = document.getElementById('skill-description-input');
+        const createSkillBtn = document.getElementById('create-skill-btn');
+        const refreshSkillsBtn = document.getElementById('refresh-skills-btn');
+        const skillListDiv = document.getElementById('skill-list');
+        const starterPrompts = document.getElementById('starter-prompts');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const deleteCurrentSessionBtn = document.getElementById('delete-current-session-btn');
+        const sessionListDiv = document.getElementById('session-list');
         const contextPanel = document.getElementById('context-panel');
         const contextEmpty = document.getElementById('context-empty');
-        
-        let messageHistory = [];
-        let isGenerating = false;
+        const chartViewerModal = document.getElementById('chart-viewer-modal');
+        const chartViewerFrame = document.getElementById('chart-viewer-frame');
+        const chartViewerTitle = document.getElementById('chart-viewer-title');
+        const chartViewerMeta = document.getElementById('chart-viewer-meta');
+        const chartViewerHomeBtn = document.getElementById('chart-viewer-home-btn');
+        const chartViewerDbBtn = document.getElementById('chart-viewer-db-btn');
+        const chartViewerCloseBtn = document.getElementById('chart-viewer-close-btn');
 
-        // Auto-resize textarea
+        let currentSessionId = null;
+        let currentContext = {};
+        let isGenerating = false;
+        let currentChartViewerPayload = null;
+
         userInput.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
+            this.style.height = this.scrollHeight + 'px';
         });
 
         userInput.addEventListener('keydown', function(e) {
@@ -191,78 +399,348 @@
         });
 
         sendBtn.addEventListener('click', sendMessage);
+        uploadBtn.addEventListener('click', async () => {
+            if (!currentSessionId) {
+                await createSessionAndLoad();
+            }
+            attachmentInput.click();
+        });
+        attachmentInput.addEventListener('change', uploadAttachment);
+        saveMemoryBtn.addEventListener('click', saveMemory);
+        refreshMemoriesBtn.addEventListener('click', loadMemories);
+        createSkillBtn.addEventListener('click', createSkill);
+        refreshSkillsBtn.addEventListener('click', loadSkills);
+        starterPrompts?.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-starter-prompt]');
+            if (!button) return;
+            userInput.value = button.dataset.starterPrompt || '';
+            userInput.dispatchEvent(new Event('input'));
+            userInput.focus();
+        });
+        newChatBtn.addEventListener('click', async () => {
+            await createSessionAndLoad();
+        });
+        deleteCurrentSessionBtn?.addEventListener('click', async () => {
+            if (!currentSessionId) return;
+            await deleteSession(currentSessionId);
+        });
+        chartViewerCloseBtn.addEventListener('click', closeChartViewer);
+        chartViewerModal.addEventListener('click', function(e) {
+            if (e.target === chartViewerModal) {
+                closeChartViewer();
+            }
+        });
+        chartViewerHomeBtn.addEventListener('click', () => {
+            if (currentChartViewerPayload) {
+                openChartViewer(currentChartViewerPayload, 'home');
+            }
+        });
+        chartViewerDbBtn.addEventListener('click', () => {
+            if (currentChartViewerPayload) {
+                openChartViewer(currentChartViewerPayload, 'db');
+            }
+        });
+
+        async function bootstrapChat() {
+            await loadSessions();
+            await loadMemories();
+            await loadSkills();
+            if (!currentSessionId) {
+                await createSessionAndLoad();
+            }
+        }
+
+        async function loadSessions() {
+            const response = await fetch('/api/ai/chat/sessions');
+            const payload = await response.json();
+            const sessions = (((payload || {}).data || {}).sessions || []);
+            renderSessionList(sessions);
+            updateDeleteSessionButtonState();
+            if (!currentSessionId && sessions.length) {
+                await loadSession(sessions[0].id);
+            }
+        }
+
+        async function createSessionAndLoad() {
+            clearMessages();
+            clearCitations();
+            const response = await fetch('/api/ai/chat/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ context: currentContext || {} })
+            });
+            const payload = await response.json();
+            const session = (((payload || {}).data || {}).session || null);
+            if (!session) {
+                throw new Error('创建会话失败');
+            }
+            currentSessionId = session.id;
+            currentContext = session.context || {};
+            syncContextInputs();
+            updateDeleteSessionButtonState();
+            renderWelcome();
+            renderAttachments([]);
+            await loadMemories();
+            await loadSkills();
+            await loadSessions();
+        }
+
+        async function loadSession(sessionId) {
+            const response = await fetch(`/api/ai/chat/sessions/${sessionId}`);
+            const payload = await response.json();
+            const session = (((payload || {}).data || {}).session || null);
+            const messages = (((payload || {}).data || {}).messages || []);
+            const attachments = (((payload || {}).data || {}).attachments || []);
+            currentSessionId = sessionId;
+            currentContext = (session && session.context) || {};
+            syncContextInputs();
+            renderSessionListSelection(sessionId);
+            updateDeleteSessionButtonState();
+            renderHistoryMessages(messages);
+            renderAttachments(attachments);
+            await loadMemories();
+            await loadSkills();
+        }
+
+        function updateDeleteSessionButtonState() {
+            if (!deleteCurrentSessionBtn) return;
+            deleteCurrentSessionBtn.disabled = !currentSessionId;
+        }
+
+        async function deleteSession(sessionId) {
+            if (!sessionId) return;
+            const confirmed = window.confirm('删除后将移除该会话的消息与附件，确定继续吗？');
+            if (!confirmed) return;
+            const row = sessionListDiv.querySelector(`[data-session-row="${sessionId}"]`);
+            if (row) row.classList.add('opacity-50');
+            const response = await fetch(`/api/ai/chat/sessions/${sessionId}`, {
+                method: 'DELETE',
+                headers: { 'Accept': 'application/json' }
+            });
+            let payload = {};
+            try {
+                payload = await response.json();
+            } catch (error) {
+                payload = { code: 500, msg: '删除响应解析失败' };
+            }
+            if (!response.ok || payload.code !== 0) {
+                if (row) row.classList.remove('opacity-50');
+                alert(payload.msg || '删除会话失败');
+                return;
+            }
+            row?.remove();
+            if (currentSessionId === sessionId) {
+                currentSessionId = '';
+                currentContext = {};
+                syncContextInputs();
+                clearMessages();
+                clearCitations();
+                renderWelcome();
+                renderAttachments([]);
+                updateDeleteSessionButtonState();
+            }
+            await loadSessions();
+            const sessionButtons = Array.from(sessionListDiv.querySelectorAll('[data-session-id]'));
+            if (!currentSessionId && sessionButtons.length) {
+                await loadSession(sessionButtons[0].dataset.sessionId);
+                return;
+            }
+            if (!sessionButtons.length) {
+                renderSessionList([]);
+            }
+        }
+
+        function renderSessionList(sessions) {
+            if (!sessions.length) {
+                sessionListDiv.innerHTML = `
+                    <div class="p-2 rounded text-sm text-gray-500 hidden md:block">暂无会话</div>
+                `;
+                return;
+            }
+            sessionListDiv.innerHTML = sessions.map(session => `
+                <div class="group hidden md:flex items-center gap-2" data-session-row="${session.id}">
+                    <button
+                        class="flex-1 text-left p-2 rounded text-sm truncate transition-colors ${session.id === currentSessionId ? 'bg-gray-800 text-gray-100' : 'text-gray-400 hover:bg-gray-800'}"
+                        data-session-id="${session.id}"
+                        title="${escapeHtml(session.title || '新会话')}"
+                    >
+                        ${escapeHtml(session.title || '新会话')}
+                    </button>
+                    <button
+                        type="button"
+                        class="${session.id === currentSessionId ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity px-2 py-2 rounded text-xs text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+                        data-session-delete="${session.id}"
+                        title="删除会话"
+                    >
+                        删除
+                    </button>
+                </div>
+            `).join('');
+            sessionListDiv.querySelectorAll('[data-session-id]').forEach(el => {
+                el.addEventListener('click', () => loadSession(el.dataset.sessionId));
+            });
+            sessionListDiv.querySelectorAll('[data-session-delete]').forEach(el => {
+                el.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    deleteSession(el.dataset.sessionDelete);
+                });
+            });
+        }
+
+        function renderSessionListSelection(sessionId) {
+            sessionListDiv.querySelectorAll('[data-session-id]').forEach(el => {
+                const active = el.dataset.sessionId === sessionId;
+                el.classList.toggle('bg-gray-800', active);
+                el.classList.toggle('text-gray-100', active);
+                el.classList.toggle('text-gray-400', !active);
+            });
+        }
+
+        function clearMessages() {
+            messagesDiv.innerHTML = '';
+        }
+
+        function buildTradeUrl(market, code) {
+            if (!market || !code) return '/';
+            return `/?market=${encodeURIComponent(market)}&code=${encodeURIComponent(code)}`;
+        }
+
+        function renderInlineInsightCard({ badge = 'insight', title = '', summary = '', body = '', actions = [] } = {}) {
+            const card = document.createElement('div');
+            card.className = 'ml-10 apple-panel rounded-[26px] p-4 md:p-5 max-w-4xl';
+            card.innerHTML = `
+                <div class="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                        <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400 mb-1">${escapeHtml(badge)}</div>
+                        <div class="text-[15px] font-semibold tracking-tight text-slate-900">${escapeHtml(title || '市场卡片')}</div>
+                    </div>
+                </div>
+                ${summary ? `<div class="text-sm text-slate-700 leading-6 mb-2">${escapeHtml(summary)}</div>` : ''}
+                ${body ? `<div class="text-xs text-slate-400 leading-6">${body}</div>` : ''}
+                ${actions.length ? `<div class="mt-3 flex flex-wrap items-center gap-2">${actions.join('')}</div>` : ''}
+            `;
+            messagesDiv.appendChild(card);
+            scrollToBottom();
+            return card;
+        }
+
+        function renderWelcome() {
+            messagesDiv.innerHTML = `
+                <div class="flex flex-col space-y-2 fade-in">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">AI</div>
+                        <div class="text-sm font-medium text-gray-300">Chanlun Chat</div>
+                    </div>
+                    <div class="ml-10 apple-panel welcome-surface rounded-[30px] p-5 md:p-6 text-slate-700 shadow-sm max-w-4xl">
+                        <div class="text-lg font-semibold text-slate-950 mb-2">像和你的市场助手说话一样使用 chanlun</div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div class="mini-panel p-4">
+                                <div class="text-slate-500 mb-2">你可以直接说</div>
+                                <ul class="space-y-2 text-slate-700">
+                                    <li>“看 AUDUSD 价格图”</li>
+                                    <li>“黄金今天有什么新闻”</li>
+                                    <li>“给我一份欧元研究报告”</li>
+                                    <li>“点击交易 AUDUSD”</li>
+                                </ul>
+                            </div>
+                            <div class="mini-panel p-4">
+                                <div class="text-slate-500 mb-2">系统会处理好</div>
+                                <ul class="space-y-2 text-slate-700">
+                                    <li>识别资产与市场</li>
+                                    <li>加载主页图形与价格快照</li>
+                                    <li>整理新闻、研究和结论</li>
+                                    <li>跳转到可交易页面</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         async function sendMessage() {
             const text = userInput.value.trim();
             if (!text || isGenerating) return;
+            if (!currentSessionId) {
+                await createSessionAndLoad();
+            }
 
-            // UI Updates
             userInput.value = '';
             userInput.style.height = 'auto';
             isGenerating = true;
             sendBtn.disabled = true;
 
-            // Add User Message
             addMessage('user', text);
-            messageHistory.push({ role: 'user', content: text });
-
-            // Add AI Placeholder
-            const aiMsgId = addMessage('ai', '', true); // true for loading state
+            const aiMsgId = addMessage('ai', '', true);
 
             try {
-                const response = await fetch('/api/ai/chat', {
+                currentContext = inferContextFromMessage(text, {
+                    market: contextMarketInput.value.trim(),
+                    code: contextCodeInput.value.trim(),
+                    theme: contextThemeInput.value.trim(),
+                    skill_name: contextSkillSelect.value || '',
+                    frequency: contextFrequencySelect.value || '30m'
+                });
+                syncContextInputs();
+                renderOptimisticInlineChart(text, currentContext);
+                renderOptimisticTradeCard(text, currentContext);
+                const response = await fetch(`/api/ai/chat/sessions/${currentSessionId}/messages`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ messages: messageHistory })
+                    body: JSON.stringify({
+                        message: { type: 'user_text', content: text },
+                        context: currentContext,
+                        options: { stream: true }
+                    })
                 });
 
-                if (!response.ok) throw new Error('Network response was not ok');
+                if (!response.ok || !response.body) {
+                    throw new Error('Network response was not ok');
+                }
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let aiContent = '';
-                let currentAiMsgDiv = document.getElementById(aiMsgId).querySelector('.prose');
-                
-                // Remove loading indicator
-                currentAiMsgDiv.innerHTML = ''; 
+                const currentAiMsgDiv = document.getElementById(aiMsgId).querySelector('.prose');
+                currentAiMsgDiv.innerHTML = '';
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-
                     const chunk = decoder.decode(value, { stream: true });
                     const lines = chunk.split('\n\n');
 
                     for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const dataStr = line.slice(6);
-                            if (dataStr === '[DONE]') break;
-
-                            try {
-                                const data = JSON.parse(dataStr);
-                                
-                                if (data.type === 'content') {
-                                    aiContent += data.content;
-                                    currentAiMsgDiv.innerHTML = marked.parse(aiContent);
-                                    hljs.highlightAll();
-                                    scrollToBottom();
-                                } else if (data.type === 'thinking') {
-                                    // Show thinking status (optional)
-                                    // Could add a small status indicator
-                                } else if (data.type === 'citation') {
-                                    renderCitation(data);
-                                } else if (data.type === 'error') {
-                                    currentAiMsgDiv.innerHTML += `<br><span class="text-red-500 text-sm">[Error: ${data.content}]</span>`;
-                                }
-                            } catch (e) {
-                                console.error('Error parsing SSE data', e);
+                        if (!line.startsWith('data: ')) continue;
+                        const dataStr = line.slice(6);
+                        if (dataStr === '[DONE]') continue;
+                        try {
+                            const data = JSON.parse(dataStr);
+                            if (data.type === 'content') {
+                                aiContent += data.content || '';
+                                currentAiMsgDiv.innerHTML = marked.parse(aiContent);
+                                hljs.highlightAll();
+                                scrollToBottom();
+                            } else if (data.type === 'chart') {
+                                renderChartMessage(data.data || {});
+                            } else if (data.type === 'analysis_result') {
+                                const analysisMeta = getAnalysisDisplayMeta(data.analysis_type || ((data.data || {}).analysis_type) || 'analysis', (data.data || {}).result || {});
+                                currentAiMsgDiv.innerHTML = `<p>${escapeHtml(analysisMeta.chatLine)}</p>`;
+                                renderAnalysisResult(data);
+                            } else if (data.type === 'citation') {
+                                renderCitation(data);
+                            } else if (data.type === 'error') {
+                                currentAiMsgDiv.innerHTML += `<br><span class="text-red-500 text-sm">[Error: ${escapeHtml(data.content || 'Unknown error')}]</span>`;
                             }
+                        } catch (error) {
+                            console.error('Error parsing SSE data', error);
                         }
                     }
                 }
 
-                messageHistory.push({ role: 'assistant', content: aiContent });
-
+                await loadSessions();
+                renderSessionListSelection(currentSessionId);
+                await loadSkills();
             } catch (error) {
                 console.error('Fetch error:', error);
                 const currentAiMsgDiv = document.getElementById(aiMsgId).querySelector('.prose');
@@ -274,18 +752,287 @@
             }
         }
 
+        async function loadMemories() {
+            const response = await fetch('/api/ai/hermes/memories');
+            const payload = await response.json();
+            renderMemories((payload.data || {}));
+        }
+
+        async function saveMemory() {
+            const content = memoryInput.value.trim();
+            if (!content) return;
+            const response = await fetch('/api/ai/hermes/memories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    target: memoryTargetSelect.value,
+                    action: 'add',
+                    content
+                })
+            });
+            const payload = await response.json();
+            if (!response.ok || payload.code !== 0) {
+                alert(payload.msg || '写入记忆失败');
+                return;
+            }
+            memoryInput.value = '';
+            renderMemories({
+                ...await fetchHermesMemoriesData()
+            });
+        }
+
+        async function fetchHermesMemoriesData() {
+            const response = await fetch('/api/ai/hermes/memories');
+            const payload = await response.json();
+            return payload.data || {};
+        }
+
+        function renderMemories(data) {
+            const items = [
+                ...((data.memory || []).map(item => ({ target: 'memory', text: item }))),
+                ...((data.user || []).map(item => ({ target: 'user', text: item }))),
+            ];
+            if (!items.length) {
+                memoryListDiv.innerHTML = '<div class="text-xs text-gray-600">No memories yet.</div>';
+                return;
+            }
+            memoryListDiv.innerHTML = items.map(item => `
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-2 text-xs">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] uppercase tracking-wider text-gray-500">${escapeHtml(item.target)}</span>
+                        <button data-memory-delete="${encodeURIComponent(item.text)}" data-memory-target="${item.target}" class="text-[10px] text-red-400 hover:text-red-300">删除</button>
+                    </div>
+                    <div class="text-gray-300 whitespace-pre-wrap">${escapeHtml(item.text)}</div>
+                </div>
+            `).join('');
+            memoryListDiv.querySelectorAll('[data-memory-delete]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const response = await fetch('/api/ai/hermes/memories', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            target: btn.dataset.memoryTarget,
+                            action: 'remove',
+                            old_text: decodeURIComponent(btn.dataset.memoryDelete)
+                        })
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || payload.code !== 0) {
+                        alert(payload.msg || '删除记忆失败');
+                        return;
+                    }
+                    await loadMemories();
+                });
+            });
+        }
+
+        async function loadSkills() {
+            const response = await fetch('/api/ai/hermes/skills');
+            const payload = await response.json();
+            const skills = (((payload || {}).data || {}).skills || []);
+            renderSkills(skills);
+            renderSkillSelector(skills);
+        }
+
+        async function createSkill() {
+            const name = skillNameInput.value.trim();
+            const instructions = skillDescriptionInput.value.trim();
+            if (!name || !instructions) {
+                alert('请填写技能名称和说明');
+                return;
+            }
+            const response = await fetch('/api/ai/hermes/skills', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name,
+                    description: `${name} 的用户技能`,
+                    instructions,
+                    session_id: currentSessionId || ''
+                })
+            });
+            const payload = await response.json();
+            if (!response.ok || payload.code !== 0) {
+                alert(payload.msg || '创建技能失败');
+                return;
+            }
+            skillNameInput.value = '';
+            skillDescriptionInput.value = '';
+            await loadSkills();
+        }
+
+        async function createSuggestedSkill(suggestion, triggerButton = null) {
+            const name = String((suggestion || {}).name || (suggestion || {}).title || '').trim();
+            const instructions = String((suggestion || {}).instructions || '').trim();
+            if (!name || !instructions) {
+                alert('技能信息不完整，暂时无法保存');
+                return;
+            }
+            if (triggerButton) {
+                triggerButton.disabled = true;
+                triggerButton.textContent = '保存中...';
+            }
+            try {
+                const response = await fetch('/api/ai/hermes/skills', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        description: String((suggestion || {}).description || `${name} 的用户技能`).trim(),
+                        instructions,
+                        session_id: currentSessionId || ''
+                    })
+                });
+                const payload = await response.json();
+                if (!response.ok || payload.code !== 0) {
+                    throw new Error(payload.msg || '创建技能失败');
+                }
+                if (triggerButton) {
+                    triggerButton.textContent = '已保存';
+                }
+                renderInlineInsightCard({
+                    badge: '技能',
+                    title: `${name} 已保存`,
+                    summary: '下次遇到类似任务时，你可以直接复用这套流程。'
+                });
+                await loadSkills();
+            } catch (error) {
+                if (triggerButton) {
+                    triggerButton.disabled = false;
+                    triggerButton.textContent = '保存为技能';
+                }
+                alert(error.message || '创建技能失败');
+            }
+        }
+
+        function renderSkills(skills) {
+            if (!skills.length) {
+                skillListDiv.innerHTML = '<div class="text-xs text-gray-600">No skills yet.</div>';
+                return;
+            }
+            skillListDiv.innerHTML = skills.map(skill => `
+                <div class="bg-gray-900 border border-gray-800 rounded-lg p-2 text-xs">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="font-medium text-gray-200">${escapeHtml(skill.title || skill.name)}</div>
+                        <span class="${skill.enabled ? 'text-green-400' : 'text-gray-500'}">${skill.enabled ? '启用中' : '已禁用'}</span>
+                    </div>
+                    <div class="text-gray-500 mb-2">${escapeHtml(skill.description || '')}</div>
+                    <div class="flex items-center gap-2">
+                        <button data-skill-toggle="${escapeHtml(skill.name)}" data-enabled="${skill.enabled ? '1' : '0'}" class="px-2 py-1 rounded border border-gray-700 text-gray-300 hover:bg-gray-800">${skill.enabled ? '禁用' : '启用'}</button>
+                        <button data-skill-delete="${escapeHtml(skill.name)}" class="px-2 py-1 rounded border border-red-900 text-red-300 hover:bg-red-950">删除</button>
+                    </div>
+                </div>
+            `).join('');
+            skillListDiv.querySelectorAll('[data-skill-toggle]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const name = btn.dataset.skillToggle;
+                    const enabled = btn.dataset.enabled !== '1';
+                    const response = await fetch(`/api/ai/hermes/skills/${name}/status`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled })
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || payload.code !== 0) {
+                        alert(payload.msg || '更新技能状态失败');
+                        return;
+                    }
+                    await loadSkills();
+                });
+            });
+            skillListDiv.querySelectorAll('[data-skill-delete]').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const response = await fetch(`/api/ai/hermes/skills/${btn.dataset.skillDelete}`, {
+                        method: 'DELETE'
+                    });
+                    const payload = await response.json();
+                    if (!response.ok || payload.code !== 0) {
+                        alert(payload.msg || '删除技能失败');
+                        return;
+                    }
+                    await loadSkills();
+                });
+            });
+        }
+
+        function renderSkillSelector(skills) {
+            const enabledSkills = skills.filter(skill => skill.enabled);
+            const currentValue = currentContext.skill_name || '';
+            contextSkillSelect.innerHTML = `
+                <option value="">自动匹配技能</option>
+                ${enabledSkills.map(skill => `<option value="${escapeHtml(skill.name)}">${escapeHtml(skill.title || skill.name)}</option>`).join('')}
+            `;
+            contextSkillSelect.value = currentValue;
+        }
+
+        async function uploadAttachment() {
+            const file = attachmentInput.files && attachmentInput.files[0];
+            if (!file) return;
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const response = await fetch(`/api/ai/chat/sessions/${currentSessionId}/attachments`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const payload = await response.json();
+                if (!response.ok || payload.code !== 0) {
+                    throw new Error(payload.msg || '附件上传失败');
+                }
+                const attachment = (((payload || {}).data || {}).attachment || null);
+                const currentItems = Array.from(attachmentListDiv.querySelectorAll('[data-attachment-card]')).length;
+                if (attachment) {
+                    prependAttachment(attachment);
+                } else if (!currentItems) {
+                    await loadSession(currentSessionId);
+                }
+            } catch (error) {
+                console.error('Upload attachment failed', error);
+                alert(`附件上传失败: ${error.message || error}`);
+            } finally {
+                attachmentInput.value = '';
+            }
+        }
+
+        function renderHistoryMessages(messages) {
+            clearMessages();
+            clearCitations();
+            if (!messages.length) {
+                renderWelcome();
+                return;
+            }
+            messages.forEach(message => {
+                const structuredPayload = ((message || {}).structured_payload || {});
+                const isAnalysisSummary = (message || {}).message_type === 'analysis_summary' && structuredPayload.analysis_type;
+                const displayContent = isAnalysisSummary
+                    ? getAnalysisDisplayMeta(structuredPayload.analysis_type, structuredPayload.result || {}).chatLine
+                    : (message.content || '');
+                addMessage(message.role === 'user' ? 'user' : 'ai', displayContent);
+                const citations = (((message || {}).structured_payload || {}).citations || []);
+                citations.forEach(renderCitation);
+                const charts = (((message || {}).structured_payload || {}).charts || []);
+                charts.forEach(renderChartMessage);
+                if (isAnalysisSummary) {
+                    renderAnalysisResult({
+                        type: 'analysis_result',
+                        analysis_type: structuredPayload.analysis_type,
+                        data: structuredPayload
+                    });
+                }
+            });
+        }
+
         function addMessage(role, content, isLoading = false) {
-            const id = 'msg-' + Date.now();
+            const id = 'msg-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
             const div = document.createElement('div');
             div.id = id;
             div.className = 'flex flex-col space-y-2 fade-in';
-            
-            const avatar = role === 'user' 
-                ? '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xs">U</div>'
-                : '<div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-xs font-bold">AI</div>';
-            
+
+            const avatar = role === 'user'
+                ? '<div class="w-8 h-8 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs shadow-sm">U</div>'
+                : '<div class="w-8 h-8 rounded-full bg-white text-slate-900 border border-slate-200 flex items-center justify-center text-xs font-semibold shadow-sm">AI</div>';
+
             const name = role === 'user' ? 'User' : 'Market Intelligence';
-            
             let contentHtml = '';
             if (isLoading) {
                 contentHtml = `<div class="flex space-x-1 items-center h-6">
@@ -294,72 +1041,645 @@
                     <div class="w-2 h-2 bg-gray-500 rounded-full typing-dot"></div>
                 </div>`;
             } else {
-                contentHtml = role === 'user' ? `<p>${content}</p>` : marked.parse(content);
+                contentHtml = role === 'user' ? `<p>${escapeHtml(content)}</p>` : marked.parse(content || '');
             }
 
+            const proseClass = role === 'user' ? 'text-slate-50' : 'text-slate-700';
+            const cardClass = role === 'user' ? 'message-card message-card-user' : 'message-card message-card-ai';
+            const nameClass = role === 'user' ? 'text-slate-400' : 'text-slate-500';
             div.innerHTML = `
                 <div class="flex items-start space-x-3">
                     ${avatar}
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-medium text-gray-300 mb-1">${name}</div>
-                        <div class="prose prose-invert prose-sm max-w-none text-gray-200">
+                        <div class="text-sm font-medium ${nameClass} mb-1">${name}</div>
+                        <div class="prose prose-sm max-w-none ${proseClass} ${cardClass} px-5 py-4">
                             ${contentHtml}
                         </div>
                     </div>
                 </div>
             `;
-            
+
             messagesDiv.appendChild(div);
             scrollToBottom();
             return id;
         }
 
+        function clearCitations() {
+            const citationNodes = contextPanel.querySelectorAll('[data-citation-card]');
+            citationNodes.forEach(node => node.remove());
+            if (!document.getElementById('context-empty')) {
+                const emptyState = document.createElement('div');
+                emptyState.id = 'context-empty';
+                emptyState.className = 'text-center text-gray-600 mt-10 text-sm';
+                emptyState.innerHTML = 'No citations yet.<br>Ask a question to search knowledge base.';
+                contextPanel.appendChild(emptyState);
+            }
+        }
+
         function renderCitation(data) {
-            if (contextEmpty) contextEmpty.style.display = 'none';
-            
-            const card = document.createElement('div');
-            card.className = 'bg-gray-900 border border-gray-800 rounded-lg p-3 text-sm hover:border-blue-900 transition-colors animate-fade-in';
-            
+            const emptyState = document.getElementById('context-empty');
+            if (emptyState) {
+                emptyState.remove();
+            }
+
             if (data.tool === 'search_investment_products') {
-                // Product Card
-                const products = data.data;
-                products.forEach(p => {
-                    const pCard = document.createElement('div');
-                    pCard.className = 'mb-3 pb-3 border-b border-gray-800 last:border-0 last:mb-0 last:pb-0';
-                    pCard.innerHTML = `
+                (data.data || []).forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-900 border border-gray-800 rounded-lg p-3 text-sm hover:border-blue-900 transition-colors';
+                    card.dataset.citationCard = '1';
+                    card.innerHTML = `
                         <div class="flex justify-between items-center mb-1">
-                            <span class="font-bold text-blue-400">${p.symbol}</span>
-                            <span class="text-xs bg-gray-800 px-2 py-0.5 rounded text-gray-400">${(p.score || 0).toFixed(2)}</span>
+                            <span class="font-bold text-blue-400">${escapeHtml(p.symbol || '')}</span>
+                            <span class="text-xs bg-gray-800 px-2 py-0.5 rounded text-gray-400">${Number(p.score || 0).toFixed(2)}</span>
                         </div>
-                        <div class="font-medium text-gray-200 mb-1">${p.name || ''}</div>
-                        <div class="text-xs text-gray-500 line-clamp-3">${p.description}</div>
+                        <div class="font-medium text-gray-200 mb-1">${escapeHtml(p.name || '')}</div>
+                        <div class="text-xs text-gray-500">${escapeHtml(p.description || '')}</div>
                     `;
-                    contextPanel.prepend(pCard);
+                    contextPanel.prepend(card);
+                    renderInlineInsightCard({
+                        badge: '机会',
+                        title: `${p.name || ''} ${p.symbol ? `(${p.symbol})` : ''}`.trim() || '投资标的',
+                        summary: p.description || '已找到匹配的投资标的。',
+                        actions: p.symbol ? [
+                            `<a href="${buildTradeUrl(currentContext.market || 'a', p.symbol)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-amber">点击交易</a>`
+                        ] : []
+                    });
                 });
             } else if (data.tool === 'search_market_news') {
-                // News Card
-                const news = data.data;
-                news.forEach(n => {
-                    const nCard = document.createElement('div');
-                    nCard.className = 'mb-3 pb-3 border-b border-gray-800 last:border-0 last:mb-0 last:pb-0';
-                    nCard.innerHTML = `
+                (data.data || []).forEach(n => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-900 border border-gray-800 rounded-lg p-3 text-sm hover:border-blue-900 transition-colors';
+                    card.dataset.citationCard = '1';
+                    card.innerHTML = `
                         <div class="text-xs text-gray-500 mb-1 flex justify-between">
-                            <span>${n.source || 'News'}</span>
+                            <span>${escapeHtml(n.source || 'News')}</span>
                             <span>${n.time ? new Date(n.time).toLocaleDateString() : ''}</span>
                         </div>
-                        <div class="font-medium text-gray-200 hover:text-blue-400 cursor-pointer mb-1 leading-snug">
-                            <a href="#" class="no-underline">${n.title}</a>
+                        <div class="font-medium text-gray-200 mb-1 leading-snug">${escapeHtml(n.title || '')}</div>
+                        <div class="text-xs text-gray-500">${escapeHtml(n.content || '')}</div>
+                        <div class="mt-2 flex items-center gap-2">
+                            <button type="button" class="text-[10px] px-2 py-1 rounded border border-blue-900 text-blue-300 hover:bg-blue-950" data-news-chart="home">主页图形</button>
+                            <button type="button" class="text-[10px] px-2 py-1 rounded border border-emerald-900 text-emerald-300 hover:bg-emerald-950" data-news-chart="db">数据库图形</button>
                         </div>
-                        <div class="text-xs text-gray-500 line-clamp-3">${n.content}</div>
                     `;
-                    contextPanel.prepend(nCard);
+                    bindNewsChartButtons(card, n);
+                    contextPanel.prepend(card);
+                    renderInlineInsightCard({
+                        badge: '新闻',
+                        title: n.title || '市场新闻',
+                        summary: n.content || '',
+                        body: `<div class="flex items-center justify-between gap-3"><span>${escapeHtml(n.source || 'News')}</span><span>${n.time ? new Date(n.time).toLocaleDateString() : ''}</span></div>`,
+                        actions: [
+                            `<button type="button" class="action-chip action-chip-primary" data-inline-news-chart="home">看图形</button>`,
+                            `<button type="button" class="action-chip action-chip-amber" data-inline-news-trade>点击交易</button>`
+                        ]
+                    });
+                    const inlineCard = messagesDiv.lastElementChild;
+                    inlineCard?.querySelector('[data-inline-news-chart]')?.addEventListener('click', () => {
+                        const chart = buildContextChartPayload('home');
+                        if (!chart) return;
+                        chart.title = `${chart.code} 图形 - ${n.title || '相关新闻'}`;
+                        openChartViewer(chart, 'home');
+                    });
+                    inlineCard?.querySelector('[data-inline-news-trade]')?.addEventListener('click', () => {
+                        const market = currentContext.market || contextMarketInput.value.trim();
+                        const code = currentContext.code || contextCodeInput.value.trim();
+                        window.open(buildTradeUrl(market, code), '_blank', 'noopener,noreferrer');
+                    });
                 });
             }
+        }
+
+        function renderAttachments(attachments) {
+            if (!attachments.length) {
+                attachmentListDiv.innerHTML = '<div class="text-xs text-gray-600">No attachments yet.</div>';
+                return;
+            }
+            attachmentListDiv.innerHTML = '';
+            attachments.forEach(prependAttachment, false);
+        }
+
+        function prependAttachment(attachment) {
+            const empty = attachmentListDiv.querySelector('.text-gray-600');
+            if (empty && !attachmentListDiv.querySelector('[data-attachment-card]')) {
+                attachmentListDiv.innerHTML = '';
+            }
+            const card = document.createElement('div');
+            card.className = 'bg-gray-900 border border-gray-800 rounded-lg p-3 text-xs';
+            card.dataset.attachmentCard = attachment.id || '1';
+            card.innerHTML = `
+                <div class="flex justify-between items-center mb-1">
+                    <span class="font-medium text-gray-200 truncate pr-2">${escapeHtml(attachment.file_name || '')}</span>
+                    <span class="text-[10px] text-gray-500">${escapeHtml(attachment.file_type || '')}</span>
+                </div>
+                <div class="text-gray-500 mb-1">状态: ${escapeHtml(attachment.parse_status || 'stored')}</div>
+                <div class="text-gray-500 line-clamp-4">${escapeHtml(attachment.parsed_text_preview || '该文件已保存，会话回答时会作为附件证据一起带入。')}</div>
+            `;
+            attachmentListDiv.prepend(card);
+        }
+
+        function renderDbNewsItems(newsItems = []) {
+            newsItems.forEach(item => {
+                const metadata = item.metadata || {};
+                const title = metadata.title || item.title || '市场新闻';
+                const source = metadata.source || 'DB';
+                const publishedAt = metadata.published_at ? new Date(metadata.published_at).toLocaleString() : '';
+                const summary = item.document || metadata.title || '';
+                renderInlineInsightCard({
+                    badge: '新闻',
+                    title,
+                    summary,
+                    body: `<div class="flex items-center justify-between gap-3"><span>${escapeHtml(source)}</span><span>${escapeHtml(publishedAt)}</span></div>`,
+                    actions: [
+                        `<button type="button" class="action-chip action-chip-primary" data-db-news-chart>看图形</button>`,
+                        `<button type="button" class="action-chip action-chip-amber" data-db-news-trade>点击交易</button>`
+                    ]
+                });
+                const inlineCard = messagesDiv.lastElementChild;
+                inlineCard?.querySelector('[data-db-news-chart]')?.addEventListener('click', () => {
+                    const chart = buildContextChartPayload('home');
+                    if (!chart) return;
+                    chart.title = `${chart.code} 图形 - ${title}`;
+                    openChartViewer(chart, 'home');
+                });
+                inlineCard?.querySelector('[data-db-news-trade]')?.addEventListener('click', () => {
+                    const market = currentContext.market || contextMarketInput.value.trim();
+                    const code = currentContext.code || contextCodeInput.value.trim();
+                    window.open(buildTradeUrl(market, code), '_blank', 'noopener,noreferrer');
+                });
+            });
+        }
+
+        function renderDbReportItems(reportItems = []) {
+            reportItems.forEach(item => {
+                const title = item.title || '研究报告';
+                const preview = item.preview || '';
+                const createdAt = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+                const itemMarket = item.market || currentContext.market || contextMarketInput.value.trim();
+                const itemCode = item.code || currentContext.code || contextCodeInput.value.trim();
+                renderInlineInsightCard({
+                    badge: '研究',
+                    title,
+                    summary: preview,
+                    body: `<div class="flex items-center justify-between gap-3"><span>${escapeHtml(item.summary_type || 'market_analysis')}</span><span>${escapeHtml(createdAt)}</span></div>`,
+                    actions: [
+                        ...(item.summary_id ? [`<a href="/api/news/market_summary/${encodeURIComponent(item.summary_id)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-emerald">查看报告</a>`] : []),
+                        ...(itemMarket && itemCode ? [`<button type="button" class="action-chip action-chip-primary" data-db-report-chart>看图形</button>`] : []),
+                        ...(itemMarket && itemCode ? [`<a href="${buildTradeUrl(itemMarket, itemCode)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-amber">点击交易</a>`] : [])
+                    ]
+                });
+                const inlineCard = messagesDiv.lastElementChild;
+                inlineCard?.querySelector('[data-db-report-chart]')?.addEventListener('click', () => {
+                    const chart = buildChartPayloadFromContext({ market: itemMarket, code: itemCode, frequency: currentContext.frequency || '30m' }, 'home');
+                    if (chart) openChartViewer(chart, 'home');
+                });
+            });
+        }
+
+        function renderDrawdownInsight(result = {}, market = '', code = '') {
+            const drawdown = result.drawdown || {};
+            const maxDrawdown = Number(result.max_drawdown_pct || 0).toFixed(2);
+            const periodReturn = Number(result.period_return_pct || 0).toFixed(2);
+            const recoveryHours = drawdown.recovery_hours;
+            const recoveryText = recoveryHours !== null && recoveryHours !== undefined
+                ? `${Number(recoveryHours).toFixed(1)} 小时`
+                : '尚未完全修复前高';
+            renderInlineInsightCard({
+                badge: '回撤',
+                title: `${code || currentContext.code || '当前标的'} 风险复盘`,
+                summary: `最大回撤 ${maxDrawdown}% ，区间收益 ${periodReturn}%`,
+                body: `
+                    <div class="space-y-1">
+                        <div>峰值：${escapeHtml(drawdown.peak_dt || '--')} · ${escapeHtml(String(drawdown.peak_price ?? '--'))}</div>
+                        <div>低点：${escapeHtml(drawdown.trough_dt || '--')} · ${escapeHtml(String(drawdown.trough_price ?? '--'))}</div>
+                        <div>修复：${escapeHtml(recoveryText)}</div>
+                    </div>
+                `,
+                actions: [
+                    ...(market && code ? [`<button type="button" class="action-chip action-chip-primary" data-inline-drawdown-chart>查看图形</button>`] : []),
+                    ...(market && code ? [`<a href="${buildTradeUrl(market, code)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-amber">点击交易</a>`] : [])
+                ]
+            });
+            const inlineCard = messagesDiv.lastElementChild;
+            inlineCard?.querySelector('[data-inline-drawdown-chart]')?.addEventListener('click', () => {
+                const chart = buildChartPayloadFromContext({ market, code, frequency: currentContext.frequency || '30m' }, 'home');
+                if (chart) openChartViewer(chart, 'home');
+            });
+        }
+
+        function renderEventReviewInsight(result = {}, market = '', code = '') {
+            const events = Array.isArray(result.events) ? result.events : [];
+            const similarEvents = Array.isArray(result.similar_events) ? result.similar_events : [];
+            const templates = Array.isArray(result.event_trade_templates) ? result.event_trade_templates : [];
+            renderInlineInsightCard({
+                badge: '事件',
+                title: `${code || currentContext.code || '当前标的'} 历史事件图`,
+                summary: `${result.lookback_label || '最近一段时间'}内共整理 ${events.length} 个关键事件窗口${similarEvents.length ? `，并补充 ${similarEvents.length} 个相似样本` : ''}。`,
+                actions: [
+                    ...(market && code ? [`<button type="button" class="action-chip action-chip-primary" data-inline-event-chart>查看图形</button>`] : []),
+                    ...(result.summary_id ? [`<a href="/api/news/market_summary/${encodeURIComponent(result.summary_id)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-emerald">查看报告</a>`] : [])
+                ]
+            });
+            const summaryCard = messagesDiv.lastElementChild;
+            summaryCard?.querySelector('[data-inline-event-chart]')?.addEventListener('click', () => {
+                const chart = buildChartPayloadFromContext({ market, code, frequency: currentContext.frequency || '30m' }, 'db');
+                if (chart) openChartViewer(chart, 'db');
+            });
+            events.slice(0, 3).forEach(item => {
+                const eventTime = item.trigger_dt ? new Date(item.trigger_dt).toLocaleString() : '';
+                const newsTitles = Array.isArray(item.top_news_titles) ? item.top_news_titles.filter(Boolean).slice(0, 2).join(' · ') : '';
+                renderInlineInsightCard({
+                    badge: '事件窗口',
+                    title: item.storyline || '关键事件',
+                    summary: item.cause_summary || newsTitles || '已整理关键事件驱动与后续表现。',
+                    body: `<div class="flex items-center justify-between gap-3"><span>${escapeHtml(eventTime)}</span><span>${escapeHtml(item.direction || '')}</span></div>`
+                });
+            });
+            templates.slice(0, 2).forEach(item => {
+                const title = item.title || item.template_name || item.label || '事件交易模板';
+                const summary = item.summary || item.plan || item.description || item.execution_bias || '已生成可复用的事件交易模板。';
+                renderInlineInsightCard({
+                    badge: '模板',
+                    title,
+                    summary
+                });
+            });
+        }
+
+        function renderSkillSuggestionCard(skillSuggestion) {
+            if (!skillSuggestion || !skillSuggestion.name || !skillSuggestion.instructions) return;
+            renderInlineInsightCard({
+                badge: '技能',
+                title: skillSuggestion.title || skillSuggestion.name,
+                summary: skillSuggestion.reason || skillSuggestion.description || '可以把这套流程保存成技能，后续直接复用。',
+                actions: [
+                    `<button type="button" class="action-chip action-chip-emerald" data-save-skill-suggestion>保存为技能</button>`
+                ]
+            });
+            const inlineCard = messagesDiv.lastElementChild;
+            inlineCard?.querySelector('[data-save-skill-suggestion]')?.addEventListener('click', (event) => {
+                createSuggestedSkill(skillSuggestion, event.currentTarget);
+            });
+        }
+
+        function renderTradingBriefCard(tradingBrief = {}) {
+            const conclusion = String(tradingBrief.conclusion || '').trim();
+            const evidence = String(tradingBrief.evidence || '').trim();
+            const risk = String(tradingBrief.risk || '').trim();
+            const action = String(tradingBrief.action || '').trim();
+            if (!conclusion && !evidence && !risk && !action) return;
+            renderInlineInsightCard({
+                badge: '摘要',
+                title: '交易助手摘要',
+                body: `
+                    <div class="space-y-3 text-sm text-slate-700">
+                        ${conclusion ? `<div><div class="text-[11px] uppercase tracking-[0.22em] text-slate-400 mb-1">结论</div><div>${escapeHtml(conclusion)}</div></div>` : ''}
+                        ${evidence ? `<div><div class="text-[11px] uppercase tracking-[0.22em] text-slate-400 mb-1">证据</div><div>${escapeHtml(evidence)}</div></div>` : ''}
+                        ${risk ? `<div><div class="text-[11px] uppercase tracking-[0.22em] text-slate-400 mb-1">风险</div><div>${escapeHtml(risk)}</div></div>` : ''}
+                        ${action ? `<div><div class="text-[11px] uppercase tracking-[0.22em] text-slate-400 mb-1">动作</div><div>${escapeHtml(action)}</div></div>` : ''}
+                    </div>
+                `
+            });
+        }
+
+        function getAnalysisDisplayMeta(analysisType, result = {}) {
+            const newsCount = Array.isArray(result.news_items) ? result.news_items.length : 0;
+            const reportCount = Array.isArray(result.report_items) ? result.report_items.length : 0;
+            const existingReportCount = Array.isArray(result.existing_reports) ? result.existing_reports.length : 0;
+            const metaMap = {
+                market_data_view: {
+                    badge: '图形',
+                    title: '价格图已准备好',
+                    summary: '你可以直接查看图形，或继续追问走势和交易想法。',
+                    chatLine: '价格图已准备好。'
+                },
+                historical_analysis: {
+                    badge: '复盘',
+                    title: '历史回顾已整理',
+                    summary: '关键时间点和结论已为你整理好。',
+                    chatLine: '历史回顾已整理好。'
+                },
+                drawdown_analysis: {
+                    badge: '回撤',
+                    title: '回撤分析已整理',
+                    summary: '关键回撤区间、修复节奏和风险点已放在下面。',
+                    chatLine: '回撤分析已整理好。'
+                },
+                event_chart_review: {
+                    badge: '事件',
+                    title: '历史事件图已整理',
+                    summary: '关键事件窗口、相似样本和交易模板已放在下面。',
+                    chatLine: '历史事件图已整理好。'
+                },
+                theme_simulation: {
+                    badge: '研究',
+                    title: '市场观点已整理',
+                    summary: existingReportCount ? '新的观点和已有研究我都放在下面了。' : '核心观点已经为你整理好。',
+                    chatLine: '市场观点已整理好。'
+                },
+                db_latest_news: {
+                    badge: '新闻',
+                    title: '最新重点新闻',
+                    summary: newsCount ? '下面是值得先看的几条。' : '暂时没有更相关的重点新闻。',
+                    chatLine: newsCount ? '最新重点新闻已整理好。' : '暂时没有更相关的重点新闻。'
+                },
+                db_report_lookup: {
+                    badge: '研究',
+                    title: '相关研究',
+                    summary: reportCount ? '我把相关研究放在下面了。' : '暂时没有找到更相关的研究。',
+                    chatLine: reportCount ? '相关研究已整理好。' : '暂时没有找到更相关的研究。'
+                },
+                skill_create: {
+                    badge: '技能',
+                    title: '技能已创建',
+                    summary: '你可以继续在这个会话里直接使用它。',
+                    chatLine: '技能已创建。'
+                },
+                analysis: {
+                    badge: '结果',
+                    title: '分析已完成',
+                    summary: '结果已经准备好。',
+                    chatLine: '分析已完成。'
+                }
+            };
+            return metaMap[analysisType] || metaMap.analysis;
+        }
+
+        function renderAnalysisResult(event) {
+            const payload = (event && event.data) || {};
+            const analysisType = event.analysis_type || payload.analysis_type || 'analysis';
+            const market = payload.current_market || currentContext.market || contextMarketInput.value.trim();
+            const code = payload.current_code || currentContext.code || contextCodeInput.value.trim();
+            const result = payload.result || {};
+            const skillSuggestion = payload.skill_suggestion || null;
+            const tradingBrief = payload.trading_brief || null;
+            const analysisMeta = getAnalysisDisplayMeta(analysisType, result);
+            const card = document.createElement('div');
+            card.className = 'apple-panel rounded-[22px] p-3 text-sm';
+            card.dataset.citationCard = '1';
+            card.innerHTML = `
+                <div class="text-xs text-slate-400 uppercase tracking-wider mb-1">${escapeHtml(analysisMeta.badge)}</div>
+                <div class="text-sm text-slate-800">${escapeHtml(analysisMeta.title)}</div>
+            `;
+            contextPanel.prepend(card);
+            const emptyState = document.getElementById('context-empty');
+            if (emptyState) emptyState.remove();
+            renderInlineInsightCard({
+                badge: analysisMeta.badge,
+                title: analysisMeta.title,
+                summary: analysisMeta.summary,
+                actions: [
+                    ...(market && code ? [`<a href="${buildTradeUrl(market, code)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-amber">点击交易</a>`] : []),
+                    ...(market && code ? [`<button type="button" class="action-chip action-chip-primary" data-inline-analysis-chart>查看图形</button>`] : [])
+                ]
+            });
+            const inlineCard = messagesDiv.lastElementChild;
+            inlineCard?.querySelector('[data-inline-analysis-chart]')?.addEventListener('click', () => {
+                const chart = buildChartPayloadFromContext({ market, code, frequency: currentContext.frequency || '30m' }, 'home');
+                if (chart) openChartViewer(chart, 'home');
+            });
+            if (analysisType === 'db_latest_news' && Array.isArray(result.news_items)) {
+                renderDbNewsItems(result.news_items);
+            }
+            if (analysisType === 'drawdown_analysis') {
+                renderDrawdownInsight(result, market, code);
+            }
+            if (analysisType === 'event_chart_review') {
+                renderEventReviewInsight(result, market, code);
+            }
+            if (Array.isArray(result.report_items)) {
+                renderDbReportItems(result.report_items);
+            }
+            if (analysisType === 'theme_simulation' && Array.isArray(result.existing_reports)) {
+                renderDbReportItems(result.existing_reports);
+            }
+            if (tradingBrief) {
+                renderTradingBriefCard(tradingBrief);
+            }
+            if (skillSuggestion) {
+                renderSkillSuggestionCard(skillSuggestion);
+            }
+        }
+
+        function renderChartMessage(chart) {
+            if (!chart || !chart.code || !chart.market) return;
+            const chartId = `chart-${chart.market}-${chart.code}-${chart.frequency || '30m'}`;
+            if (document.getElementById(chartId)) return;
+            const inlineUrl = chart.homepage_url || chart.db_chart_url || '';
+            const wrapper = document.createElement('div');
+            wrapper.id = chartId;
+            wrapper.className = 'flex flex-col space-y-2 fade-in';
+            wrapper.innerHTML = `
+                <div class="flex items-start space-x-3">
+                    <div class="w-8 h-8 rounded-full bg-white text-slate-900 border border-slate-200 flex items-center justify-center text-xs font-semibold shadow-sm">CH</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[15px] font-semibold tracking-tight text-slate-900 mb-2">${escapeHtml(chart.title || `${chart.code} 图形`)}</div>
+                        <div class="chart-surface">
+                            <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b apple-divider text-xs chart-meta">
+                                <div>${escapeHtml(chart.market)} / ${escapeHtml(chart.code)} / ${escapeHtml(chart.frequency || '')}</div>
+                                <div class="flex items-center gap-3">
+                                    <button type="button" class="action-chip action-chip-secondary" data-chart-open="home">主页图形</button>
+                                    <button type="button" class="action-chip action-chip-emerald" data-chart-open="db">数据库图形</button>
+                                    <button type="button" class="action-chip action-chip-primary" data-chart-open="preferred">放大查看</button>
+                                    <a href="${buildTradeUrl(chart.market, chart.code)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-rose">点击交易</a>
+                                </div>
+                            </div>
+                            <div class="relative bg-white/90" style="height:420px;">
+                                <div class="absolute inset-0 flex items-center justify-center text-xs text-slate-400 bg-white/90" data-chart-loading>
+                                    ${chart.optimistic ? '正在预加载 chanlun 主页图表...' : '正在加载 chanlun 主页图表...'}
+                                </div>
+                                <iframe
+                                    src="${escapeHtml(inlineUrl)}"
+                                    class="w-full opacity-0 transition-opacity duration-200"
+                                    style="height:420px;border:0;background:#fff;"
+                                    loading="eager"
+                                    referrerpolicy="strict-origin-when-cross-origin"
+                                ></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            const iframe = wrapper.querySelector('iframe');
+            const loading = wrapper.querySelector('[data-chart-loading]');
+            if (iframe) {
+                iframe.addEventListener('load', () => {
+                    iframe.classList.remove('opacity-0');
+                    if (loading) loading.remove();
+                });
+                iframe.addEventListener('error', () => {
+                    if (loading) {
+                        loading.textContent = '主页图表加载失败，可点击上方按钮重试查看';
+                    }
+                    iframe.classList.remove('opacity-0');
+                });
+            }
+            wrapper.querySelectorAll('[data-chart-open]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const source = btn.dataset.chartOpen === 'preferred'
+                        ? (chart.preferred_source === 'db' ? 'db' : 'home')
+                        : btn.dataset.chartOpen;
+                    openChartViewer(chart, source);
+                });
+            });
+            messagesDiv.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function shouldRenderInlinePriceChart(text, context) {
+            if (!context || !context.market || !context.code) return false;
+            const normalized = String(text || '').toLowerCase();
+            if (!normalized) return false;
+            const directKeywords = ['价格图', '图表', '走势图', '价格走势', 'k线', 'k線', 'chart', 'price chart'];
+            if (directKeywords.some(keyword => normalized.includes(keyword.toLowerCase()))) return true;
+            return normalized.includes('价格') && normalized.includes('图');
+        }
+
+        function renderOptimisticInlineChart(text, context) {
+            if (!shouldRenderInlinePriceChart(text, context)) return;
+            const chart = buildChartPayloadFromContext(context, 'home');
+            if (!chart) return;
+            chart.optimistic = true;
+            renderChartMessage(chart);
+        }
+
+        function shouldRenderTradeCard(text, context) {
+            if (!context || !context.market || !context.code) return false;
+            const normalized = String(text || '').toLowerCase();
+            return ['交易', '下单', 'buy', 'sell', 'trade'].some(keyword => normalized.includes(keyword));
+        }
+
+        function renderOptimisticTradeCard(text, context) {
+            if (!shouldRenderTradeCard(text, context)) return;
+            renderInlineInsightCard({
+                badge: '交易',
+                title: `${context.code} 交易入口已准备`,
+                summary: '已识别你的交易意图。点击后进入 chanlun 主页并继续查看图形与交易决策。',
+                actions: [
+                    `<a href="${buildTradeUrl(context.market, context.code)}" target="_blank" rel="noopener noreferrer" class="action-chip action-chip-amber">点击交易</a>`
+                ]
+            });
+        }
+
+        function inferContextFromMessage(text, context = {}) {
+            const resolved = { ...(context || {}) };
+            const content = String(text || '').trim();
+            if (!content) return resolved;
+
+            const explicitMatch = content.match(/\b(a|hk|us|fx|futures|ny_futures|currency|currency_spot)\s*[:：]\s*([a-zA-Z0-9._-]+)/i);
+            if (explicitMatch) {
+                resolved.market = explicitMatch[1].toLowerCase();
+                resolved.code = explicitMatch[2].toUpperCase();
+                return resolved;
+            }
+
+            const compact = content.replace(/\s+/g, '');
+            const slashFxMatch = compact.match(/\b([A-Za-z]{3})\/([A-Za-z]{3})\b/);
+            if (slashFxMatch) {
+                resolved.market = 'fx';
+                resolved.code = `${slashFxMatch[1]}${slashFxMatch[2]}`.toUpperCase();
+                return resolved;
+            }
+
+            const currencyCodes = new Set(['AUD', 'USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'NZD', 'CNH', 'CNY', 'HKD', 'SGD']);
+            const fxPairMatch = content.toUpperCase().match(/\b([A-Z]{6})\b/);
+            if (fxPairMatch) {
+                const pair = fxPairMatch[1];
+                if (currencyCodes.has(pair.slice(0, 3)) && currencyCodes.has(pair.slice(3))) {
+                    resolved.market = 'fx';
+                    resolved.code = pair;
+                    return resolved;
+                }
+            }
+
+            const aShareMatch = content.match(/\b(?:SH|SZ)?\.?(\d{6})\b/i);
+            if (aShareMatch) {
+                resolved.market = 'a';
+                resolved.code = aShareMatch[1];
+            }
+
+            return resolved;
+        }
+
+        function syncContextInputs() {
+            contextMarketInput.value = currentContext.market || '';
+            contextCodeInput.value = currentContext.code || '';
+            contextThemeInput.value = currentContext.theme || '';
+            contextSkillSelect.value = currentContext.skill_name || '';
+            contextFrequencySelect.value = currentContext.frequency || '30m';
+        }
+
+        function buildChartPayloadFromContext(context, source = 'home') {
+            const market = String((context || {}).market || '').trim();
+            const code = String((context || {}).code || '').trim();
+            const frequency = String((context || {}).frequency || '30m').trim() || '30m';
+            if (!market || !code) return null;
+            return {
+                title: `${code} 价格图形`,
+                market,
+                code,
+                frequency,
+                homepage_url: `/?market=${encodeURIComponent(market)}&code=${encodeURIComponent(code)}&embedded=1`,
+                db_chart_url: `/chart?market=${encodeURIComponent(market)}&code=${encodeURIComponent(code)}&frequency=${encodeURIComponent(frequency)}`,
+                preferred_source: source === 'db' ? 'db' : 'home'
+            };
+        }
+
+        function buildContextChartPayload(source = 'home') {
+            return buildChartPayloadFromContext({
+                market: contextMarketInput.value.trim(),
+                code: contextCodeInput.value.trim(),
+                frequency: contextFrequencySelect.value || '30m'
+            }, source);
+        }
+
+        function bindNewsChartButtons(card, news) {
+            card.querySelectorAll('[data-news-chart]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const chart = buildContextChartPayload(btn.dataset.newsChart || 'db');
+                    if (!chart) {
+                        alert('请先在上方填写市场和标的，再查看对应图形');
+                        return;
+                    }
+                    chart.title = `${chart.code} 图形 - ${news.title || '相关资讯'}`;
+                    openChartViewer(chart, btn.dataset.newsChart || 'db');
+                });
+            });
+        }
+
+        function openChartViewer(chart, source = 'home') {
+            if (!chart) return;
+            currentChartViewerPayload = chart;
+            const url = source === 'db' ? chart.db_chart_url : chart.homepage_url;
+            chartViewerTitle.textContent = chart.title || `${chart.code} 价格图形`;
+            chartViewerMeta.textContent = `${chart.market || ''} / ${chart.code || ''} / ${chart.frequency || ''}`;
+            chartViewerFrame.src = url || '';
+            chartViewerModal.classList.remove('hidden');
+        }
+
+        function closeChartViewer() {
+            chartViewerModal.classList.add('hidden');
+            chartViewerFrame.src = 'about:blank';
+            currentChartViewerPayload = null;
+        }
+
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         function scrollToBottom() {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
+
+        bootstrapChat().catch(error => {
+            console.error('Bootstrap chat failed', error);
+            renderWelcome();
+        });
     </script>
 </body>
 </html>

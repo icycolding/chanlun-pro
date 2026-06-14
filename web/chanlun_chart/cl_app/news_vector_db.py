@@ -21,6 +21,12 @@ import logging
 from zoneinfo import ZoneInfo
 import pytz
 
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+try:
+    from .asset_news_mapping import infer_news_asset_links
+except ImportError:
+    from asset_news_mapping import infer_news_asset_links
+
 try:
     import chromadb
 except ImportError:
@@ -49,6 +55,10 @@ except ImportError:
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+_DEFAULT_DB_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "chroma_db")
+)
 
 
 class NewsVectorDB:
@@ -81,13 +91,7 @@ class NewsVectorDB:
             db_path: 数据库存储路径. 如果为 None, 将使用默认路径 (相对于本文件的 `../chroma_db`).
             model_name: 嵌入模型名称
         """
-        if db_path is None:
-            # 默认数据库路径，相对于此文件的位置
-            module_dir = os.path.dirname(os.path.abspath(__file__))
-            # 数据库位于 cl_app 目录的上一级的 chroma_db 目录
-            self.db_path = os.path.normpath(os.path.join(module_dir, '..', 'chroma_db'))
-        else:
-            self.db_path = db_path
+        self.db_path = os.path.abspath(db_path or _DEFAULT_DB_PATH)
             
         self.model_name = model_name
         self.client = None
@@ -96,12 +100,57 @@ class NewsVectorDB:
         
         # 确保数据库目录存在
         os.makedirs(self.db_path, exist_ok=True)
-        
-        # 初始化数据库连接 #重新加载数据库
-        # self._init_database()
-        
-        # 初始化嵌入模型
-        # self._init_embedding_model()
+
+    def ensure_initialized(self) -> bool:
+        """确保向量数据库已完成初始化。"""
+        if self.collection is not None:
+            return True
+
+        try:
+            self._init_database()
+            if self.collection is None:
+                logger.error("向量数据库集合初始化失败")
+                return False
+            if self.embedding_model is None:
+                self._init_embedding_model()
+            return True
+        except Exception as e:
+            logger.error(f"确保向量数据库初始化失败: {str(e)}")
+            return False
+
+    def is_ready(self) -> bool:
+        """检查向量数据库是否可用。"""
+        return self.ensure_initialized()
+
+    def _split_text_fallback(
+        self,
+        text: str,
+        chunk_size: int = 512,
+        chunk_overlap: int = 50,
+    ) -> List[str]:
+        """在 LangChain 不可用时使用简单切块，保证可写入向量库。"""
+        if not text:
+            return []
+
+        normalized_text = " ".join(text.split())
+        if not normalized_text:
+            return []
+
+        chunks = []
+        step = max(1, chunk_size - chunk_overlap)
+        start = 0
+        text_len = len(normalized_text)
+
+        while start < text_len:
+            end = min(text_len, start + chunk_size)
+            chunk = normalized_text[start:end].strip()
+            if chunk:
+                chunks.append(chunk)
+            if end >= text_len:
+                break
+            start += step
+
+        return chunks
     
     def _init_database(self):
         """初始化 Chroma 数据库连接"""
@@ -217,7 +266,8 @@ class NewsVectorDB:
         # 如果自定义模型失败，返回 None，让 ChromaDB 使用默认嵌入函数
         return None
     
-    def _normalize_datetime(self, dt_input) -> str:
+    @staticmethod
+    def normalize_datetime(dt_input) -> str:
         """统一处理时间格式，确保返回中国时区的ISO格式字符串"""
         try:
             # 中国时区
@@ -277,6 +327,9 @@ class NewsVectorDB:
             logger.error(f"时间格式化失败: {str(e)}，使用当前中国时间")
             china_tz = pytz.timezone('Asia/Shanghai')
             return datetime.datetime.now(china_tz).isoformat()
+
+    def _normalize_datetime(self, dt_input) -> str:
+        return self.normalize_datetime(dt_input)
     
     def add_news(self, news_data: Dict[str, Any]) -> bool:
         """
@@ -289,7 +342,7 @@ class NewsVectorDB:
         Returns:
             bool: 是否添加成功
         """
-        if self.collection is None:
+        if not self.ensure_initialized():
             logger.error("向量数据库未初始化")
             return False
         
@@ -313,15 +366,15 @@ class NewsVectorDB:
             full_text = f"标题: {news_data['title']}\n\n内容: {news_data['body']}"
             
             if RecursiveCharacterTextSplitter is None:
-                logger.error("关键组件 LangChain 未安装，无法执行新闻添加。")
-                return False # 直接失败，而不是回退，以保证数据一致性
-            
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=512,
-                chunk_overlap=50,
-                separators=["\n\n", "\n", "。", "！", "？", "，", " "]
-            )
-            chunks = text_splitter.split_text(full_text)
+                logger.warning("LangChain 未安装，使用内置切块逻辑写入向量数据库")
+                chunks = self._split_text_fallback(full_text)
+            else:
+                text_splitter = RecursiveCharacterTextSplitter(
+                    chunk_size=512,
+                    chunk_overlap=50,
+                    separators=["\n\n", "\n", "。", "！", "？", "，", " "]
+                )
+                chunks = text_splitter.split_text(full_text)
             
             if not chunks:
                 logger.warning(f"文本切分后没有产生任何块，跳过新闻: {news_data['title'][:50]}...")
@@ -333,6 +386,12 @@ class NewsVectorDB:
             # 这是最关键的一步：提取出高质量的、可用于过滤的关键词列表
             keywords_list = self._extract_keywords(full_text)
             market_relevance = self._calculate_market_relevance(full_text, keywords_list)
+            asset_links = infer_news_asset_links(
+                title=news_data.get("title", ""),
+                body=news_data.get("body", ""),
+                product_info=news_data.get("product_info"),
+                product_code=news_data.get("product_code"),
+            )
             # keywords_list to str
             keywords_list = ','.join(keywords_list)
             # 准备批量添加的数据
@@ -377,7 +436,10 @@ class NewsVectorDB:
                     "content_hash": content_hash,
                     "created_at": datetime.datetime.now(china_tz).isoformat(),
                     # --- 【核心修复】将关键词作为列表添加到元数据中 ---
-                    "keywords": keywords_list
+                    "keywords": keywords_list,
+                    "direct_assets": ",".join(asset_links.get("direct_assets", [])),
+                    "driver_assets": ",".join(asset_links.get("driver_assets", [])),
+                    "matched_terms": ",".join(asset_links.get("matched_terms", [])),
                 }
                 metadatas_to_add.append(metadata)
 
@@ -423,7 +485,7 @@ class NewsVectorDB:
         Returns:
             List[Dict]: 搜索结果列表
         """
-        if self.collection is None:
+        if not self.ensure_initialized():
             logger.error("向量数据库未初始化")
             return []
         
@@ -439,7 +501,6 @@ class NewsVectorDB:
         
         try:
             # 1. 构建混合过滤器
-            keywords = ''
             where_filter, where_document_filter = self._build_hybrid_filter(keywords, start_date, end_date, filters)
             
             # 2. 执行一次高效的数据库查询
@@ -450,22 +511,21 @@ class NewsVectorDB:
             # 确保查询结果数量至少为1
             final_n_results = max(1, min(query_n_results, collection_count))
             
-            logger.info(f"执行混合搜索: 查询='{query}...', where={where_filter}, where_document={where_document_filter}, collection_count={collection_count}, final_n_results={final_n_results}")
+            # logger.info(f"执行混合搜索: 查询='{query}...', where={where_filter}, where_document={where_document_filter}, collection_count={collection_count}, final_n_results={final_n_results}")
             
             # 如果集合为空，直接返回空结果
             if collection_count == 0:
                 logger.info("向量数据库为空，返回空结果")
                 return []
-            print('query-ff:',query)
             results = self.collection.query(
-                query_texts=query,
+                query_texts=[query],
                 n_results=final_n_results,
                 where=where_filter,
                 where_document=where_document_filter
             )
             
             if not results or not results['ids'] or not results['ids'][0]:
-                logger.info(f"在过滤条件下未找到匹配结果: 查询='{query}'")
+                # logger.info(f"在 。过滤条件下未找到匹配结果: 查询='{query}'")
                 return []
             
             # 3. 格式化和合并
@@ -941,7 +1001,7 @@ class NewsVectorDB:
         Returns:
             Dict: 情感分析统计结果
         """
-        if self.collection is None:
+        if not self.ensure_initialized():
             return {}
         
         try:
@@ -1073,7 +1133,7 @@ class NewsVectorDB:
         Returns:
             List[Dict]: 新闻列表，每个新闻包含document和metadata字段
         """
-        if self.collection is None:
+        if not self.ensure_initialized():
             logger.error("向量数据库未初始化")
             return []
         
@@ -1156,7 +1216,7 @@ class NewsVectorDB:
 # 全局向量数据库实例
 _vector_db_instance = None
 
-def get_vector_db(db_path: str = "/Users/jiming/Documents/trae/chanlun-pro/web/chanlun_chart/chroma_db") -> NewsVectorDB:
+def get_vector_db(db_path: str = _DEFAULT_DB_PATH) -> NewsVectorDB:
     """
     获取向量数据库单例实例
     
@@ -1167,6 +1227,12 @@ def get_vector_db(db_path: str = "/Users/jiming/Documents/trae/chanlun-pro/web/c
         NewsVectorDB: 向量数据库实例
     """
     global _vector_db_instance
-    if _vector_db_instance is None:
-        _vector_db_instance = NewsVectorDB(db_path=db_path)
+    normalized_path = os.path.abspath(db_path or _DEFAULT_DB_PATH)
+    if (
+        _vector_db_instance is None
+        or os.path.abspath(_vector_db_instance.db_path) != normalized_path
+    ):
+        _vector_db_instance = NewsVectorDB(db_path=normalized_path)
+    else:
+        _vector_db_instance.ensure_initialized()
     return _vector_db_instance
