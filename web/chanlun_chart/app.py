@@ -81,7 +81,7 @@ if __name__ == "__main__":
         app = runtime["create_app"]()
 
         # 支持通过参数或环境变量自定义端口
-        port = 8801
+        port = 9900
         nobrowser = False
         try:
             env_port = runtime["os"].getenv("WEB_PORT")
