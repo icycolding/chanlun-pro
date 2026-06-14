@@ -3,6 +3,10 @@ redis
 prettytable
 pymysql
 chardet
+pytz
+tzlocal
+numpy==1.26.4
+pandas==2.1.0
 
 pyecharts==2.0.8
 dbutils
@@ -34,6 +38,8 @@ tqsdk
 openai
 playwright
 pypdf>=4.0.0
+pytdx
+ta-lib
 
 pyfolio-reloaded
 dtaidistance
