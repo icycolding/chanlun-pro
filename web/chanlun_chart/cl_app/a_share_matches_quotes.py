@@ -70,6 +70,41 @@ def normalize_hk_code(code: str) -> str:
     return normalized
 
 
+def build_chart_url(market: str, code: str) -> str:
+    normalized_market = str(market or "").strip().lower()
+    normalized_code = str(code or "").strip()
+    if not normalized_market or not normalized_code:
+        return ""
+    return (
+        f"/?market={normalized_market}&code={normalized_code}&embedded=1"
+        "&lite_chart=1&default_interval=1D&load_last_chart=0"
+    )
+
+
+def infer_project_chart_target(
+    symbol: str, exchange: str, market_text: str, company_name: str = ""
+) -> Dict[str, str]:
+    target = infer_project_quote_target(symbol, exchange, market_text, company_name)
+    if not target:
+        return {
+            "market": "",
+            "code": "",
+            "unavailable_reason": "当前未支持该市场的缠论图，请先在主图页手动切换到可支持市场。",
+        }
+
+    chart_market = str(target.get("market") or "").strip().lower()
+    chart_code = str(target.get("code") or "").strip().upper()
+    if chart_market == "a":
+        chart_code = normalize_a_share_code(chart_code).split(".")[-1]
+    elif chart_market == "hk":
+        chart_code = normalize_hk_code(chart_code)
+
+    return {
+        "market": chart_market,
+        "code": chart_code,
+    }
+
+
 def infer_project_quote_target(
     symbol: str, exchange: str, market_text: str, company_name: str = ""
 ) -> Optional[Dict[str, str]]:

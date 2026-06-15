@@ -163,6 +163,33 @@ class ChartManager {
     this.udf_datafeed = null;
     this.chart = null;
     this.debouncedDrawChanlun = debounce(() => this.draw_chanlun(), 1000);
+    this.urlParams = new URLSearchParams(window.location.search);
+    this.isLiteChart = this.readLiteChartFlag();
+    this.defaultInterval =
+      this.urlParams.get("default_interval") || "1D";
+    this.loadLastChart = this.isLiteChart
+      ? false
+      : this.readLoadLastChartFlag();
+  }
+
+  readLiteChartFlag() {
+    const value = (this.urlParams.get("lite_chart") || "").trim().toLowerCase();
+    return ["1", "true", "yes", "on"].includes(value);
+  }
+
+  readLoadLastChartFlag() {
+    const value = (this.urlParams.get("load_last_chart") || "").trim().toLowerCase();
+    if (["0", "false", "no", "off"].includes(value)) {
+      return false;
+    }
+    return true;
+  }
+
+  getInitialInterval() {
+    if (this.isLiteChart) {
+      return this.defaultInterval;
+    }
+    return Utils.get_local_data(Utils.get_market() + "_interval_" + this.id);
   }
 
   // 初始化图表
@@ -174,9 +201,7 @@ class ChartManager {
       fullscreen: false,
       container: "tv_chart_container_" + this.id,
       symbol: Utils.get_market() + ":" + Utils.get_code(),
-      interval: Utils.get_local_data(
-        Utils.get_market() + "_interval_" + this.id
-      ),
+      interval: this.getInitialInterval(),
       datafeed: this.udf_datafeed,
       library_path: "static/charting_library/",
       theme: Utils.get_local_data("theme"),
@@ -198,7 +223,7 @@ class ChartManager {
       charts_storage_api_version: "1.1",
       client_id: "chanlun_pro_" + Utils.get_market() + "_" + this.id,
       user_id: "999",
-      load_last_chart: true,
+      load_last_chart: this.loadLastChart,
       custom_indicators_getter: this.getCustomIndicators,
     });
 
@@ -336,7 +361,9 @@ class ChartManager {
     const market = Utils.get_market();
     if (!market) return;
 
-    Utils.set_local_data(`${market}_interval_${this.id}`, interval);
+    if (!this.isLiteChart) {
+      Utils.set_local_data(`${market}_interval_${this.id}`, interval);
+    }
     console.log(`${this.id} 周期变化: ${interval}`);
 
     this.clear_draw_chanlun();

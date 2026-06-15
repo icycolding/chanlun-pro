@@ -10,8 +10,10 @@ sys.path.insert(0, str(PROJECT_ROOT / "web" / "chanlun_chart"))
 from chanlun.exchange.exchange import Tick
 
 from cl_app.a_share_matches_quotes import (
+    build_chart_url,
     build_tick_snapshot,
     fetch_tick_snapshots,
+    infer_project_chart_target,
     infer_project_quote_target,
     normalize_a_share_code,
     normalize_market_codes,
@@ -98,6 +100,40 @@ def test_infer_project_quote_target_returns_none_for_unsupported_market():
     assert infer_project_quote_target("LPK", "XETR", "Europe") is None
     assert infer_project_quote_target("SPCX", "Private", "US") is None
     assert infer_project_quote_target("VNP", "TSX", "Canada") is None
+
+
+def test_infer_project_chart_target_supports_a_hk_us_and_alias_cases():
+    assert infer_project_chart_target("SZ.300394", "SZSE", "China") == {
+        "market": "a",
+        "code": "300394",
+    }
+    assert infer_project_chart_target("00700", "HKG", "HK") == {
+        "market": "hk",
+        "code": "KH.00700",
+    }
+    assert infer_project_chart_target("LITE", "NASDAQ", "US") == {
+        "market": "us",
+        "code": "LITE",
+    }
+    assert infer_project_chart_target("SIVE", "OMXSTO", "Sweden/US", "Sivers Semiconductors AB") == {
+        "market": "us",
+        "code": "SIVEF",
+    }
+
+
+def test_infer_project_chart_target_returns_reason_for_unsupported_market():
+    assert infer_project_chart_target("LPK", "XETR", "Europe") == {
+        "market": "",
+        "code": "",
+        "unavailable_reason": "当前未支持该市场的缠论图，请先在主图页手动切换到可支持市场。",
+    }
+
+
+def test_build_chart_url_uses_lite_chart_mode_for_embedded_cards():
+    assert build_chart_url("a", "688498") == (
+        "/?market=a&code=688498&embedded=1&lite_chart=1"
+        "&default_interval=1D&load_last_chart=0"
+    )
 
 
 class _FakeExchange:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .a_share_matches_quotes import build_chart_url
 from .a_share_matches_tweet_notes import get_project_tweet_note
 
 
@@ -200,7 +201,363 @@ def _match(
         "mapping_path": mapping_path,
         "judgement": judgement,
         "major_risk": major_risk,
+        "chart_url": build_chart_url("a", code),
+        "chart_frequency_label": "主页图形",
     }
+
+
+def _related_stock(
+    *,
+    code: str,
+    name: str,
+    role: str,
+    serenity_bucket: str,
+    serenity_angle: str,
+    stage: str,
+    market_cap_hint: str,
+    major_risk: str,
+) -> dict[str, Any]:
+    return {
+        "code": code,
+        "name": name,
+        "display_name": f"{code} {name}",
+        "role": role,
+        "serenity_bucket": serenity_bucket,
+        "serenity_angle": serenity_angle,
+        "stage": stage,
+        "market_cap_hint": market_cap_hint,
+        "major_risk": major_risk,
+        "chart_url": build_chart_url("a", code),
+        "chart_frequency_label": "主页图形",
+    }
+
+
+def build_theme_related_detail_url(theme_slug: str, code: str) -> str:
+    return f"/a_share_matches/theme-stock/{str(theme_slug or '').strip()}/{str(code or '').strip()}"
+
+
+_THEME_RELATED_STOCKS: dict[str, list[dict[str, Any]]] = {
+    "光模块 / CPO / 光子器件": [
+        _related_stock(
+            code="688498",
+            name="源杰科技",
+            role="EML/CW 光芯片",
+            serenity_bucket="核心卡位",
+            serenity_angle="最符合 Serenity 的上游器件审美，真正接近激光与光芯片 choke point。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="更像 100 亿级往上打开空间的上游器件票。",
+            major_risk="CPO 与上游光芯片导入节奏慢于预期时，兑现会后移。",
+        ),
+        _related_stock(
+            code="300394",
+            name="天孚通信",
+            role="FAU/光引擎/CPO 器件",
+            serenity_bucket="关键受益",
+            serenity_angle="更像平台型器件承接者，适合吃到 CPO 与光引擎升级的放量弹性。",
+            stage="收入放量期",
+            market_cap_hint="中大市值平台股，空间看产品 mix 抬升而非纯题材拔估值。",
+            major_risk="市场预期已经较高，若 CPO 放量偏慢则弹性会回落。",
+        ),
+        _related_stock(
+            code="688313",
+            name="仕佳光子",
+            role="AWG/FAU/无源器件",
+            serenity_bucket="观察候选",
+            serenity_angle="属于配套层但链条位置清晰，适合做 CPO 扩散阶段的补充观察。",
+            stage="主题识别 -> 客户验证",
+            market_cap_hint="更像中小市值扩散受益股，弹性高但确定性弱于上游芯片。",
+            major_risk="偏配套环节，若主线回落时通常回撤更快。",
+        ),
+    ],
+    "光子材料 / 衬底 / 外延 / SOI": [
+        _related_stock(
+            code="688126",
+            name="沪硅产业",
+            role="SOI / 高端硅片",
+            serenity_bucket="核心卡位",
+            serenity_angle="直接对应高端基底 choke point，是硅光和高端器件底层平台型映射。",
+            stage="客户验证 -> 利润兑现",
+            market_cap_hint="更像 200-400 亿级平台资产，空间取决于高端产品渗透。",
+            major_risk="高端良率与客户验证周期很长，兑现慢于题材热度。",
+        ),
+        _related_stock(
+            code="002428",
+            name="云南锗业",
+            role="锗 / 化合物半导体材料",
+            serenity_bucket="关键受益",
+            serenity_angle="更纯的上游材料弹性，适合材料瓶颈被重估的阶段。",
+            stage="主题识别 -> 客户验证",
+            market_cap_hint="小中市值材料票，若关键材料属性被认知，弹性很大。",
+            major_risk="资源价格波动会干扰产业链逻辑。",
+        ),
+        _related_stock(
+            code="600703",
+            name="三安光电",
+            role="化合物半导体外延 / 芯片",
+            serenity_bucket="观察候选",
+            serenity_angle="平台能力完整，但业务面更宽，适合作为材料到器件一体化锚点。",
+            stage="收入兑现期",
+            market_cap_hint="大市值平台，空间更看业务结构优化。",
+            major_risk="若继续被按传统 LED 框架理解，重估斜率有限。",
+        ),
+    ],
+    "AI互连 / 连接芯片 / AEC": [
+        _related_stock(
+            code="688008",
+            name="澜起科技",
+            role="CXL / 内存接口芯片",
+            serenity_bucket="核心卡位",
+            serenity_angle="最接近协议层与连接芯片的核心卡位，具备标准和平台双重壁垒。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="中大市值连接芯片平台，空间随 CXL 商业化抬升。",
+            major_risk="标准推进若慢于预期，市场会先下修想象空间。",
+        ),
+        _related_stock(
+            code="688515",
+            name="裕太微-U",
+            role="高速 PHY / 连接芯片",
+            serenity_bucket="关键受益",
+            serenity_angle="更偏底层互连器件，是连接层扩散到国产替代后的高弹性标的。",
+            stage="主题识别 -> 客户验证",
+            market_cap_hint="偏小市值成长票，验证成功后弹性很大。",
+            major_risk="客户突破与量产节奏的不确定性更高。",
+        ),
+        _related_stock(
+            code="688702",
+            name="盛科通信-U",
+            role="交换芯片",
+            serenity_bucket="观察候选",
+            serenity_angle="更偏网络 fabric 层，是 AI 互连扩散行情中的重要补充。",
+            stage="客户验证期",
+            market_cap_hint="中等市值芯片股，空间取决于交换芯片渗透。",
+            major_risk="更受竞争格局与客户导入影响。",
+        ),
+    ],
+    "存储 / NAND / HBM": [
+        _related_stock(
+            code="688525",
+            name="佰维存储",
+            role="企业级存储 / 模组",
+            serenity_bucket="核心卡位",
+            serenity_angle="是 NAND 周期与产品化弹性结合得最直接的 A 股样本之一。",
+            stage="价格修复 -> 收入放量",
+            market_cap_hint="中等市值存储票，空间主要看周期与企业级结构优化。",
+            major_risk="库存和价格波动会快速传导到盈利。",
+        ),
+        _related_stock(
+            code="001309",
+            name="德明利",
+            role="控制器 / 模组",
+            serenity_bucket="关键受益",
+            serenity_angle="控制器叠加模组，比纯模组更有结构性，但仍属于周期弹性资产。",
+            stage="价格修复期",
+            market_cap_hint="偏中小市值，弹性大但更依赖价格趋势。",
+            major_risk="若价格修复中断，业绩弹性会迅速回落。",
+        ),
+        _related_stock(
+            code="301308",
+            name="江波龙",
+            role="存储模组 / 品牌",
+            serenity_bucket="观察候选",
+            serenity_angle="更像熟知度高的扩散标的，适合做主题热度温度计。",
+            stage="收入放量期",
+            market_cap_hint="中大市值模组平台，空间偏周期弹性而非技术壁垒。",
+            major_risk="品牌和模组属性使其更容易受价格波动影响。",
+        ),
+    ],
+    "算力 / 云基础设施 / GPU云": [
+        _related_stock(
+            code="603019",
+            name="中科曙光",
+            role="算力基础设施平台",
+            serenity_bucket="核心卡位",
+            serenity_angle="更接近供给侧算力平台，而不是单纯卖服务器，符合 Serenity 对平台资源层的偏好。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="大市值平台型资产，空间看资源调度与平台能力增强。",
+            major_risk="兑现仍受政策和资本开支节奏影响。",
+        ),
+        _related_stock(
+            code="300738",
+            name="奥飞数据",
+            role="IDC / 机柜资源",
+            serenity_bucket="关键受益",
+            serenity_angle="属于 GPU 云基础设施承载层，是电力与算力扩张的直接受益者。",
+            stage="收入放量期",
+            market_cap_hint="中等市值资源票，空间随上架率和租赁价格变化。",
+            major_risk="重资产扩张下，对资本开支和利用率很敏感。",
+        ),
+        _related_stock(
+            code="000977",
+            name="浪潮信息",
+            role="AI 服务器整机",
+            serenity_bucket="观察候选",
+            serenity_angle="更偏部署层，不是最纯的 Serenity 审美，但适合观察主题资金扩散。",
+            stage="收入兑现期",
+            market_cap_hint="大市值整机龙头，空间更看行业景气与订单持续性。",
+            major_risk="整机利润率和竞争压力制约估值抬升。",
+        ),
+    ],
+    "晶圆代工 / 特色工艺": [
+        _related_stock(
+            code="688981",
+            name="中芯国际",
+            role="晶圆代工平台",
+            serenity_bucket="核心卡位",
+            serenity_angle="是最直接的 A 股 foundry 中枢映射，平台能力和产业地位最强。",
+            stage="利润兑现期",
+            market_cap_hint="千亿级平台资产，空间看先进制程与资本开支持续性。",
+            major_risk="先进制程推进与地缘变量会反复影响估值。",
+        ),
+        _related_stock(
+            code="688347",
+            name="华虹公司",
+            role="特色工艺代工",
+            serenity_bucket="关键受益",
+            serenity_angle="特色工艺更符合 Serenity 寻找细分制造错配的审美。",
+            stage="收入兑现期",
+            market_cap_hint="中大市值平台，空间看高附加值特色工艺占比。",
+            major_risk="若市场只追先进逻辑，特色工艺相对收益偏弱。",
+        ),
+        _related_stock(
+            code="688396",
+            name="华润微",
+            role="功率 / IDM 平台",
+            serenity_bucket="观察候选",
+            serenity_angle="更偏功率与成熟工艺平台，是特色工艺生态补充样本。",
+            stage="利润兑现期",
+            market_cap_hint="大市值 IDM 平台，空间更看结构优化。",
+            major_risk="IDM 结构让映射纯度弱于 foundry 平台。",
+        ),
+    ],
+    "先进封装 / 玻璃基板 / HBM设备": [
+        _related_stock(
+            code="688120",
+            name="华海清科",
+            role="先进封装工艺设备",
+            serenity_bucket="核心卡位",
+            serenity_angle="更接近先进封装主工艺设备，是典型设备 choke point。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="中大市值设备平台，空间看先进封装设备渗透。",
+            major_risk="设备验证慢，订单节奏受 capex 影响很大。",
+        ),
+        _related_stock(
+            code="300604",
+            name="长川科技",
+            role="测试设备",
+            serenity_bucket="关键受益",
+            serenity_angle="属于封装后段关键装备，适合先进封装扩散逻辑。",
+            stage="收入放量期",
+            market_cap_hint="中等市值测试设备股，空间看国产替代和封装升级。",
+            major_risk="测试设备更受资本开支周期波动影响。",
+        ),
+        _related_stock(
+            code="603773",
+            name="沃格光电",
+            role="玻璃基板材料",
+            serenity_bucket="观察候选",
+            serenity_angle="更偏新材料路线期权，是玻璃基板主线的前瞻性样本。",
+            stage="主题识别 -> 客户验证",
+            market_cap_hint="中小市值新材料票，路线一旦验证弹性很大。",
+            major_risk="路线验证仍早，产业投入与放量时间不确定。",
+        ),
+    ],
+    "商业航天 / 卫星 / 发射": [
+        _related_stock(
+            code="600118",
+            name="中国卫星",
+            role="卫星系统平台",
+            serenity_bucket="核心卡位",
+            serenity_angle="在 A 股里最接近系统级航天平台，而不是单点配套。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="中大市值系统平台，空间看商业航天渗透提升。",
+            major_risk="商业化与体制订单的切换节奏偏慢。",
+        ),
+        _related_stock(
+            code="600879",
+            name="航天电子",
+            role="航天电子配套",
+            serenity_bucket="关键受益",
+            serenity_angle="属于链条里较硬的关键配套，但系统平台属性弱于整星公司。",
+            stage="收入兑现期",
+            market_cap_hint="中等市值配套平台，空间取决于商业航天订单占比。",
+            major_risk="更容易被当作传统军工配套而非商业航天标的。",
+        ),
+        _related_stock(
+            code="300762",
+            name="上海瀚讯",
+            role="卫星通信应用",
+            serenity_bucket="观察候选",
+            serenity_angle="更偏生态受益和应用扩散，是商业航天热度传导时的观察点。",
+            stage="主题识别期",
+            market_cap_hint="中小市值应用票，空间受主题资金和订单共同影响。",
+            major_risk="与发射和系统主线距离较远，容易受情绪驱动。",
+        ),
+    ],
+    "电力 / 公用事业 / 电网设备": [
+        _related_stock(
+            code="600406",
+            name="国电南瑞",
+            role="电网自动化 / 调度系统",
+            serenity_bucket="核心卡位",
+            serenity_angle="最接近电网升级中枢，是 AI power bottleneck 在 A 股里最硬的映射之一。",
+            stage="收入兑现期",
+            market_cap_hint="大市值中枢平台，空间看电网 capex 上修。",
+            major_risk="招标和电网投资节奏会影响兑现速度。",
+        ),
+        _related_stock(
+            code="000400",
+            name="许继电气",
+            role="输配电关键设备",
+            serenity_bucket="关键受益",
+            serenity_angle="比泛公用事业更接近硬件 choke point，是电网设备升级的直接受益者。",
+            stage="收入放量期",
+            market_cap_hint="中大市值设备平台，空间看输配电升级周期。",
+            major_risk="设备制造属性使其更依赖订单结构变化。",
+        ),
+        _related_stock(
+            code="601179",
+            name="中国西电",
+            role="输变电设备",
+            serenity_bucket="观察候选",
+            serenity_angle="方向正确但偏广谱设备，更适合做电网投资扩散期观察。",
+            stage="收入放量期",
+            market_cap_hint="中等市值设备票，空间更多来自基建景气。",
+            major_risk="设备同质化和盈利弹性会限制溢价。",
+        ),
+    ],
+    "关键矿物 / 稀土 / 战略材料": [
+        _related_stock(
+            code="600111",
+            name="北方稀土",
+            role="稀土龙头 / 战略资源",
+            serenity_bucket="核心卡位",
+            serenity_angle="最符合关键矿物与战略资源卡位逻辑，是典型上游 choke point。",
+            stage="主题识别 -> 客户验证",
+            market_cap_hint="大市值资源平台，空间看战略材料重新定价。",
+            major_risk="商品价格波动会掩盖长期战略属性。",
+        ),
+        _related_stock(
+            code="600392",
+            name="盛和资源",
+            role="资源 + 加工一体化",
+            serenity_bucket="关键受益",
+            serenity_angle="资源与加工一体化更符合供应链自主可控的主线。",
+            stage="客户验证期",
+            market_cap_hint="中等市值资源加工平台，空间看稀缺性被认知。",
+            major_risk="资源价格和海外供给扰动较大。",
+        ),
+        _related_stock(
+            code="600259",
+            name="广晟有色",
+            role="稀土 / 有色资源",
+            serenity_bucket="观察候选",
+            serenity_angle="更偏综合资源平台，适合做战略材料扩散行情观察。",
+            stage="主题识别期",
+            market_cap_hint="中等市值资源票，空间受商品价格和政策预期共同影响。",
+            major_risk="综合资源属性会削弱纯主线映射。",
+        ),
+    ],
+}
 
 
 def _stock(
@@ -232,6 +589,9 @@ def _stock(
         "serenity_reason_summary": reason_data.get("serenity_reason_summary", research_summary),
         "serenity_reason_highlights": reason_data.get("serenity_reason_highlights", []),
         "tweet_detail_label": reason_data.get("tweet_detail_label", "查看推荐脉络"),
+        "chart_url": "",
+        "chart_unavailable_reason": "",
+        "chart_frequency_label": "主页图形",
         "stage_snapshot": {
             "name": str((note.get("stage_view") or {}).get("name") or ""),
             "next_step": str((note.get("stage_view") or {}).get("next_step") or ""),
@@ -254,15 +614,47 @@ def _theme(title: str, project_stocks: list[dict[str, Any]]) -> dict[str, Any]:
             "accent_line": "rgba(125, 211, 252, 0.28)",
         },
     )
+    slug = title.replace(" / ", "-").replace(" ", "").replace("/", "-")
+    related_stocks = [
+        {
+            **item,
+            "detail_url": build_theme_related_detail_url(slug, str(item.get("code") or "").strip()),
+        }
+        for item in _THEME_RELATED_STOCKS.get(title, [])
+    ]
     return {
         "title": title,
-        "slug": title.replace(" / ", "-").replace(" ", "").replace("/", "-"),
+        "slug": slug,
         "accent": theme_style["accent"],
         "accent_soft": theme_style["accent_soft"],
         "accent_line": theme_style["accent_line"],
+        "theme_related_stocks": related_stocks,
         "project_stocks": project_stocks,
+        "related_stock_count": len(related_stocks),
         "project_stock_count": len(project_stocks),
     }
+
+
+def get_theme_related_stock_detail(theme_slug: str, code: str) -> dict[str, Any] | None:
+    normalized_slug = str(theme_slug or "").strip()
+    normalized_code = str(code or "").strip()
+    if not normalized_slug or not normalized_code:
+        return None
+
+    for theme in _THEMES:
+        if str(theme.get("slug") or "").strip() != normalized_slug:
+            continue
+        for stock in theme.get("theme_related_stocks", []):
+            if str(stock.get("code") or "").strip() == normalized_code:
+                return {
+                    "theme_title": str(theme.get("title") or ""),
+                    "theme_slug": normalized_slug,
+                    "theme_accent": str(theme.get("accent") or ""),
+                    "theme_accent_soft": str(theme.get("accent_soft") or ""),
+                    "theme_accent_line": str(theme.get("accent_line") or ""),
+                    "stock": dict(stock),
+                }
+    return None
 
 
 _THEMES: list[dict[str, Any]] = [
@@ -1326,6 +1718,7 @@ _THEMES: list[dict[str, Any]] = [
 
 def get_a_share_match_catalog() -> dict[str, Any]:
     total_project_stocks = sum(theme["project_stock_count"] for theme in _THEMES)
+    total_related_stocks = sum(theme["related_stock_count"] for theme in _THEMES)
     return {
         "title": "Serenity推荐股与A股映射表",
         "eyebrow": "Serenity Mapping",
@@ -1335,5 +1728,6 @@ def get_a_share_match_catalog() -> dict[str, Any]:
         ),
         "theme_count": len(_THEMES),
         "project_stock_count": total_project_stocks,
+        "theme_related_stock_count": total_related_stocks,
         "themes": _THEMES,
     }

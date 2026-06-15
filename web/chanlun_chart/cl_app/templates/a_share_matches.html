@@ -400,6 +400,9 @@
     }
     .reason-actions {
       margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
     }
     .reason-btn {
       display: inline-flex;
@@ -415,6 +418,11 @@
       font-weight: 700;
       white-space: nowrap;
     }
+    .reason-btn.is-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
     .matches-block {
       display: grid;
       grid-template-columns: 1fr;
@@ -423,6 +431,87 @@
     .matches-group {
       padding: 16px;
       background: rgba(255, 255, 255, 0.03);
+    }
+    .theme-related-block {
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--theme-accent-line, rgba(132, 169, 255, 0.18));
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    }
+    .theme-related-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .theme-related-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--theme-accent, var(--accent));
+    }
+    .theme-related-subtitle {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .theme-related-count {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .theme-related-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .theme-related-card {
+      border-radius: 18px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .related-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .related-card-heading {
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .related-role {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .related-bucket {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--theme-accent-soft, rgba(125, 211, 252, 0.12));
+      color: var(--theme-accent, var(--accent));
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .related-field + .related-field {
+      margin-top: 10px;
+    }
+    .related-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .related-value {
+      display: block;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.75;
     }
     .group-head {
       display: flex;
@@ -497,6 +586,131 @@
       color: var(--muted);
       font-size: 13px;
     }
+    .match-actions {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .chart-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.18s ease;
+    }
+    .chart-modal.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    .chart-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.72);
+      backdrop-filter: blur(6px);
+    }
+    .chart-modal-dialog {
+      position: relative;
+      z-index: 1;
+      width: min(1240px, calc(100vw - 48px));
+      max-height: calc(100vh - 48px);
+      overflow: hidden;
+      border-radius: 26px;
+      border: 1px solid rgba(125, 211, 252, 0.18);
+      background: rgba(8, 17, 31, 0.96);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+    }
+    .chart-modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .chart-modal-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .chart-modal-subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .chart-modal-close {
+      border: 0;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    .chart-modal-body {
+      padding: 18px 22px 22px;
+    }
+    .chart-modal-frame {
+      width: 100%;
+      height: min(76vh, 880px);
+      border: 0;
+      border-radius: 18px;
+      background: #050912;
+      display: none;
+    }
+    .chart-modal-frame.is-visible {
+      display: block;
+    }
+    .chart-modal-message {
+      display: none;
+      padding: 22px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .chart-modal-message.is-visible {
+      display: block;
+    }
+    .chart-modal-loading {
+      display: none;
+      position: absolute;
+      inset: 18px 22px 22px;
+      z-index: 2;
+      align-items: center;
+      justify-content: center;
+      border-radius: 18px;
+      background: rgba(7, 17, 31, 0.72);
+      backdrop-filter: blur(4px);
+      color: var(--text);
+      font-size: 14px;
+      letter-spacing: 0.02em;
+    }
+    .chart-modal-loading.is-visible {
+      display: flex;
+    }
+    .chart-modal-message-title {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .chart-modal-message-text {
+      margin-top: 10px;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 14px;
+    }
+    .chart-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
     @media (max-width: 1100px) {
       .layout {
         grid-template-columns: 1fr;
@@ -515,8 +729,10 @@
       .stock-card { padding: 18px; }
       .theme-chip { max-width: 100%; }
       .theme-header,
+      .theme-related-head,
       .stock-card-top,
       .match-card-top,
+      .chart-modal-head,
       .tweet-summary-head,
       .group-head { display: block; }
       .theme-count,
@@ -524,6 +740,10 @@
       .fit-badge {
         margin-top: 12px;
         text-align: left;
+      }
+      .chart-modal-dialog {
+        width: min(100vw - 24px, 1240px);
+        max-height: calc(100vh - 24px);
       }
       .meta-grid,
       .research-grid,
@@ -534,6 +754,17 @@
         grid-template-columns: 1fr;
       }
       .tweet-summary-btn { margin-top: 12px; }
+    }
+    @media (max-width: 640px) {
+      .chart-modal {
+        padding: 12px;
+      }
+      .chart-modal-body {
+        padding: 14px;
+      }
+      .chart-modal-frame {
+        height: 62vh;
+      }
     }
   </style>
 </head>
@@ -579,6 +810,60 @@
             <h2>{{ theme.title }}</h2>
             <div class="theme-count">{{ theme.project_stock_count }} 只项目股票</div>
           </div>
+
+          {% if theme.theme_related_stocks %}
+          <section class="theme-related-block">
+            <div class="theme-related-head">
+              <div>
+                <div class="theme-related-title">Serenity 主题扩展股票</div>
+                <div class="theme-related-subtitle">按主题扩展挖掘，不替代原有项目股票映射；更强调 Serenity 方法下的核心卡位、关键受益和观察候选。</div>
+              </div>
+              <div class="theme-related-count">{{ theme.related_stock_count }} 只扩展股票</div>
+            </div>
+            <div class="theme-related-grid">
+              {% for related in theme.theme_related_stocks %}
+              <article class="theme-related-card" data-related-code="{{ related.code }}" data-a-share-code="{{ related.code }}">
+                <div class="related-card-top">
+                  <div>
+                    <div class="related-card-heading">{{ related.display_name }}</div>
+                    <div class="related-role">{{ related.role }}</div>
+                  </div>
+                  <div class="related-bucket">{{ related.serenity_bucket }}</div>
+                </div>
+                <div class="related-field">
+                  <span class="related-label">Serenity 角度</span>
+                  <span class="related-value">{{ related.serenity_angle }}</span>
+                </div>
+                <div class="related-field">
+                  <span class="related-label">当前阶段</span>
+                  <span class="related-value">{{ related.stage }}</span>
+                </div>
+                <div class="related-field">
+                  <span class="related-label">市值空间判断</span>
+                  <span class="related-value">{{ related.market_cap_hint }}</span>
+                </div>
+                <div class="related-field">
+                  <span class="related-label">主要风险</span>
+                  <span class="related-value">{{ related.major_risk }}</span>
+                </div>
+                <div class="reason-actions">
+                  <button
+                    type="button"
+                    class="reason-btn is-secondary"
+                    data-chart-trigger
+                    data-chart-title="{{ related.display_name }} 缠论图"
+                    data-chart-frequency="{{ related.chart_frequency_label or '主页图形' }}"
+                    data-chart-url="{{ related.chart_url }}"
+                  >
+                    查看缠论图
+                  </button>
+                  <a class="reason-btn" href="{{ related.detail_url }}">查看扩展详情</a>
+                </div>
+              </article>
+              {% endfor %}
+            </div>
+          </section>
+          {% endif %}
 
           <div class="stock-grid">
             {% for stock in theme.project_stocks %}
@@ -651,11 +936,22 @@
                     <span class="snapshot-value">{{ stock.market_cap_snapshot.top_scenario or stock.market_cap_snapshot.current_anchor or '空间待补充' }}</span>
                   </div>
                 </div>
-                {% if stock.tweet_detail_url %}
                 <div class="reason-actions">
+                  <button
+                    type="button"
+                    class="reason-btn is-secondary"
+                    data-chart-trigger
+                    data-chart-title="{{ stock.display_name }} 缠论图"
+                    data-chart-frequency="{{ stock.chart_frequency_label or '主页图形' }}"
+                    data-chart-url="{{ stock.chart_url }}"
+                    data-chart-unavailable-reason="{{ stock.chart_unavailable_reason }}"
+                  >
+                    查看缠论图
+                  </button>
+                  {% if stock.tweet_detail_url %}
                   <a class="reason-btn" href="{{ stock.tweet_detail_url }}">{{ stock.tweet_detail_label }}</a>
+                  {% endif %}
                 </div>
-                {% endif %}
               </section>
 
               <section class="matches-block">
@@ -698,6 +994,18 @@
                           <span class="match-field-label">主要风险</span>
                           <span class="match-field-value">{{ match.major_risk }}</span>
                         </div>
+                      </div>
+                      <div class="match-actions">
+                        <button
+                          type="button"
+                          class="reason-btn is-secondary"
+                          data-chart-trigger
+                          data-chart-title="{{ match.display_name }} 缠论图"
+                          data-chart-frequency="{{ match.chart_frequency_label or '主页图形' }}"
+                          data-chart-url="{{ match.chart_url }}"
+                        >
+                          查看缠论图
+                        </button>
                       </div>
                     </article>
                     {% endfor %}
@@ -744,6 +1052,18 @@
                           <span class="match-field-value">{{ match.major_risk }}</span>
                         </div>
                       </div>
+                      <div class="match-actions">
+                        <button
+                          type="button"
+                          class="reason-btn is-secondary"
+                          data-chart-trigger
+                          data-chart-title="{{ match.display_name }} 缠论图"
+                          data-chart-frequency="{{ match.chart_frequency_label or '主页图形' }}"
+                          data-chart-url="{{ match.chart_url }}"
+                        >
+                          查看缠论图
+                        </button>
+                      </div>
                     </article>
                     {% endfor %}
                   </div>
@@ -757,6 +1077,30 @@
       </div>
     </div>
   </main>
+
+  <div class="chart-modal" id="chart-modal" aria-hidden="true">
+    <div class="chart-modal-backdrop" data-chart-modal-close></div>
+    <section class="chart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="chart-modal-title">
+      <div class="chart-modal-head">
+        <div>
+          <div class="chart-modal-title" id="chart-modal-title">缠论图</div>
+          <div class="chart-modal-subtitle" id="chart-modal-subtitle">展示方式：主页图形</div>
+        </div>
+        <button type="button" class="chart-modal-close" data-chart-modal-close aria-label="关闭">×</button>
+      </div>
+      <div class="chart-modal-body">
+        <div class="chart-modal-loading" id="chart-modal-loading">图形预热中...</div>
+        <iframe class="chart-modal-frame" id="chart-modal-frame" loading="lazy" referrerpolicy="same-origin"></iframe>
+        <div class="chart-modal-message" id="chart-modal-message">
+          <div class="chart-modal-message-title">暂时无法打开缠论图</div>
+          <div class="chart-modal-message-text" id="chart-modal-message-text">当前未获取到可用图表地址。</div>
+          <div class="chart-modal-actions">
+            <a class="reason-btn" id="chart-modal-open-new-tab" href="#" target="_blank" rel="noopener noreferrer">新标签页打开</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <script>
     function normalizeAShareCode(code) {
@@ -919,8 +1263,148 @@
       `;
     }
 
+    const chartModalState = {
+      root: null,
+      frame: null,
+      loading: null,
+      message: null,
+      messageText: null,
+      title: null,
+      subtitle: null,
+      openNewTab: null,
+      currentUrl: "",
+      warmUrl: "",
+    };
+
+    function closeChartModal() {
+      if (!chartModalState.root) {
+        return;
+      }
+      chartModalState.root.classList.remove("is-open");
+      chartModalState.root.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      if (chartModalState.frame) {
+        chartModalState.frame.classList.remove("is-visible");
+      }
+      if (chartModalState.loading) {
+        chartModalState.loading.classList.remove("is-visible");
+      }
+      if (chartModalState.message) {
+        chartModalState.message.classList.remove("is-visible");
+      }
+    }
+
+    function showChartLoading() {
+      if (chartModalState.loading) {
+        chartModalState.loading.classList.add("is-visible");
+      }
+    }
+
+    function hideChartLoading() {
+      if (chartModalState.loading) {
+        chartModalState.loading.classList.remove("is-visible");
+      }
+    }
+
+    function preloadChartUrl(chartUrl) {
+      const normalizedUrl = String(chartUrl || "").trim();
+      if (!normalizedUrl || !chartModalState.frame) {
+        return;
+      }
+      if (chartModalState.currentUrl === normalizedUrl) {
+        return;
+      }
+      chartModalState.warmUrl = normalizedUrl;
+      chartModalState.frame.src = normalizedUrl;
+      chartModalState.currentUrl = normalizedUrl;
+    }
+
+    function openChartModal({ title, frequencyLabel, chartUrl, unavailableReason }) {
+      if (!chartModalState.root) {
+        return;
+      }
+      chartModalState.title.textContent = title || "缠论图";
+      chartModalState.subtitle.textContent = `展示方式：${frequencyLabel || "主页图形"}`;
+      chartModalState.root.classList.add("is-open");
+      chartModalState.root.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+
+      if (chartUrl) {
+        chartModalState.message.classList.remove("is-visible");
+        chartModalState.openNewTab.style.display = "inline-flex";
+        chartModalState.openNewTab.href = chartUrl;
+        chartModalState.frame.classList.add("is-visible");
+        if (chartModalState.currentUrl !== chartUrl) {
+          showChartLoading();
+          preloadChartUrl(chartUrl);
+        } else {
+          hideChartLoading();
+        }
+        return;
+      }
+
+      hideChartLoading();
+      chartModalState.frame.classList.remove("is-visible");
+      chartModalState.messageText.textContent = unavailableReason || "当前未获取到可用图表地址。";
+      chartModalState.message.classList.add("is-visible");
+      chartModalState.openNewTab.style.display = "none";
+      chartModalState.openNewTab.removeAttribute("href");
+    }
+
+    function initChartModal() {
+      chartModalState.root = document.getElementById("chart-modal");
+      if (!chartModalState.root) {
+        return;
+      }
+      chartModalState.frame = document.getElementById("chart-modal-frame");
+      chartModalState.loading = document.getElementById("chart-modal-loading");
+      chartModalState.message = document.getElementById("chart-modal-message");
+      chartModalState.messageText = document.getElementById("chart-modal-message-text");
+      chartModalState.title = document.getElementById("chart-modal-title");
+      chartModalState.subtitle = document.getElementById("chart-modal-subtitle");
+      chartModalState.openNewTab = document.getElementById("chart-modal-open-new-tab");
+      chartModalState.frame.addEventListener("load", () => {
+        hideChartLoading();
+      });
+
+      document.querySelectorAll("[data-chart-trigger]").forEach((trigger) => {
+        const warm = () => preloadChartUrl(String(trigger.dataset.chartUrl || "").trim());
+        trigger.addEventListener("mouseenter", warm, { passive: true });
+        trigger.addEventListener("focus", warm, { passive: true });
+        trigger.addEventListener("touchstart", warm, { passive: true });
+        trigger.addEventListener("click", () => {
+          openChartModal({
+            title: String(trigger.dataset.chartTitle || "").trim(),
+            frequencyLabel: String(trigger.dataset.chartFrequency || "").trim(),
+            chartUrl: String(trigger.dataset.chartUrl || "").trim(),
+            unavailableReason: String(trigger.dataset.chartUnavailableReason || "").trim(),
+          });
+        });
+      });
+
+      chartModalState.root.querySelectorAll("[data-chart-modal-close]").forEach((button) => {
+        button.addEventListener("click", closeChartModal);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && chartModalState.root.classList.contains("is-open")) {
+          closeChartModal();
+        }
+      });
+
+      const firstWarmTrigger = document.querySelector("[data-chart-trigger][data-chart-url]");
+      if (firstWarmTrigger) {
+        const idleWarm = () => preloadChartUrl(String(firstWarmTrigger.dataset.chartUrl || "").trim());
+        if (typeof window.requestIdleCallback === "function") {
+          window.requestIdleCallback(idleWarm, { timeout: 1200 });
+        } else {
+          window.setTimeout(idleWarm, 300);
+        }
+      }
+    }
+
     async function loadAShareMatchQuotes() {
-      const cards = Array.from(document.querySelectorAll(".match-card[data-a-share-code]"));
+      const cards = Array.from(document.querySelectorAll("[data-a-share-code]"));
       const cardGroups = new Map();
 
       cards.forEach((card) => {
@@ -1201,6 +1685,7 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       initThemeNavigation();
+      initChartModal();
       loadProjectStockQuotes();
       loadProjectTweetSummaries(true);
       loadAShareMatchQuotes();

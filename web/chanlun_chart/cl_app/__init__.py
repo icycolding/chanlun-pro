@@ -56,17 +56,27 @@ from .news_vector_api import register_vector_api_routes
 from .smart_news_api import register_smart_news_api
 from .asset_news_mapping import build_asset_link_rows
 from .a_share_matches_quotes import (
+    build_chart_url,
     fetch_tick_snapshots,
+    infer_project_chart_target,
     infer_project_quote_target,
     normalize_market_codes,
 )
-from .a_share_matches_catalog import get_a_share_match_catalog
+from .a_share_matches_catalog import (
+    get_a_share_match_catalog,
+    get_theme_related_stock_detail,
+)
 from .a_share_matches_tweets import (
     build_tweet_detail_url,
     build_tweet_detail_payload,
     build_tweet_summaries,
     get_tweets_data_version,
 )
+from .tv_chart_request_mode import (
+    apply_lite_chart_config_override,
+    is_lite_chart_request,
+)
+from .tv_history_cache import TTLCache, build_tv_history_cache_key
 
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _NEWS_DIR = _PROJECT_ROOT / "news"
@@ -278,6 +288,7 @@ def create_app(test_config=None):
 
     # 记录请求次数，超过则返回 no_data
     __history_req_counter = {}
+    __tv_history_cache = TTLCache(max_entries=96)
 
     _alert_tasks = AlertTasks(scheduler)
     _alert_tasks.run()
@@ -471,7 +482,38 @@ def create_app(test_config=None):
                     market=str(stock.get("market") or "").strip(),
                     display_name=str(stock.get("display_name") or "").strip(),
                 )
+                chart_target = infer_project_chart_target(
+                    symbol=str(stock.get("symbol") or "").strip(),
+                    exchange=str(stock.get("exchange") or "").strip(),
+                    market_text=str(stock.get("market") or "").strip(),
+                    company_name=str(stock.get("company_name") or "").strip(),
+                )
+                stock["chart_url"] = build_chart_url(
+                    chart_target.get("market", ""),
+                    chart_target.get("code", ""),
+                )
+                stock["chart_unavailable_reason"] = str(
+                    chart_target.get("unavailable_reason") or ""
+                )
+                stock["chart_frequency_label"] = "主页图形"
         return render_template("a_share_matches.html", catalog=catalog)
+
+    @app.route("/a_share_matches/theme-stock/<theme_slug>/<code>")
+    @login_required
+    def a_share_matches_theme_stock_detail(theme_slug, code):
+        detail = get_theme_related_stock_detail(theme_slug, code)
+        if not detail:
+            abort(404)
+
+        return render_template(
+            "a_share_match_theme_stock.html",
+            theme_title=detail["theme_title"],
+            theme_slug=detail["theme_slug"],
+            theme_accent=detail["theme_accent"],
+            theme_accent_soft=detail["theme_accent_soft"],
+            theme_accent_line=detail["theme_accent_line"],
+            stock=detail["stock"],
+        )
 
     @app.route("/a_share_matches/project_ticks", methods=["POST"])
     @login_required
@@ -875,11 +917,26 @@ def create_app(test_config=None):
             return {"s": "no_data", "nextTime": int(now_time + (10 * 60))}
 
         frequency = resolution_maps[resolution]
+        lite_chart = is_lite_chart_request(request.args)
         cl_config = query_cl_chart_config(market, code)
+        cl_config = apply_lite_chart_config_override(cl_config, lite_chart)
         frequency_low, kchart_to_frequency = kcharts_frequency_h_l_map(
             market, frequency
         )
-        if (
+        cache_key = build_tv_history_cache_key(
+            symbol=symbol,
+            resolution=resolution,
+            config_payload={
+                "cl_config": cl_config,
+                "frequency_low": frequency_low,
+                "kchart_to_frequency": kchart_to_frequency,
+            },
+        )
+        cached_payload = __tv_history_cache.get(cache_key, now=now_time)
+        if cached_payload is not None:
+            cl_chart_data = cached_payload["cl_chart_data"]
+            first_kline_time = int(cached_payload["first_kline_time"])
+        elif (
             cl_config["enable_kchart_low_to_high"] == "1"
             and kchart_to_frequency is not None
         ):
@@ -892,6 +949,10 @@ def create_app(test_config=None):
                 market, code, {frequency_low: klines}, cl_config
             )[0]
             # __log.info(f'{code} - {frequency_low} enable low to high get cd time : {time.time() - s_time}')
+            first_kline_time = fun.datetime_to_int(klines.iloc[0]["date"])
+            cl_chart_data = cl_data_to_tv_chart(
+                cd, cl_config, to_frequency=kchart_to_frequency
+            )
         else:
             kchart_to_frequency = None
             # s_time = time.time()
@@ -900,17 +961,37 @@ def create_app(test_config=None):
             # s_time = time.time()
             cd = web_batch_get_cl_datas(market, code, {frequency: klines}, cl_config)[0]
             # __log.info(f'{code} - {frequency} get cd time : {time.time() - s_time}')
+            first_kline_time = fun.datetime_to_int(klines.iloc[0]["date"])
+            cl_chart_data = cl_data_to_tv_chart(
+                cd, cl_config, to_frequency=kchart_to_frequency
+            )
+            __tv_history_cache.set(
+                cache_key,
+                {
+                    "cl_chart_data": cl_chart_data,
+                    "first_kline_time": first_kline_time,
+                },
+                ttl_seconds=(10 if ex.now_trading() else 60),
+                now=now_time,
+            )
+
+        if cached_payload is None and (
+            cl_config["enable_kchart_low_to_high"] == "1"
+            and kchart_to_frequency is not None
+        ):
+            __tv_history_cache.set(
+                cache_key,
+                {
+                    "cl_chart_data": cl_chart_data,
+                    "first_kline_time": first_kline_time,
+                },
+                ttl_seconds=(10 if ex.now_trading() else 60),
+                now=now_time,
+            )
 
         # 如果图表指定返回的时间太早，直接返回无数据
-        if int(_to) < fun.datetime_to_int(klines.iloc[0]["date"]):
+        if int(_to) < first_kline_time:
             return {"s": "no_data"}
-
-        # 将缠论数据，转换成 tv 画图的坐标数据
-        # s_time = time.time()
-        cl_chart_data = cl_data_to_tv_chart(
-            cd, cl_config, to_frequency=kchart_to_frequency
-        )
-        # __log.info(f'{code} - {frequency} to tv chart data time : {time.time() - s_time}')
 
         # 根据 from_time 和 to_time 来获取对应的K线数据
         if firstDataRequest == "false":
