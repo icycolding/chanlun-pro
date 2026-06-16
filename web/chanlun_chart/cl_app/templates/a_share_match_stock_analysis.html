@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ analysis.display_name or analysis.identifier }} 个股分析</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(10, 20, 38, 0.9);
+      --line: rgba(132, 169, 255, 0.18);
+      --text: #ecf3ff;
+      --muted: #9fb2d1;
+      --accent: #7dd3fc;
+      --accent-2: #a78bfa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background: linear-gradient(180deg, #09111e 0%, #050912 100%);
+    }
+    .page {
+      width: min(1100px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+    .panel {
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 24px;
+      margin-top: 20px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(125, 211, 252, 0.12);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 14px 0 8px;
+      font-size: clamp(30px, 4vw, 44px);
+    }
+    .meta {
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    .section-title {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .summary {
+      margin: 0;
+      line-height: 1.85;
+    }
+    .source-chip {
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(167, 139, 250, 0.14);
+      color: #ddd6fe;
+      font-size: 12px;
+    }
+    .action-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 16px;
+      border-radius: 999px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #67e8f9);
+      color: #08111f;
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .back-btn {
+      min-width: 148px;
+    }
+    .floating-back {
+      position: fixed;
+      right: 16px;
+      bottom: 18px;
+      z-index: 20;
+      display: none;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+    }
+    .selection-reason-block {
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .selection-reason-title,
+    .selection-metric-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .selection-reason-text,
+    .selection-basis-text,
+    .selection-metric-detail {
+      margin: 0;
+      line-height: 1.75;
+    }
+    .selection-basis-text,
+    .selection-metric-detail {
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .selection-basis-text {
+      margin-top: 10px;
+    }
+    .selection-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .selection-metric-card {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .selection-metric-value {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.6;
+      margin-bottom: 6px;
+    }
+    .live-quote-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .live-quote-card {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .live-quote-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .live-quote-value {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.6;
+    }
+    .live-quote-value.is-up {
+      color: #22c55e;
+    }
+    .live-quote-value.is-down {
+      color: #f87171;
+    }
+    .news-list {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 12px;
+      color: var(--muted);
+    }
+    .news-title {
+      color: var(--text);
+      line-height: 1.6;
+    }
+    .news-meta {
+      margin-top: 4px;
+      font-size: 12px;
+    }
+    @media (max-width: 720px) {
+      .floating-back {
+        display: inline-flex;
+      }
+    }
+  </style>
+</head>
+<body
+  data-entity-type="{{ analysis.entity_type }}"
+  data-identifier="{{ analysis.identifier }}"
+  data-display-name="{{ analysis.display_name or analysis.identifier }}"
+  data-company-name="{{ analysis.company_name or '' }}"
+  data-exchange="{{ analysis.exchange or '' }}"
+  data-market="{{ analysis.market or '' }}"
+>
+  {% set live_quote = analysis.live_quote or {} %}
+  <main class="page">
+    <section class="panel">
+      <div class="eyebrow">个股分析详情</div>
+      <h1>{{ analysis.display_name or analysis.identifier }}</h1>
+      <div class="meta">
+        标的类型：{{ analysis.entity_type }}<br>
+        公司名称：{{ analysis.company_name or '--' }}<br>
+        交易所 / 市场：{{ analysis.exchange or '--' }} / {{ analysis.market or '--' }}
+      </div>
+      <div class="action-row">
+        <span class="source-chip">财务来源：{{ analysis.financial_source }}</span>
+        <span class="source-chip">新闻来源：{{ analysis.news_source }}</span>
+      </div>
+      <div class="action-row">
+        <a class="btn btn-secondary back-btn" href="/a_share_matches" id="return-to-theme">返回选主题</a>
+        {% if analysis.chart_url %}
+        <a class="btn btn-primary" href="{{ analysis.chart_url }}">查看缠论图</a>
+        {% endif %}
+        {% if analysis.tweet_detail_url %}
+        <a class="btn btn-secondary" href="{{ analysis.tweet_detail_url }}">查看推荐脉络</a>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">实时行情</h2>
+      <div class="live-quote-grid" id="live-quote-grid">
+        <div class="live-quote-card">
+          <span class="live-quote-label">最新价格</span>
+          <span class="live-quote-value" id="live-quote-price">{{ live_quote.get("price_text", "--") }}</span>
+        </div>
+        <div class="live-quote-card">
+          <span class="live-quote-label">涨跌幅</span>
+          <span class="live-quote-value" id="live-quote-change">{{ live_quote.get("change_text", "--") }}</span>
+        </div>
+        <div class="live-quote-card">
+          <span class="live-quote-label">实时市值</span>
+          <span class="live-quote-value" id="live-quote-market-cap">{{ live_quote.get("market_cap_text", "实时总市值待行情源补齐") }}</span>
+        </div>
+        <div class="live-quote-card">
+          <span class="live-quote-label">日内波幅</span>
+          <span class="live-quote-value" id="live-quote-swing">{{ live_quote.get("swing_text", "--") }}</span>
+        </div>
+        <div class="live-quote-card">
+          <span class="live-quote-label">日内区间</span>
+          <span class="live-quote-value" id="live-quote-range">{{ live_quote.get("range_text", "--") }}</span>
+        </div>
+        <div class="live-quote-card">
+          <span class="live-quote-label">行情市场</span>
+          <span class="live-quote-value" id="live-quote-market">{{ live_quote.get("market_text", "--") }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">财务分析</h2>
+      <p class="summary">{{ analysis.financial_summary }}</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">AI 财务解读</h2>
+      <p class="summary">{{ analysis.financial_ai_analysis }}</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">选股说明</h2>
+      <div class="selection-reason-block">
+        <span class="selection-reason-title">为什么符合</span>
+        <p class="selection-reason-text">{{ analysis.selection_reason.summary }}</p>
+        <p class="selection-basis-text">依据：{{ analysis.selection_reason.fit_basis }}</p>
+      </div>
+      <div class="selection-metric-grid">
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">稀缺性</span>
+          <span class="selection-metric-value">{{ analysis.scarcity_view.label }}</span>
+          <p class="selection-metric-detail">{{ analysis.scarcity_view.detail }}</p>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">扩产难度</span>
+          <span class="selection-metric-value">{{ analysis.capacity_view.label }}</span>
+          <p class="selection-metric-detail">{{ analysis.capacity_view.detail }}</p>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">涨价能力</span>
+          <span class="selection-metric-value">{{ analysis.pricing_view.label }}</span>
+          <p class="selection-metric-detail">{{ analysis.pricing_view.detail }}</p>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">研究市值</span>
+          <span class="selection-metric-value">{{ analysis.market_cap_research.current_text }}</span>
+          <p class="selection-metric-detail">{{ analysis.market_cap_research.upside_text }}</p>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">实时市值</span>
+          <span class="selection-metric-value">{{ analysis.market_cap_live_text }}</span>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">环节市场规模</span>
+          <span class="selection-metric-value">{{ analysis.segment_market_view.market_size_text }}</span>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">公司份额</span>
+          <span class="selection-metric-value">{{ analysis.segment_market_view.company_share_text }}</span>
+          <p class="selection-metric-detail">份额等级：{{ analysis.segment_market_view.share_level }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">最新新闻</h2>
+      <ul class="news-list">
+        {% if analysis.latest_news %}
+        {% for item in analysis.latest_news %}
+        <li>
+          <div class="news-title">{{ item.title }}</div>
+          <div class="news-meta">{{ item.source or '--' }} · {{ item.published_at or '--' }}</div>
+        </li>
+        {% endfor %}
+        {% else %}
+        <li>暂无最新新闻</li>
+        {% endif %}
+      </ul>
+    </section>
+  </main>
+  <a class="btn btn-primary floating-back" href="/a_share_matches" id="floating-return-to-theme">返回主题</a>
+
+  <script>
+    function normalizeAShareCode(code) {
+      const normalized = String(code || "").trim().toUpperCase();
+      if (!normalized) {
+        return "";
+      }
+      if (normalized.includes(".")) {
+        return normalized;
+      }
+      if (/^(600|601|603|605|688|689|900)/.test(normalized)) {
+        return `SH.${normalized}`;
+      }
+      if (/^(000|001|002|003|159|200|300|301)/.test(normalized)) {
+        return `SZ.${normalized}`;
+      }
+      if (/^(430|440|83|87|88)/.test(normalized)) {
+        return `BJ.${normalized}`;
+      }
+      return normalized;
+    }
+
+    function setQuoteTone(node, text) {
+      if (!node) {
+        return;
+      }
+      node.classList.remove("is-up", "is-down");
+      const value = String(text || "").trim();
+      if (value.startsWith("+")) {
+        node.classList.add("is-up");
+      } else if (value.startsWith("-")) {
+        node.classList.add("is-down");
+      }
+    }
+
+    function renderLiveQuote(quote) {
+      const priceNode = document.getElementById("live-quote-price");
+      const changeNode = document.getElementById("live-quote-change");
+      const marketCapNode = document.getElementById("live-quote-market-cap");
+      const swingNode = document.getElementById("live-quote-swing");
+      const rangeNode = document.getElementById("live-quote-range");
+      const marketNode = document.getElementById("live-quote-market");
+      const quoteData = quote || {};
+
+      if (priceNode) {
+        priceNode.textContent = String(quoteData.price_text || "--");
+      }
+      if (changeNode) {
+        changeNode.textContent = String(quoteData.change_text || "--");
+        setQuoteTone(changeNode, quoteData.change_text);
+      }
+      if (marketCapNode) {
+        marketCapNode.textContent = String(quoteData.market_cap_text || "实时总市值待行情源补齐");
+      }
+      if (swingNode) {
+        swingNode.textContent = String(quoteData.swing_text || "--");
+      }
+      if (rangeNode) {
+        rangeNode.textContent = String(quoteData.range_text || "--");
+      }
+      if (marketNode) {
+        marketNode.textContent = String(quoteData.market_text || "--");
+      }
+    }
+
+    function applyThemeReturnLink() {
+      const primaryButton = document.getElementById("return-to-theme");
+      const floatingButton = document.getElementById("floating-return-to-theme");
+      const buttons = [primaryButton, floatingButton].filter(Boolean);
+      if (!buttons.length) {
+        return;
+      }
+
+      let targetUrl = "/a_share_matches";
+      try {
+        const storedUrl = window.sessionStorage ? String(window.sessionStorage.getItem("aShareMatchesReturnUrl") || "").trim() : "";
+        if (storedUrl.startsWith("/a_share_matches")) {
+          targetUrl = storedUrl;
+        }
+      } catch (error) {
+      }
+
+      buttons.forEach((button) => {
+        button.setAttribute("href", targetUrl);
+      });
+    }
+
+    const LIVE_QUOTE_REFRESH = {
+      pollIntervalMs: 30 * 1000,
+      lastPollStartedAt: Date.now(),
+    };
+
+    async function loadLiveQuote() {
+      const body = document.body;
+      const entityType = String(body.dataset.entityType || "").trim();
+      const identifier = String(body.dataset.identifier || "").trim();
+      const displayName = String(body.dataset.displayName || "").trim();
+      const companyName = String(body.dataset.companyName || "").trim();
+      const exchange = String(body.dataset.exchange || "").trim();
+      const market = String(body.dataset.market || "").trim();
+
+      if (!entityType || !identifier) {
+        return;
+      }
+
+      try {
+        if (entityType === "match") {
+          const code = normalizeAShareCode(identifier);
+          const response = await fetch("/ticks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            },
+            body: new URLSearchParams({ market: "a", codes: code }).toString(),
+            credentials: "same-origin",
+          });
+          if (!response.ok) {
+            throw new Error("request_failed");
+          }
+          const payload = await response.json();
+          const tick = Array.isArray(payload.ticks) ? payload.ticks[0] : null;
+          if (!tick) {
+            throw new Error("tick_unavailable");
+          }
+          renderLiveQuote({
+            price_text: String(tick.price ?? "--"),
+            change_text: `${Number(tick.rate || 0) > 0 ? "+" : ""}${Number(tick.rate || 0).toFixed(2)}%`,
+            market_cap_text: String(tick.market_cap_text || "实时总市值待行情源补齐"),
+            swing_text: `${Number(tick.swing_rate || 0) > 0 ? "+" : ""}${Number(tick.swing_rate || 0).toFixed(2)}%`,
+            range_text: `${String(tick.low ?? "--")} - ${String(tick.high ?? "--")}`,
+            market_text: "A",
+          });
+          return;
+        }
+
+        const response = await fetch("/a_share_matches/project_ticks", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({
+            items: [
+              {
+                symbol: identifier,
+                exchange,
+                market,
+                company_name: companyName,
+                display_name: displayName,
+              },
+            ],
+          }),
+        });
+        if (!response.ok) {
+          throw new Error("request_failed");
+        }
+        const payload = await response.json();
+        const quote = Array.isArray(payload.quotes) ? payload.quotes[0] : null;
+        if (!quote) {
+          throw new Error("quote_unavailable");
+        }
+        renderLiveQuote({
+          price_text: String(quote.price ?? "--"),
+          change_text: `${Number(quote.rate || 0) > 0 ? "+" : ""}${Number(quote.rate || 0).toFixed(2)}%`,
+          market_cap_text: String(quote.market_cap_text || "实时总市值待行情源补齐"),
+          swing_text: `${Number(quote.swing_rate || 0) > 0 ? "+" : ""}${Number(quote.swing_rate || 0).toFixed(2)}%`,
+          range_text: `${String(quote.low ?? "--")} - ${String(quote.high ?? "--")}`,
+          market_text: String(quote.market || market || "--").toUpperCase(),
+        });
+      } catch (error) {
+      }
+    }
+
+    async function refreshLiveQuoteIfNeeded() {
+      if (document.hidden) {
+        return;
+      }
+      LIVE_QUOTE_REFRESH.lastPollStartedAt = Date.now();
+      await loadLiveQuote();
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && Date.now() - LIVE_QUOTE_REFRESH.lastPollStartedAt >= LIVE_QUOTE_REFRESH.pollIntervalMs) {
+        refreshLiveQuoteIfNeeded();
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      applyThemeReturnLink();
+      setQuoteTone(document.getElementById("live-quote-change"), document.getElementById("live-quote-change")?.textContent || "");
+      loadLiveQuote();
+      window.setInterval(refreshLiveQuoteIfNeeded, LIVE_QUOTE_REFRESH.pollIntervalMs);
+    });
+  </script>
+</body>
+</html>

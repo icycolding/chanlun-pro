@@ -28,7 +28,7 @@ from apscheduler.events import (
 )
 from apscheduler.executors.tornado import TornadoExecutor
 from apscheduler.schedulers.tornado import TornadoScheduler
-from flask import Flask, jsonify, redirect, render_template, request, send_file
+from flask import Flask, abort, jsonify, redirect, render_template, request, send_file
 from flask_login import LoginManager, UserMixin, login_required, login_user
 from tzlocal import get_localzone
 
@@ -63,7 +63,10 @@ from .a_share_matches_quotes import (
     normalize_market_codes,
 )
 from .a_share_matches_catalog import (
+    build_theme_index_history,
+    build_theme_index_live,
     get_a_share_match_catalog,
+    get_theme_a_share_index,
     get_theme_related_stock_detail,
 )
 from .a_share_matches_tweets import (
@@ -72,6 +75,11 @@ from .a_share_matches_tweets import (
     build_tweet_summaries,
     get_tweets_data_version,
 )
+from .a_share_stock_analysis import (
+    build_stock_analysis_detail_payload,
+    build_stock_analysis_summaries,
+)
+from .a_share_stock_analysis_workspace import sync_workspace_stock_analysis_payload
 from .tv_chart_request_mode import (
     apply_lite_chart_config_override,
     is_lite_chart_request,
@@ -581,6 +589,60 @@ def create_app(test_config=None):
 
         return jsonify({"quotes": quotes, "unsupported": unsupported})
 
+    @app.route("/a_share_matches/theme_index_history", methods=["POST"])
+    @login_required
+    def a_share_matches_theme_index_history():
+        payload = request.get_json(silent=True) or {}
+        theme_slug = str(payload.get("theme_slug") or "").strip()
+        raw_lookback_days = payload.get("lookback_days")
+        reference_date = str(payload.get("reference_date") or "").strip()
+        lookback_mode = str(raw_lookback_days or "").strip().lower()
+        is_max_range = lookback_mode in {"max", "all"}
+        lookback_days = None if is_max_range else max(1, min(500, int(raw_lookback_days or 250)))
+        index_meta = get_theme_a_share_index(theme_slug)
+        if not index_meta:
+            return jsonify(
+                {
+                    "theme_slug": theme_slug,
+                    "title": "",
+                    "base_value": 1000.0,
+                    "lookback_label": "最长历史" if is_max_range else f"近{int(lookback_days or 250)}日",
+                    "is_max_range": is_max_range,
+                    "coverage": {"used_constituents": 0, "total_constituents": 0, "date_points": 0},
+                    "constituents": [],
+                    "series": [],
+                    "error": "theme_not_found",
+                }
+            ), 404
+
+        result = build_theme_index_history(
+            theme_slug,
+            lookback_days=lookback_days,
+            range_mode="max" if is_max_range else "",
+            reference_date=reference_date,
+        )
+        response_payload = {
+            **result,
+            "lookback_days": "max" if is_max_range else lookback_days,
+            "lookback_label": result.get("lookback_label") or ("最长历史" if is_max_range else f"近{int(lookback_days or 250)}日"),
+            "is_max_range": bool(result.get("is_max_range") or is_max_range),
+            "error": "" if result.get("series") else "history_unavailable",
+        }
+        return jsonify(response_payload)
+
+    @app.route("/a_share_matches/theme_index_snapshots", methods=["POST"])
+    @login_required
+    def a_share_matches_theme_index_snapshots():
+        payload = request.get_json(silent=True) or {}
+        theme_slugs = payload.get("theme_slugs") or []
+        snapshots = []
+        for theme_slug in theme_slugs:
+            normalized_slug = str(theme_slug or "").strip()
+            if not normalized_slug:
+                continue
+            snapshots.append(build_theme_index_live(normalized_slug))
+        return jsonify({"snapshots": snapshots})
+
     @app.route("/a_share_matches/tweet_summaries", methods=["POST"])
     @login_required
     def a_share_matches_tweet_summaries():
@@ -592,6 +654,23 @@ def create_app(test_config=None):
                 "data_version": get_tweets_data_version(),
             }
         )
+
+    @app.route("/a_share_matches/stock_analysis_summaries", methods=["POST"])
+    @login_required
+    def a_share_matches_stock_analysis_summaries():
+        payload = request.get_json(silent=True) or {}
+        items = payload.get("items") or []
+        return jsonify(
+            {
+                "summaries": build_stock_analysis_summaries(items),
+            }
+        )
+
+    @app.route("/api/workspace/stock-analysis/sync", methods=["POST"])
+    @login_required
+    def workspace_stock_analysis_sync():
+        payload = request.get_json(silent=True) or {}
+        return jsonify(sync_workspace_stock_analysis_payload(payload))
 
     @app.route("/a_share_matches/tweets/<symbol>/data")
     @login_required
@@ -643,6 +722,44 @@ def create_app(test_config=None):
             data_version=detail_payload["data_version"],
             tweets=detail_payload["tweets"],
         )
+
+    @app.route("/a_share_matches/stock-analysis/<entity_type>/<identifier>")
+    @login_required
+    def a_share_matches_stock_analysis_detail(entity_type, identifier):
+        display_name = str(request.args.get("display_name") or "").strip()
+        company_name = str(request.args.get("company_name") or "").strip()
+        exchange_name = str(request.args.get("exchange") or "").strip()
+        market_name = str(request.args.get("market") or "").strip()
+        numeric_code = str(request.args.get("numeric_code") or "").strip()
+
+        chart_url = ""
+        if entity_type == "match":
+            chart_url = build_chart_url("a", identifier)
+        elif entity_type == "project":
+            chart_target = infer_project_chart_target(
+                symbol=identifier,
+                exchange=exchange_name,
+                market_text=market_name,
+                company_name=company_name,
+            )
+            chart_url = build_chart_url(
+                chart_target.get("market", ""),
+                chart_target.get("code", ""),
+            )
+
+        payload = build_stock_analysis_detail_payload(
+            entity_type=entity_type,
+            identifier=identifier,
+            display_name=display_name,
+            company_name=company_name,
+            exchange=exchange_name,
+            market=market_name,
+            numeric_code=numeric_code,
+            chart_url=chart_url,
+        )
+        if not payload.get("identifier"):
+            abort(404)
+        return render_template("a_share_match_stock_analysis.html", analysis=payload)
 
     @app.route("/ai-chat")
     @login_required

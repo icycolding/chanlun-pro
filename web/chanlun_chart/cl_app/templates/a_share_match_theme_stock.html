@@ -245,6 +245,10 @@
       const prefix = number > 0 ? "+" : "";
       return prefix + number.toFixed(2) + "%";
     }
+    const RELATED_QUOTE_REFRESH = {
+      pollIntervalMs: 30 * 1000,
+      lastPollStartedAt: Date.now(),
+    };
     async function loadRelatedStockQuote() {
       const quoteNode = document.getElementById("related-stock-quote");
       if (!quoteNode) return;
@@ -295,7 +299,20 @@
         quoteNode.textContent = "获取 A 股行情失败。";
       }
     }
-    document.addEventListener("DOMContentLoaded", loadRelatedStockQuote);
+    async function refreshRelatedStockQuoteIfNeeded() {
+      if (document.hidden) return;
+      RELATED_QUOTE_REFRESH.lastPollStartedAt = Date.now();
+      await loadRelatedStockQuote();
+    }
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && Date.now() - RELATED_QUOTE_REFRESH.lastPollStartedAt >= RELATED_QUOTE_REFRESH.pollIntervalMs) {
+        refreshRelatedStockQuoteIfNeeded();
+      }
+    });
+    document.addEventListener("DOMContentLoaded", () => {
+      loadRelatedStockQuote();
+      window.setInterval(refreshRelatedStockQuoteIfNeeded, RELATED_QUOTE_REFRESH.pollIntervalMs);
+    });
   </script>
 </body>
 </html>

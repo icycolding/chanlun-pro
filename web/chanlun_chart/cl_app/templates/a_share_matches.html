@@ -105,18 +105,8 @@
       border-radius: 28px;
       background: linear-gradient(180deg, rgba(10, 20, 38, 0.82), rgba(8, 15, 28, 0.92));
     }
-    .eyebrow {
-      display: inline-flex;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(125, 211, 252, 0.12);
-      color: var(--accent);
-      font-size: 12px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-    }
     .hero h1 {
-      margin: 16px 0 12px;
+      margin: 0 0 12px;
       font-size: clamp(32px, 4vw, 54px);
       line-height: 1.04;
     }
@@ -148,6 +138,316 @@
     .hero-stat-value {
       font-size: 18px;
       font-weight: 700;
+    }
+    .theme-index-section {
+      margin-top: 26px;
+      padding-top: 22px;
+      border-top: 1px solid rgba(132, 169, 255, 0.12);
+    }
+    .theme-index-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .theme-index-title {
+      margin: 0;
+      font-size: 18px;
+    }
+    .theme-index-subtitle {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .theme-index-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+    .theme-index-card {
+      padding: 16px 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(132, 169, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+    }
+    .theme-index-card:hover,
+    .theme-index-card:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(125, 211, 252, 0.28);
+      background: rgba(125, 211, 252, 0.08);
+      outline: none;
+    }
+    .theme-index-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .theme-index-name {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+    .theme-index-samples {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .theme-index-value {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .theme-index-change {
+      margin-top: 6px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .theme-index-change.is-up,
+    .theme-index-value.is-up {
+      color: var(--up);
+    }
+    .theme-index-change.is-down,
+    .theme-index-value.is-down {
+      color: var(--down);
+    }
+    .theme-index-meta {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+    .theme-index-definition {
+      margin-top: 6px;
+      color: rgba(226, 232, 240, 0.72);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+    .theme-index-stats {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .theme-index-stat {
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.54);
+      border: 1px solid rgba(132, 169, 255, 0.1);
+    }
+    .theme-index-stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+    .theme-index-stat-value {
+      display: block;
+      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .theme-index-stat-value.is-up {
+      color: var(--up);
+    }
+    .theme-index-stat-value.is-down {
+      color: var(--down);
+    }
+    .theme-index-history-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+    .theme-index-history-ranges {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .theme-index-history-modes {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .theme-index-history-range {
+      border: 1px solid rgba(132, 169, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .theme-index-history-range.is-active {
+      background: rgba(125, 211, 252, 0.16);
+      border-color: rgba(125, 211, 252, 0.32);
+      color: var(--accent);
+    }
+    .theme-index-history-mode {
+      border: 1px solid rgba(132, 169, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .theme-index-history-mode.is-active {
+      background: rgba(244, 114, 182, 0.14);
+      border-color: rgba(244, 114, 182, 0.28);
+      color: #f9a8d4;
+    }
+    .theme-index-history-status {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .theme-index-history-reference {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .theme-index-history-reference-label {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .theme-index-history-reference-input {
+      min-width: 148px;
+      border-radius: 10px;
+      border: 1px solid rgba(132, 169, 255, 0.16);
+      background: rgba(15, 23, 42, 0.78);
+      color: var(--text);
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+    .theme-index-history-reference-action {
+      border: 1px solid rgba(132, 169, 255, 0.16);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 11px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .theme-index-history-reference-action.is-primary {
+      background: rgba(125, 211, 252, 0.16);
+      border-color: rgba(125, 211, 252, 0.32);
+      color: var(--accent);
+    }
+    .theme-index-history-shell {
+      min-height: 380px;
+      border-radius: 18px;
+      border: 1px solid rgba(132, 169, 255, 0.12);
+      background:
+        radial-gradient(circle at top left, rgba(125, 211, 252, 0.12), transparent 40%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      padding: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .theme-index-history-svg {
+      width: 100%;
+      height: 340px;
+      display: block;
+    }
+    .theme-index-history-overlay {
+      position: absolute;
+      inset: 14px;
+      border-radius: 14px;
+      cursor: crosshair;
+    }
+    .theme-index-history-hover-card {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      min-width: 180px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(132, 169, 255, 0.16);
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--text);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+    }
+    .theme-index-history-hover-card.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .theme-index-history-hover-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .theme-index-history-hover-label {
+      color: var(--muted);
+    }
+    .theme-index-history-hover-value.is-up {
+      color: #22c55e;
+    }
+    .theme-index-history-hover-value.is-down {
+      color: #f87171;
+    }
+    .theme-index-history-legend {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .theme-index-history-legend strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .theme-index-history-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .theme-index-history-metric {
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(132, 169, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .theme-index-history-metric-label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 6px;
+    }
+    .theme-index-history-metric-value {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .theme-index-history-empty {
+      min-height: 340px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .theme-index-history-summary {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
     }
     .theme-section {
       margin-top: 34px;
@@ -330,6 +630,36 @@
       font-weight: 700;
       white-space: nowrap;
     }
+    .analysis-block {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.16);
+    }
+    .analysis-block.is-loading .analysis-summary {
+      color: var(--muted);
+    }
+    .analysis-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .analysis-source {
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .analysis-summary {
+      margin: 10px 0 0;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.75;
+    }
     .research-block,
     .matches-block {
       margin-top: 18px;
@@ -397,6 +727,59 @@
       font-size: 14px;
       line-height: 1.7;
       color: var(--text);
+    }
+    .selection-reason-block {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .selection-reason-title {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .selection-reason-text,
+    .selection-basis-text {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 13px;
+    }
+    .selection-basis-text {
+      margin-top: 8px;
+    }
+    .selection-metric-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .selection-metric-card {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .selection-metric-label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+    .selection-metric-value {
+      display: block;
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+    .selection-metric-detail {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
     }
     .reason-actions {
       margin-top: 14px;
@@ -750,7 +1133,8 @@
       .match-field-grid,
       .stock-quote-grid,
       .match-quote-grid,
-      .snapshot-grid {
+      .snapshot-grid,
+      .selection-metric-grid {
         grid-template-columns: 1fr;
       }
       .tweet-summary-btn { margin-top: 12px; }
@@ -771,7 +1155,6 @@
 <body>
   <main class="page">
     <section class="hero">
-      <div class="eyebrow">{{ catalog.eyebrow }}</div>
       <h1>{{ catalog.title }}</h1>
       <p>{{ catalog.description }}</p>
       <div class="hero-stats">
@@ -792,20 +1175,72 @@
           <span class="hero-stat-value">Serenity Fit 数值 + 等级</span>
         </div>
       </div>
+      <section class="theme-index-section">
+        <div class="theme-index-head">
+          <div>
+            <h2 class="theme-index-title">主题加权指数</h2>
+            <div class="theme-index-subtitle">用每个主题涉及的 A 股股票构建加权指数，权重按 Serenity Fit 与主题扩展层级合成，随页面行情一并刷新。</div>
+          </div>
+        </div>
+        <div class="theme-index-grid">
+          {% for theme in catalog.themes %}
+          <article
+            class="theme-index-card"
+            data-theme-index-card="true"
+            data-theme-index-slug="{{ theme.a_share_index.slug }}"
+            data-theme-index-title="{{ theme.a_share_index.chart_title }}"
+            data-theme-index-codes="{{ theme.a_share_index.codes_csv }}"
+            data-theme-index-weights="{{ theme.a_share_index.weights_csv }}"
+            data-theme-index-base="{{ theme.a_share_index.base_value }}"
+            data-theme-index-lookback="{{ theme.a_share_index.default_lookback_days }}"
+            data-theme-index-reference-date=""
+            role="button"
+            tabindex="0"
+          >
+            <div class="theme-index-card-head">
+              <div class="theme-index-name">{{ theme.a_share_index.name }}</div>
+              <div class="theme-index-samples">{{ theme.a_share_index.sample_count }} 只样本</div>
+            </div>
+            <div class="theme-index-value">1000.00</div>
+            <div class="theme-index-change">计算中</div>
+            <div class="theme-index-meta">{{ theme.a_share_index.weight_method }}</div>
+            <div class="theme-index-stats">
+              <div class="theme-index-stat">
+                <span class="theme-index-stat-label">当日涨跌幅</span>
+                <span class="theme-index-stat-value" data-theme-index-metric="daily-change">--</span>
+              </div>
+              <div class="theme-index-stat">
+                <span class="theme-index-stat-label">当日振幅</span>
+                <span class="theme-index-stat-value" data-theme-index-metric="daily-amplitude">--</span>
+              </div>
+              <div class="theme-index-stat">
+                <span class="theme-index-stat-label">当年涨跌幅</span>
+                <span class="theme-index-stat-value" data-theme-index-metric="ytd-change">--</span>
+              </div>
+              <div class="theme-index-stat">
+                <span class="theme-index-stat-label">当年振幅</span>
+                <span class="theme-index-stat-value" data-theme-index-metric="ytd-amplitude">--</span>
+              </div>
+            </div>
+            <div class="theme-index-definition">基准日待加载，基点 1000</div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
     </section>
     <div class="layout">
       <aside class="theme-nav">
         <div class="theme-nav-title">主题导航</div>
         <div class="theme-nav-links">
           {% for theme in catalog.themes %}
-          <a class="theme-nav-link{% if loop.first %} is-active{% endif %}" href="#theme-{{ theme.slug }}" data-theme-link="theme-{{ theme.slug }}" data-theme-accent style="border-left-color: {{ theme.accent }};">{{ theme.title }}</a>
+          <a class="theme-nav-link{% if loop.first %} is-active{% endif %}" href="#theme-{{ theme.slug }}" data-theme-link="theme-{{ theme.slug }}" data-theme-accent="true">{{ theme.title }}</a>
           {% endfor %}
         </div>
       </aside>
 
       <div class="content">
         {% for theme in catalog.themes %}
-        <section class="theme-section" id="theme-{{ theme.slug }}" data-theme-section data-theme-accent style="--theme-accent: {{ theme.accent }}; --theme-accent-soft: {{ theme.accent_soft }}; --theme-accent-line: {{ theme.accent_line }};">
+        <section class="theme-section" id="theme-{{ theme.slug }}" data-theme-section="true" data-theme-accent="true" style="--theme-accent: {{ theme.accent }}; --theme-accent-soft: {{ theme.accent_soft }}; --theme-accent-line: {{ theme.accent_line }};">
           <div class="theme-header">
             <h2>{{ theme.title }}</h2>
             <div class="theme-count">{{ theme.project_stock_count }} 只项目股票</div>
@@ -870,9 +1305,13 @@
             <article
               class="stock-card"
               data-symbol="{{ stock.symbol }}"
+              data-identifier="{{ stock.symbol }}"
+              data-analysis-type="project"
+              data-analysis-url="{{ stock.analysis_detail_url }}"
               data-company-name="{{ stock.company_name }}"
               data-exchange="{{ stock.exchange }}"
               data-market="{{ stock.market }}"
+              data-numeric-code="{{ stock.numeric_code }}"
               data-display-name="{{ stock.display_name }}"
               style="--theme-accent: {{ theme.accent }}; --theme-accent-soft: {{ theme.accent_soft }}; --theme-accent-line: {{ theme.accent_line }};"
             >
@@ -932,11 +1371,55 @@
                     <span class="snapshot-value">{{ stock.stage_snapshot.name or '阶段待补充' }}</span>
                   </div>
                   <div class="snapshot-card">
-                    <span class="snapshot-label">市值空间</span>
-                    <span class="snapshot-value">{{ stock.market_cap_snapshot.top_scenario or stock.market_cap_snapshot.current_anchor or '空间待补充' }}</span>
+                    <span class="snapshot-label">研究市值</span>
+                    <span class="snapshot-value">{{ stock.market_cap_research.current_text or stock.market_cap_snapshot.current_anchor or '空间待补充' }}</span>
                   </div>
                 </div>
+                <div class="selection-reason-block">
+                  <div class="selection-reason-title">为什么符合</div>
+                  <p class="selection-reason-text">{{ stock.selection_reason.summary }}</p>
+                  <p class="selection-basis-text">依据：{{ stock.selection_reason.fit_basis }}</p>
+                </div>
+                <div class="selection-metric-grid">
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">稀缺性</span>
+                    <span class="selection-metric-value">{{ stock.scarcity_view.label }}</span>
+                    <div class="selection-metric-detail">{{ stock.scarcity_view.detail }}</div>
+                  </div>
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">扩产难度</span>
+                    <span class="selection-metric-value">{{ stock.capacity_view.label }}</span>
+                    <div class="selection-metric-detail">{{ stock.capacity_view.detail }}</div>
+                  </div>
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">涨价能力</span>
+                    <span class="selection-metric-value">{{ stock.pricing_view.label }}</span>
+                    <div class="selection-metric-detail">{{ stock.pricing_view.detail }}</div>
+                  </div>
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">市值空间</span>
+                    <span class="selection-metric-value">{{ stock.market_cap_research.upside_text or stock.market_cap_snapshot.top_scenario or '空间待补充' }}</span>
+                    <div class="selection-metric-detail">当前锚点：{{ stock.market_cap_research.current_text or stock.market_cap_snapshot.current_anchor or '待补充' }}</div>
+                  </div>
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">环节市场规模</span>
+                    <span class="selection-metric-value">{{ stock.segment_market_view.market_size_text }}</span>
+                  </div>
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">公司份额</span>
+                    <span class="selection-metric-value">{{ stock.segment_market_view.company_share_text }}</span>
+                    <div class="selection-metric-detail">份额等级：{{ stock.segment_market_view.share_level }}</div>
+                  </div>
+                </div>
+                <div class="analysis-block is-loading">
+                  <div class="analysis-head">
+                    <div class="block-title">财务分析</div>
+                    <span class="analysis-source" data-analysis-source>{{ stock.analysis_source_label or '等待加载' }}</span>
+                  </div>
+                  <p class="analysis-summary" data-analysis-summary>{{ stock.financial_summary_short or '个股分析加载中...' }}</p>
+                </div>
                 <div class="reason-actions">
+                  <a class="reason-btn" href="{{ stock.analysis_detail_url }}">{{ stock.analysis_detail_label }}</a>
                   <button
                     type="button"
                     class="reason-btn is-secondary"
@@ -965,7 +1448,16 @@
                   </div>
                   <div class="matches-grid">
                     {% for match in stock.main_matches %}
-                    <article class="match-card" data-a-share-code="{{ match.code }}">
+                    <article
+                      class="match-card"
+                      data-a-share-code="{{ match.code }}"
+                      data-identifier="{{ match.code }}"
+                      data-analysis-type="match"
+                      data-analysis-url="{{ match.analysis_detail_url }}"
+                      data-display-name="{{ match.display_name }}"
+                      data-company-name="{{ match.name }}"
+                      data-market="A"
+                    >
                       <div class="match-card-top">
                         <div>
                           <div class="match-heading">{{ match.display_name }}</div>
@@ -995,7 +1487,51 @@
                           <span class="match-field-value">{{ match.major_risk }}</span>
                         </div>
                       </div>
+                      <div class="selection-reason-block">
+                        <div class="selection-reason-title">为什么符合</div>
+                        <p class="selection-reason-text">{{ match.selection_reason.summary }}</p>
+                        <p class="selection-basis-text">依据：{{ match.selection_reason.fit_basis }}</p>
+                      </div>
+                      <div class="selection-metric-grid">
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">稀缺性</span>
+                          <span class="selection-metric-value">{{ match.scarcity_view.label }}</span>
+                          <div class="selection-metric-detail">{{ match.scarcity_view.detail }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">扩产难度</span>
+                          <span class="selection-metric-value">{{ match.capacity_view.label }}</span>
+                          <div class="selection-metric-detail">{{ match.capacity_view.detail }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">涨价能力</span>
+                          <span class="selection-metric-value">{{ match.pricing_view.label }}</span>
+                          <div class="selection-metric-detail">{{ match.pricing_view.detail }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">研究市值</span>
+                          <span class="selection-metric-value">{{ match.market_cap_research.current_text }}</span>
+                          <div class="selection-metric-detail">{{ match.market_cap_research.upside_text }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">环节市场规模</span>
+                          <span class="selection-metric-value">{{ match.segment_market_view.market_size_text }}</span>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">公司份额</span>
+                          <span class="selection-metric-value">{{ match.segment_market_view.company_share_text }}</span>
+                          <div class="selection-metric-detail">份额等级：{{ match.segment_market_view.share_level }}</div>
+                        </div>
+                      </div>
+                      <div class="analysis-block is-loading">
+                        <div class="analysis-head">
+                          <div class="block-title">财务分析</div>
+                          <span class="analysis-source" data-analysis-source>{{ match.analysis_source_label or '等待加载' }}</span>
+                        </div>
+                        <p class="analysis-summary" data-analysis-summary>{{ match.financial_summary_short or '个股分析加载中...' }}</p>
+                      </div>
                       <div class="match-actions">
+                        <a class="reason-btn" href="{{ match.analysis_detail_url }}">{{ match.analysis_detail_label }}</a>
                         <button
                           type="button"
                           class="reason-btn is-secondary"
@@ -1022,7 +1558,16 @@
                   </div>
                   <div class="matches-grid">
                     {% for match in stock.candidate_matches %}
-                    <article class="match-card" data-a-share-code="{{ match.code }}">
+                    <article
+                      class="match-card"
+                      data-a-share-code="{{ match.code }}"
+                      data-identifier="{{ match.code }}"
+                      data-analysis-type="match"
+                      data-analysis-url="{{ match.analysis_detail_url }}"
+                      data-display-name="{{ match.display_name }}"
+                      data-company-name="{{ match.name }}"
+                      data-market="A"
+                    >
                       <div class="match-card-top">
                         <div>
                           <div class="match-heading">{{ match.display_name }}</div>
@@ -1052,7 +1597,51 @@
                           <span class="match-field-value">{{ match.major_risk }}</span>
                         </div>
                       </div>
+                      <div class="selection-reason-block">
+                        <div class="selection-reason-title">为什么符合</div>
+                        <p class="selection-reason-text">{{ match.selection_reason.summary }}</p>
+                        <p class="selection-basis-text">依据：{{ match.selection_reason.fit_basis }}</p>
+                      </div>
+                      <div class="selection-metric-grid">
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">稀缺性</span>
+                          <span class="selection-metric-value">{{ match.scarcity_view.label }}</span>
+                          <div class="selection-metric-detail">{{ match.scarcity_view.detail }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">扩产难度</span>
+                          <span class="selection-metric-value">{{ match.capacity_view.label }}</span>
+                          <div class="selection-metric-detail">{{ match.capacity_view.detail }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">涨价能力</span>
+                          <span class="selection-metric-value">{{ match.pricing_view.label }}</span>
+                          <div class="selection-metric-detail">{{ match.pricing_view.detail }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">研究市值</span>
+                          <span class="selection-metric-value">{{ match.market_cap_research.current_text }}</span>
+                          <div class="selection-metric-detail">{{ match.market_cap_research.upside_text }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">环节市场规模</span>
+                          <span class="selection-metric-value">{{ match.segment_market_view.market_size_text }}</span>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">公司份额</span>
+                          <span class="selection-metric-value">{{ match.segment_market_view.company_share_text }}</span>
+                          <div class="selection-metric-detail">份额等级：{{ match.segment_market_view.share_level }}</div>
+                        </div>
+                      </div>
+                      <div class="analysis-block is-loading">
+                        <div class="analysis-head">
+                          <div class="block-title">财务分析</div>
+                          <span class="analysis-source" data-analysis-source>{{ match.analysis_source_label or '等待加载' }}</span>
+                        </div>
+                        <p class="analysis-summary" data-analysis-summary>{{ match.financial_summary_short or '个股分析加载中...' }}</p>
+                      </div>
                       <div class="match-actions">
+                        <a class="reason-btn" href="{{ match.analysis_detail_url }}">{{ match.analysis_detail_label }}</a>
                         <button
                           type="button"
                           class="reason-btn is-secondary"
@@ -1102,6 +1691,89 @@
     </section>
   </div>
 
+  <div class="chart-modal" id="theme-index-history-modal" aria-hidden="true">
+    <div class="chart-modal-backdrop" data-theme-index-modal-close></div>
+    <section class="chart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="theme-index-history-title">
+      <div class="chart-modal-head">
+        <div>
+          <div class="chart-modal-title" id="theme-index-history-title">主题指数历史价格图</div>
+          <div class="chart-modal-subtitle" id="theme-index-history-subtitle">展示方式：多日主题指数历史图</div>
+        </div>
+        <button type="button" class="chart-modal-close" data-theme-index-modal-close aria-label="关闭">×</button>
+      </div>
+      <div class="chart-modal-body">
+        <div class="theme-index-history-toolbar">
+          <div class="theme-index-history-ranges">
+            <button type="button" class="theme-index-history-range" data-theme-index-range="20">20日</button>
+            <button type="button" class="theme-index-history-range" data-theme-index-range="60">60日</button>
+            <button type="button" class="theme-index-history-range" data-theme-index-range="250">250日</button>
+            <button type="button" class="theme-index-history-range is-active" data-theme-index-range="max">最长</button>
+          </div>
+          <div class="theme-index-history-modes">
+            <button type="button" class="theme-index-history-mode" data-theme-index-mode="line">趋势</button>
+            <button type="button" class="theme-index-history-mode is-active" data-theme-index-mode="candles">K线</button>
+          </div>
+          <div class="theme-index-history-reference">
+            <span class="theme-index-history-reference-label">自定义基准日</span>
+            <input type="date" class="theme-index-history-reference-input" id="theme-index-reference-date-input">
+            <button type="button" class="theme-index-history-reference-action is-primary" id="theme-index-reference-date-apply">应用</button>
+            <button type="button" class="theme-index-history-reference-action" id="theme-index-reference-date-reset">恢复默认</button>
+          </div>
+          <div class="theme-index-history-status" id="theme-index-history-status">加载中...</div>
+        </div>
+        <div class="theme-index-history-shell">
+          <div class="theme-index-history-empty" id="theme-index-history-empty">正在加载历史价格图...</div>
+          <svg class="theme-index-history-svg" id="theme-index-history-svg" viewBox="0 0 980 340" preserveAspectRatio="none"></svg>
+          <div class="theme-index-history-overlay" id="theme-index-history-overlay"></div>
+          <div class="theme-index-history-hover-card" id="theme-index-history-hover-card">
+            <div class="theme-index-history-hover-row"><span class="theme-index-history-hover-label">日期</span><span id="theme-index-history-hover-date">--</span></div>
+            <div class="theme-index-history-hover-row"><span class="theme-index-history-hover-label">开</span><span id="theme-index-history-hover-open">--</span></div>
+            <div class="theme-index-history-hover-row"><span class="theme-index-history-hover-label">高</span><span id="theme-index-history-hover-high">--</span></div>
+            <div class="theme-index-history-hover-row"><span class="theme-index-history-hover-label">低</span><span id="theme-index-history-hover-low">--</span></div>
+            <div class="theme-index-history-hover-row"><span class="theme-index-history-hover-label">收</span><span id="theme-index-history-hover-close">--</span></div>
+            <div class="theme-index-history-hover-row"><span class="theme-index-history-hover-label">变化</span><span id="theme-index-history-hover-change" class="theme-index-history-hover-value">--</span></div>
+          </div>
+        </div>
+        <div class="theme-index-history-legend">
+          <div>区间：<strong id="theme-index-history-label">最长历史</strong></div>
+          <div>最新点位：<strong id="theme-index-history-latest">--</strong></div>
+        </div>
+        <div class="theme-index-history-summary" id="theme-index-history-definition">指数定义：基准日待加载，基点 1000</div>
+        <div class="theme-index-history-metrics">
+          <div class="theme-index-history-metric">
+            <span class="theme-index-history-metric-label">当日涨跌幅</span>
+            <span class="theme-index-history-metric-value" id="theme-index-history-daily-change">--</span>
+          </div>
+          <div class="theme-index-history-metric">
+            <span class="theme-index-history-metric-label">当日振幅</span>
+            <span class="theme-index-history-metric-value" id="theme-index-history-daily-amplitude">--</span>
+          </div>
+          <div class="theme-index-history-metric">
+            <span class="theme-index-history-metric-label">当年涨跌幅</span>
+            <span class="theme-index-history-metric-value" id="theme-index-history-ytd-change">--</span>
+          </div>
+          <div class="theme-index-history-metric">
+            <span class="theme-index-history-metric-label">当年振幅</span>
+            <span class="theme-index-history-metric-value" id="theme-index-history-ytd-amplitude">--</span>
+          </div>
+          <div class="theme-index-history-metric">
+            <span class="theme-index-history-metric-label">区间涨跌</span>
+            <span class="theme-index-history-metric-value" id="theme-index-history-return">--</span>
+          </div>
+          <div class="theme-index-history-metric">
+            <span class="theme-index-history-metric-label">最大回撤</span>
+            <span class="theme-index-history-metric-value" id="theme-index-history-drawdown">--</span>
+          </div>
+          <div class="theme-index-history-metric">
+            <span class="theme-index-history-metric-label">波动区间</span>
+            <span class="theme-index-history-metric-value" id="theme-index-history-range-metric">--</span>
+          </div>
+        </div>
+        <div class="theme-index-history-summary" id="theme-index-history-summary">覆盖情况待加载</div>
+      </div>
+    </section>
+  </div>
+
   <script>
     function normalizeAShareCode(code) {
       const normalized = String(code || "").trim().toUpperCase();
@@ -1144,6 +1816,20 @@
       }
       const prefix = number > 0 ? "+" : "";
       return prefix + number.toFixed(2) + "%";
+    }
+
+    function setThemeIndexMetricValue(node, value) {
+      if (!node) {
+        return;
+      }
+      const number = Number(value);
+      if (!Number.isFinite(number)) {
+        node.textContent = "--";
+        node.classList.remove("is-up", "is-down");
+        return;
+      }
+      node.textContent = formatPercent(number);
+      applyToneClass(node, number);
     }
 
     function buildQuoteNode(card) {
@@ -1219,6 +1905,10 @@
             <span class="stock-quote-label">行情市场</span>
             <span class="stock-quote-value">${String(quote.market || "").toUpperCase()}</span>
           </div>
+          <div class="stock-quote-item">
+            <span class="stock-quote-label">实时市值</span>
+            <span class="stock-quote-value">${quote.market_cap_text || "实时总市值待行情源补齐"}</span>
+          </div>
         </div>
       `;
     }
@@ -1245,8 +1935,99 @@
             <span class="match-quote-label">日内区间</span>
             <span class="match-quote-value">${formatPrice(tick.low)} - ${formatPrice(tick.high)}</span>
           </div>
+          <div class="match-quote-item">
+            <span class="match-quote-label">实时市值</span>
+            <span class="match-quote-value">${tick.market_cap_text || "实时总市值待行情源补齐"}</span>
+          </div>
         </div>
       `;
+    }
+
+    function applyToneClass(node, value) {
+      if (!node) {
+        return;
+      }
+      node.classList.remove("is-up", "is-down");
+      if (value > 0) {
+        node.classList.add("is-up");
+      } else if (value < 0) {
+        node.classList.add("is-down");
+      }
+    }
+
+    function parseThemeIndexWeights(weightsText) {
+      return String(weightsText || "")
+        .split(",")
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+        .map((item) => {
+          const [code, weightText] = item.split(":");
+          return {
+            code: normalizeAShareCode(code || ""),
+            weight: Number(weightText || 0),
+          };
+        })
+        .filter((item) => item.code && Number.isFinite(item.weight) && item.weight > 0);
+    }
+
+    function updateThemeIndexCards(snapshotMap) {
+      const cards = Array.from(document.querySelectorAll('[data-theme-index-card="true"]'));
+      cards.forEach((card) => {
+        const valueNode = card.querySelector(".theme-index-value");
+        const changeNode = card.querySelector(".theme-index-change");
+        const metaNode = card.querySelector(".theme-index-meta");
+        const definitionNode = card.querySelector(".theme-index-definition");
+        const dailyChangeNode = card.querySelector('[data-theme-index-metric="daily-change"]');
+        const dailyAmplitudeNode = card.querySelector('[data-theme-index-metric="daily-amplitude"]');
+        const ytdChangeNode = card.querySelector('[data-theme-index-metric="ytd-change"]');
+        const ytdAmplitudeNode = card.querySelector('[data-theme-index-metric="ytd-amplitude"]');
+        const themeSlug = String(card.dataset.themeIndexSlug || "").trim();
+        const snapshot = snapshotMap.get(themeSlug) || {};
+        const liveIndex = snapshot.live_index || {};
+        const metrics = snapshot.metrics || {};
+        const indexValue = Number(liveIndex.index_value);
+        const rate = Number(liveIndex.change_pct);
+        const updatedCount = Number(liveIndex.used_constituents || 0);
+        const referenceDate = String(snapshot.reference_date || "").trim();
+        const baseValue = Number(snapshot.base_value || card.dataset.themeIndexBase || 1000) || 1000;
+
+        if (!valueNode || !changeNode || !metaNode || !definitionNode) {
+          return;
+        }
+        card.dataset.themeIndexReferenceDate = referenceDate;
+        definitionNode.textContent = referenceDate
+          ? `基准日 ${referenceDate}，基点 ${baseValue.toFixed(0)}`
+          : `基准日待加载，基点 ${baseValue.toFixed(0)}`;
+        if (!Number.isFinite(indexValue) || !Number.isFinite(rate)) {
+          valueNode.textContent = "1000.00";
+          changeNode.textContent = "待获取成分行情";
+          metaNode.textContent = referenceDate ? `基准日 ${referenceDate}，实时指数待更新` : "实时指数待更新";
+          applyToneClass(valueNode, 0);
+          applyToneClass(changeNode, 0);
+          setThemeIndexMetricValue(dailyChangeNode, NaN);
+          setThemeIndexMetricValue(dailyAmplitudeNode, NaN);
+          setThemeIndexMetricValue(ytdChangeNode, NaN);
+          setThemeIndexMetricValue(ytdAmplitudeNode, NaN);
+          return;
+        }
+        valueNode.textContent = indexValue.toFixed(2);
+        changeNode.textContent = `${rate > 0 ? "+" : ""}${rate.toFixed(2)}%`;
+        metaNode.textContent = referenceDate ? `基准日 ${referenceDate}，已更新 ${updatedCount} 只成分股` : `已更新 ${updatedCount} 只成分股`;
+        applyToneClass(valueNode, rate);
+        applyToneClass(changeNode, rate);
+        setThemeIndexMetricValue(dailyChangeNode, metrics.daily_change_pct);
+        setThemeIndexMetricValue(dailyAmplitudeNode, metrics.daily_amplitude_pct);
+        setThemeIndexMetricValue(ytdChangeNode, metrics.ytd_change_pct);
+        setThemeIndexMetricValue(ytdAmplitudeNode, metrics.ytd_amplitude_pct);
+        if (themeSlug) {
+          themeIndexRealtimeCache.set(themeSlug, {
+            date: String(liveIndex.date || new Date().toISOString().slice(0, 10)),
+            index_value: Number(indexValue.toFixed(4)),
+            change_pct: Number(rate.toFixed(4)),
+            used_constituents: updatedCount,
+          });
+        }
+      });
     }
 
     function renderTweetSummary(node, summary) {
@@ -1263,6 +2044,82 @@
       `;
     }
 
+    function renderAnalysisSummary(card, summary) {
+      const block = card.querySelector(".analysis-block");
+      const summaryNode = card.querySelector("[data-analysis-summary]");
+      const sourceNode = card.querySelector("[data-analysis-source]");
+      if (!block || !summaryNode || !sourceNode) {
+        return;
+      }
+      block.classList.remove("is-loading");
+      if (!summary) {
+        summaryNode.textContent = "个股分析加载失败";
+        sourceNode.textContent = "加载失败";
+        return;
+      }
+      const sourceLabel = summary.financial_source === "workspace" ? "Workspace" : "暂无财务数据";
+      sourceNode.textContent = sourceLabel;
+      summaryNode.textContent = summary.financial_summary_short || "暂无财务分析";
+    }
+
+    async function loadStockAnalysisSummaries() {
+      const cards = Array.from(document.querySelectorAll("[data-analysis-type]"));
+      const itemMap = new Map();
+      const cardMap = new Map();
+
+      cards.forEach((card) => {
+        const entityType = String(card.dataset.analysisType || "").trim();
+        const identifier = String(card.dataset.identifier || card.dataset.symbol || card.dataset.aShareCode || "").trim();
+        if (!entityType || !identifier) {
+          return;
+        }
+        const key = `${entityType}:${identifier}`;
+        itemMap.set(key, {
+          entity_type: entityType,
+          identifier,
+          display_name: String(card.dataset.displayName || "").trim(),
+          company_name: String(card.dataset.companyName || "").trim(),
+          exchange: String(card.dataset.exchange || "").trim(),
+          market: String(card.dataset.market || "").trim(),
+          numeric_code: String(card.dataset.numericCode || "").trim(),
+        });
+        const group = cardMap.get(key) || [];
+        group.push(card);
+        cardMap.set(key, group);
+      });
+
+      const items = Array.from(itemMap.values());
+      if (!items.length) {
+        return;
+      }
+
+      try {
+        const response = await fetch("/a_share_matches/stock_analysis_summaries", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({ items }),
+        });
+        if (!response.ok) {
+          throw new Error("request_failed");
+        }
+        const payload = await response.json();
+        const summaryMap = new Map(
+          (payload.summaries || []).map((item) => [`${String(item.entity_type || "")}:${String(item.identifier || "")}`, item])
+        );
+        cardMap.forEach((groupCards, key) => {
+          const summary = summaryMap.get(key);
+          groupCards.forEach((card) => renderAnalysisSummary(card, summary));
+        });
+      } catch (error) {
+        cardMap.forEach((groupCards) => {
+          groupCards.forEach((card) => renderAnalysisSummary(card, null));
+        });
+      }
+    }
+
     const chartModalState = {
       root: null,
       frame: null,
@@ -1274,6 +2131,43 @@
       openNewTab: null,
       currentUrl: "",
       warmUrl: "",
+    };
+    const themeIndexRealtimeCache = new Map();
+    const themeIndexHistoryModalState = {
+      root: null,
+      title: null,
+      subtitle: null,
+      status: null,
+      summary: null,
+      empty: null,
+      svg: null,
+      overlay: null,
+      hoverCard: null,
+      hoverDate: null,
+      hoverOpen: null,
+      hoverHigh: null,
+      hoverLow: null,
+      hoverClose: null,
+      hoverChange: null,
+      label: null,
+      latest: null,
+      definition: null,
+      dailyChangeMetric: null,
+      dailyAmplitudeMetric: null,
+      ytdChangeMetric: null,
+      ytdAmplitudeMetric: null,
+      returnMetric: null,
+      drawdownMetric: null,
+      rangeMetric: null,
+      referenceInput: null,
+      referenceApply: null,
+      referenceReset: null,
+      currentThemeSlug: "",
+      currentLookbackDays: "max",
+      currentMode: "candles",
+      currentSeries: [],
+      currentMetrics: {},
+      currentReferenceDate: "",
     };
 
     function closeChartModal() {
@@ -1403,6 +2297,606 @@
       }
     }
 
+    function normalizeThemeIndexLookback(value) {
+      const normalized = String(value || "").trim().toLowerCase();
+      if (!normalized) {
+        return "max";
+      }
+      if (normalized === "all") {
+        return "max";
+      }
+      return normalized;
+    }
+
+    function normalizeThemeIndexReferenceDate(value) {
+      const normalized = String(value || "").trim();
+      return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : "";
+    }
+
+    function setThemeIndexModeActive(mode) {
+      document.querySelectorAll("[data-theme-index-mode]").forEach((button) => {
+        button.classList.toggle("is-active", String(button.dataset.themeIndexMode || "") === String(mode || ""));
+      });
+    }
+
+    function setThemeIndexRangeActive(days) {
+      const normalizedDays = normalizeThemeIndexLookback(days);
+      document.querySelectorAll("[data-theme-index-range]").forEach((button) => {
+        button.classList.toggle("is-active", normalizeThemeIndexLookback(button.dataset.themeIndexRange || "") === normalizedDays);
+      });
+    }
+
+    function closeThemeIndexHistoryModal() {
+      if (!themeIndexHistoryModalState.root) {
+        return;
+      }
+      themeIndexHistoryModalState.root.classList.remove("is-open");
+      themeIndexHistoryModalState.root.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
+    function openThemeIndexHistoryModal({ title, themeSlug, lookbackDays }) {
+      if (!themeIndexHistoryModalState.root) {
+        return;
+      }
+      themeIndexHistoryModalState.currentThemeSlug = String(themeSlug || "").trim();
+      themeIndexHistoryModalState.currentLookbackDays = normalizeThemeIndexLookback(lookbackDays);
+      themeIndexHistoryModalState.currentReferenceDate = "";
+      themeIndexHistoryModalState.title.textContent = title || "主题指数历史价格图";
+      themeIndexHistoryModalState.subtitle.textContent = "展示方式：主题指数最长历史图";
+      if (themeIndexHistoryModalState.referenceInput) {
+        themeIndexHistoryModalState.referenceInput.value = "";
+      }
+      themeIndexHistoryModalState.root.classList.add("is-open");
+      themeIndexHistoryModalState.root.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      setThemeIndexRangeActive(themeIndexHistoryModalState.currentLookbackDays);
+      loadThemeIndexHistory(themeIndexHistoryModalState.currentThemeSlug, themeIndexHistoryModalState.currentLookbackDays);
+    }
+
+    function positionThemeIndexHoverCard(clientX, clientY) {
+      const overlay = themeIndexHistoryModalState.overlay;
+      const hoverCard = themeIndexHistoryModalState.hoverCard;
+      if (!overlay || !hoverCard) {
+        return;
+      }
+      const rect = overlay.getBoundingClientRect();
+      const relativeX = Math.max(12, Math.min(clientX - rect.left + 14, rect.width - 200));
+      const relativeY = Math.max(12, Math.min(clientY - rect.top + 14, rect.height - 160));
+      hoverCard.style.left = `${relativeX}px`;
+      hoverCard.style.top = `${relativeY}px`;
+    }
+
+    function syncThemeIndexHistoryHover(index, clientX = 0, clientY = 0) {
+      const series = Array.isArray(themeIndexHistoryModalState.currentSeries) ? themeIndexHistoryModalState.currentSeries : [];
+      const point = series[index];
+      const hoverCard = themeIndexHistoryModalState.hoverCard;
+      if (!point || !hoverCard) {
+        return;
+      }
+      const openValue = Number(point.open || 0);
+      const closeValue = Number(point.close || 0);
+      const changePct = openValue ? ((closeValue / openValue) - 1) * 100 : 0;
+      hoverCard.classList.add("is-visible");
+      if (themeIndexHistoryModalState.hoverDate) themeIndexHistoryModalState.hoverDate.textContent = String(point.date || "--");
+      if (themeIndexHistoryModalState.hoverOpen) themeIndexHistoryModalState.hoverOpen.textContent = formatPrice(point.open);
+      if (themeIndexHistoryModalState.hoverHigh) themeIndexHistoryModalState.hoverHigh.textContent = formatPrice(point.high);
+      if (themeIndexHistoryModalState.hoverLow) themeIndexHistoryModalState.hoverLow.textContent = formatPrice(point.low);
+      if (themeIndexHistoryModalState.hoverClose) themeIndexHistoryModalState.hoverClose.textContent = formatPrice(point.close);
+      if (themeIndexHistoryModalState.hoverChange) {
+        themeIndexHistoryModalState.hoverChange.textContent = formatPercent(changePct);
+        themeIndexHistoryModalState.hoverChange.classList.remove("is-up", "is-down");
+        if (changePct > 0) themeIndexHistoryModalState.hoverChange.classList.add("is-up");
+        if (changePct < 0) themeIndexHistoryModalState.hoverChange.classList.add("is-down");
+      }
+      positionThemeIndexHoverCard(clientX, clientY);
+      renderThemeIndexCrosshair(index, buildThemeIndexChartGeometry(series));
+    }
+
+    function hideThemeIndexHistoryHover() {
+      if (themeIndexHistoryModalState.hoverCard) {
+        themeIndexHistoryModalState.hoverCard.classList.remove("is-visible");
+      }
+    }
+
+    function calculateThemeIndexHistorySummary(series) {
+      if (!Array.isArray(series) || !series.length) {
+        return {
+          intervalReturnText: "--",
+          maxDrawdownText: "--",
+          rangeText: "--",
+          intervalReturnValue: 0,
+          maxDrawdownValue: 0,
+        };
+      }
+      const closes = series.map((item) => Number(item.close || 0)).filter((value) => Number.isFinite(value) && value > 0);
+      if (!closes.length) {
+        return {
+          intervalReturnText: "--",
+          maxDrawdownText: "--",
+          rangeText: "--",
+          intervalReturnValue: 0,
+          maxDrawdownValue: 0,
+        };
+      }
+      const firstClose = closes[0];
+      const lastClose = closes[closes.length - 1];
+      const intervalReturn = firstClose ? ((lastClose / firstClose) - 1) * 100 : 0;
+      let peak = closes[0];
+      let maxDrawdown = 0;
+      closes.forEach((value) => {
+        peak = Math.max(peak, value);
+        const drawdown = peak ? ((value / peak) - 1) * 100 : 0;
+        maxDrawdown = Math.min(maxDrawdown, drawdown);
+      });
+      const minClose = Math.min(...closes);
+      const maxClose = Math.max(...closes);
+      return {
+        intervalReturnText: formatPercent(intervalReturn),
+        maxDrawdownText: formatPercent(maxDrawdown),
+        rangeText: `${formatPrice(minClose)} - ${formatPrice(maxClose)}`,
+        intervalReturnValue: intervalReturn,
+        maxDrawdownValue: maxDrawdown,
+      };
+    }
+
+    function applyLivePointToThemeIndexSeries(payload) {
+      const themeSlug = String(payload?.theme_slug || "").trim();
+      const hasCustomReferenceDate = Boolean(normalizeThemeIndexReferenceDate(themeIndexHistoryModalState.currentReferenceDate));
+      const livePoint = !hasCustomReferenceDate && themeSlug ? themeIndexRealtimeCache.get(themeSlug) : null;
+      const series = Array.isArray(payload?.series) ? payload.series.map((item) => ({ ...item })) : [];
+      const liveIndex = payload?.live_index && typeof payload.live_index === "object" ? { ...payload.live_index } : {};
+      const effectiveLive = livePoint ? {
+        ...liveIndex,
+        ...livePoint,
+      } : liveIndex;
+      if (!effectiveLive.date || !Number.isFinite(Number(effectiveLive.index_value || 0))) {
+        return {
+          ...payload,
+          series,
+          live_index: effectiveLive,
+        };
+      }
+      const latestValue = Number(effectiveLive.index_value || 0);
+      const liveDate = String(effectiveLive.date || "");
+      if (!series.length) {
+        return {
+          ...payload,
+          series: [
+            {
+              date: liveDate,
+              open: latestValue,
+              high: latestValue,
+              low: latestValue,
+              close: latestValue,
+            },
+          ],
+          live_index: effectiveLive,
+        };
+      }
+      const lastPoint = { ...series[series.length - 1] };
+      if (String(lastPoint.date || "") === liveDate) {
+        lastPoint.close = latestValue;
+        lastPoint.high = Math.max(Number(lastPoint.high || latestValue), latestValue);
+        lastPoint.low = Math.min(Number(lastPoint.low || latestValue), latestValue);
+        series[series.length - 1] = lastPoint;
+      } else {
+        const previousClose = Number(lastPoint.close || latestValue);
+        series.push({
+          date: liveDate,
+          open: previousClose,
+          high: Math.max(previousClose, latestValue),
+          low: Math.min(previousClose, latestValue),
+          close: latestValue,
+        });
+      }
+      return {
+        ...payload,
+        series,
+        live_index: effectiveLive,
+      };
+    }
+
+    function applyThemeIndexSummary(series) {
+      const summary = calculateThemeIndexHistorySummary(series);
+      if (themeIndexHistoryModalState.returnMetric) {
+        themeIndexHistoryModalState.returnMetric.textContent = summary.intervalReturnText;
+        applyToneClass(themeIndexHistoryModalState.returnMetric, summary.intervalReturnValue);
+      }
+      if (themeIndexHistoryModalState.drawdownMetric) {
+        themeIndexHistoryModalState.drawdownMetric.textContent = summary.maxDrawdownText;
+        applyToneClass(themeIndexHistoryModalState.drawdownMetric, summary.maxDrawdownValue);
+      }
+      if (themeIndexHistoryModalState.rangeMetric) {
+        themeIndexHistoryModalState.rangeMetric.textContent = summary.rangeText;
+      }
+    }
+
+    function applyThemeIndexPerformanceMetrics(metrics) {
+      const normalizedMetrics = metrics && typeof metrics === "object" ? metrics : {};
+      setThemeIndexMetricValue(themeIndexHistoryModalState.dailyChangeMetric, normalizedMetrics.daily_change_pct);
+      setThemeIndexMetricValue(themeIndexHistoryModalState.dailyAmplitudeMetric, normalizedMetrics.daily_amplitude_pct);
+      setThemeIndexMetricValue(themeIndexHistoryModalState.ytdChangeMetric, normalizedMetrics.ytd_change_pct);
+      setThemeIndexMetricValue(themeIndexHistoryModalState.ytdAmplitudeMetric, normalizedMetrics.ytd_amplitude_pct);
+    }
+
+    function buildThemeIndexChartGeometry(series) {
+      const width = 980;
+      const height = 340;
+      const padding = { top: 24, right: 24, bottom: 28, left: 42 };
+      const innerWidth = width - padding.left - padding.right;
+      const innerHeight = height - padding.top - padding.bottom;
+      const allValues = series.flatMap((item) => [Number(item.high || 0), Number(item.low || 0), Number(item.close || 0)]).filter((value) => Number.isFinite(value));
+      const minValue = Math.min(...allValues);
+      const maxValue = Math.max(...allValues);
+      const range = maxValue - minValue || 1;
+      const getX = (index) => padding.left + (innerWidth * index / Math.max(series.length - 1, 1));
+      const getY = (value) => padding.top + ((maxValue - value) / range) * innerHeight;
+      return { width, height, padding, innerWidth, innerHeight, minValue, maxValue, range, getX, getY };
+    }
+
+    function renderThemeIndexCandles(series, geometry) {
+      const { padding, innerWidth, innerHeight, getX, getY, maxValue, range } = geometry;
+      const candleWidth = Math.max(4, Math.min(12, (innerWidth / Math.max(series.length, 1)) * 0.55));
+      const gridValues = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+        y: padding.top + innerHeight * ratio,
+        value: maxValue - range * ratio,
+      }));
+      const dateIndexes = [0, Math.floor((series.length - 1) / 2), series.length - 1].filter((value, index, array) => array.indexOf(value) === index);
+      const candles = series.map((item, index) => {
+        const x = getX(index);
+        const openY = getY(Number(item.open || 0));
+        const closeY = getY(Number(item.close || 0));
+        const highY = getY(Number(item.high || 0));
+        const lowY = getY(Number(item.low || 0));
+        const bodyTop = Math.min(openY, closeY);
+        const bodyHeight = Math.max(Math.abs(closeY - openY), 1.5);
+        const isUp = Number(item.close || 0) >= Number(item.open || 0);
+        const fill = isUp ? "#22c55e" : "#f87171";
+        return `
+          <line x1="${x}" y1="${highY}" x2="${x}" y2="${lowY}" stroke="${fill}" stroke-width="1.4"></line>
+          <rect x="${x - candleWidth / 2}" y="${bodyTop}" width="${candleWidth}" height="${bodyHeight}" rx="1.6" fill="${fill}" fill-opacity="${isUp ? 0.22 : 0.26}" stroke="${fill}" stroke-width="1.4"></rect>
+        `;
+      }).join("");
+      return `
+        ${gridValues.map((item) => `
+          <line class="theme-index-history-grid-line" x1="${padding.left}" y1="${item.y}" x2="${padding.left + innerWidth}" y2="${item.y}" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4 6"></line>
+          <text x="${padding.left - 10}" y="${item.y + 4}" fill="rgba(255,255,255,0.48)" text-anchor="end" font-size="11">${item.value.toFixed(0)}</text>
+        `).join("")}
+        <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + innerHeight}" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+        <line x1="${padding.left}" y1="${padding.top + innerHeight}" x2="${padding.left + innerWidth}" y2="${padding.top + innerHeight}" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+        ${candles}
+        ${dateIndexes.map((index) => `
+          <text x="${getX(index)}" y="${padding.top + innerHeight + 18}" fill="rgba(255,255,255,0.42)" text-anchor="middle" font-size="11">${String(series[index]?.date || "").slice(5)}</text>
+        `).join("")}
+      `;
+    }
+
+    function renderThemeIndexLine(series, geometry) {
+      const { padding, innerWidth, innerHeight, getX, getY, maxValue, range } = geometry;
+      const values = series.map((item) => Number(item.close || 0)).filter((value) => Number.isFinite(value));
+      const firstValue = Number(series[0]?.close || 0);
+      const lastValue = Number(series[series.length - 1]?.close || 0);
+      const trendUp = lastValue >= firstValue;
+      const lineColor = trendUp ? "#22c55e" : "#f87171";
+      const fillTopColor = trendUp ? "rgba(34, 197, 94, 0.28)" : "rgba(248, 113, 113, 0.24)";
+      const points = series.map((item, index) => `${getX(index).toFixed(2)},${getY(Number(item.close || 0)).toFixed(2)}`).join(" ");
+      const latestX = getX(series.length - 1);
+      const latestY = getY(lastValue);
+      const firstX = getX(0);
+      const firstY = getY(firstValue);
+      const gridValues = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+        y: padding.top + innerHeight * ratio,
+        value: maxValue - range * ratio,
+      }));
+      const dateIndexes = [0, Math.floor((series.length - 1) / 2), series.length - 1].filter((value, index, array) => array.indexOf(value) === index);
+      const areaPoints = `${padding.left},${padding.top + innerHeight} ${points} ${padding.left + innerWidth},${padding.top + innerHeight}`;
+      return `
+        <defs>
+          <linearGradient id="theme-index-history-fill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="${fillTopColor}"></stop>
+            <stop offset="100%" stop-color="rgba(125, 211, 252, 0.02)"></stop>
+          </linearGradient>
+        </defs>
+        ${gridValues.map((item) => `
+          <line class="theme-index-history-grid-line" x1="${padding.left}" y1="${item.y}" x2="${padding.left + innerWidth}" y2="${item.y}" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="4 6"></line>
+          <text x="${padding.left - 10}" y="${item.y + 4}" fill="rgba(255,255,255,0.48)" text-anchor="end" font-size="11">${item.value.toFixed(0)}</text>
+        `).join("")}
+        <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + innerHeight}" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+        <line x1="${padding.left}" y1="${padding.top + innerHeight}" x2="${padding.left + innerWidth}" y2="${padding.top + innerHeight}" stroke="rgba(255,255,255,0.12)" stroke-width="1"></line>
+        <polygon points="${areaPoints}" fill="url(#theme-index-history-fill)"></polygon>
+        <polyline points="${points}" fill="none" stroke="${lineColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"></polyline>
+        <circle class="theme-index-history-latest-dot" cx="${latestX}" cy="${latestY}" r="5.5" fill="${lineColor}" stroke="rgba(15, 23, 42, 0.9)" stroke-width="3"></circle>
+        <circle cx="${firstX}" cy="${firstY}" r="3.5" fill="rgba(255,255,255,0.9)"></circle>
+        <text x="${Math.min(latestX + 10, padding.left + innerWidth - 4)}" y="${Math.max(latestY - 10, padding.top + 14)}" fill="${lineColor}" font-size="12" font-weight="700">${lastValue.toFixed(2)}</text>
+        ${dateIndexes.map((index) => `
+          <text x="${getX(index)}" y="${padding.top + innerHeight + 18}" fill="rgba(255,255,255,0.42)" text-anchor="middle" font-size="11">${String(series[index]?.date || "").slice(5)}</text>
+        `).join("")}
+      `;
+    }
+
+    function renderThemeIndexCrosshair(index, geometry) {
+      const svg = themeIndexHistoryModalState.svg;
+      const series = Array.isArray(themeIndexHistoryModalState.currentSeries) ? themeIndexHistoryModalState.currentSeries : [];
+      if (!svg || !geometry || !series[index]) {
+        return;
+      }
+      svg.querySelectorAll(".theme-index-history-crosshair-x, .theme-index-history-crosshair-y").forEach((node) => node.remove());
+      const point = series[index];
+      const x = geometry.getX(index);
+      const y = geometry.getY(Number(point.close || 0));
+      const crosshairMarkup = `
+        <line class="theme-index-history-crosshair-x" x1="${geometry.padding.left}" y1="${y}" x2="${geometry.padding.left + geometry.innerWidth}" y2="${y}" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="3 5"></line>
+        <line class="theme-index-history-crosshair-y" x1="${x}" y1="${geometry.padding.top}" x2="${x}" y2="${geometry.padding.top + geometry.innerHeight}" stroke="rgba(255,255,255,0.22)" stroke-width="1" stroke-dasharray="3 5"></line>
+      `;
+      svg.insertAdjacentHTML("beforeend", crosshairMarkup);
+    }
+
+    function renderThemeIndexHistoryCandles(series) {
+      const svg = themeIndexHistoryModalState.svg;
+      const emptyNode = themeIndexHistoryModalState.empty;
+      if (!svg || !emptyNode) return;
+      svg.innerHTML = "";
+      if (!Array.isArray(series) || !series.length) {
+        emptyNode.style.display = "grid";
+        emptyNode.textContent = "暂无可用历史价格图";
+        return;
+      }
+      emptyNode.style.display = "none";
+      const geometry = buildThemeIndexChartGeometry(series);
+      svg.innerHTML = renderThemeIndexCandles(series, geometry);
+      if (themeIndexHistoryModalState.latest) {
+        themeIndexHistoryModalState.latest.textContent = formatPrice(series[series.length - 1]?.close);
+      }
+      applyThemeIndexSummary(series);
+      applyThemeIndexPerformanceMetrics(themeIndexHistoryModalState.currentMetrics);
+    }
+
+    function renderThemeIndexHistoryChart(series) {
+      const svg = themeIndexHistoryModalState.svg;
+      const emptyNode = themeIndexHistoryModalState.empty;
+      if (!svg || !emptyNode) {
+        return;
+      }
+      svg.innerHTML = "";
+      if (!Array.isArray(series) || !series.length) {
+        emptyNode.style.display = "grid";
+        emptyNode.textContent = "暂无可用历史价格图";
+        return;
+      }
+
+      emptyNode.style.display = "none";
+      const geometry = buildThemeIndexChartGeometry(series);
+      svg.innerHTML = renderThemeIndexLine(series, geometry);
+      if (themeIndexHistoryModalState.latest) {
+        themeIndexHistoryModalState.latest.textContent = formatPrice(series[series.length - 1]?.close);
+      }
+      applyThemeIndexSummary(series);
+      applyThemeIndexPerformanceMetrics(themeIndexHistoryModalState.currentMetrics);
+    }
+
+    async function loadThemeIndexHistory(themeSlug, lookbackDays) {
+      if (!themeIndexHistoryModalState.root || !themeSlug) {
+        return;
+      }
+      const requestedReferenceDate = normalizeThemeIndexReferenceDate(themeIndexHistoryModalState.currentReferenceDate);
+      if (themeIndexHistoryModalState.status) {
+        themeIndexHistoryModalState.status.textContent = "加载中...";
+      }
+      if (themeIndexHistoryModalState.label) {
+        themeIndexHistoryModalState.label.textContent = normalizeThemeIndexLookback(lookbackDays) === "max" ? "最长历史" : `近${String(lookbackDays)}日`;
+      }
+      if (themeIndexHistoryModalState.latest) {
+        themeIndexHistoryModalState.latest.textContent = "--";
+      }
+      if (themeIndexHistoryModalState.summary) {
+        themeIndexHistoryModalState.summary.textContent = "覆盖情况待加载";
+      }
+      if (themeIndexHistoryModalState.definition) {
+        themeIndexHistoryModalState.definition.textContent = "指数定义：基准日待加载，基点 1000";
+      }
+      themeIndexHistoryModalState.currentMetrics = {};
+      applyThemeIndexPerformanceMetrics({});
+      if (themeIndexHistoryModalState.empty) {
+        themeIndexHistoryModalState.empty.style.display = "grid";
+        themeIndexHistoryModalState.empty.textContent = "正在加载历史价格图...";
+      }
+      if (themeIndexHistoryModalState.svg) {
+        themeIndexHistoryModalState.svg.innerHTML = "";
+      }
+
+      try {
+        const response = await fetch("/a_share_matches/theme_index_history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({
+            theme_slug: themeSlug,
+            lookback_days: lookbackDays,
+            reference_date: requestedReferenceDate,
+          }),
+        });
+        const rawPayload = await response.json();
+        const payload = applyLivePointToThemeIndexSeries(rawPayload);
+        if (!response.ok || payload.error === "theme_not_found") {
+          throw new Error("history_unavailable");
+        }
+        themeIndexHistoryModalState.currentSeries = Array.isArray(payload.series) ? payload.series : [];
+        themeIndexHistoryModalState.currentMetrics = payload.metrics && typeof payload.metrics === "object" ? payload.metrics : {};
+        if (themeIndexHistoryModalState.currentMode === "candles") {
+          renderThemeIndexHistoryCandles(themeIndexHistoryModalState.currentSeries);
+        } else {
+          renderThemeIndexHistoryChart(themeIndexHistoryModalState.currentSeries);
+        }
+        hideThemeIndexHistoryHover();
+        if (themeIndexHistoryModalState.status) {
+          themeIndexHistoryModalState.status.textContent = String(payload.lookback_label || "最长历史");
+        }
+        if (themeIndexHistoryModalState.label) {
+          themeIndexHistoryModalState.label.textContent = String(payload.lookback_label || "最长历史");
+        }
+        if (themeIndexHistoryModalState.summary) {
+          const coverage = payload.coverage || {};
+          const scopeText = payload.is_max_range ? "显示当前可获取的全部历史。" : "";
+          themeIndexHistoryModalState.summary.textContent = `已使用 ${Number(coverage.used_constituents || 0)}/${Number(coverage.total_constituents || 0)} 只成分股，生成 ${Number(coverage.date_points || 0)} 个历史点。${scopeText}`;
+        }
+        if (themeIndexHistoryModalState.definition) {
+          const referenceDate = String(payload.reference_date || "").trim();
+          const baseValue = Number(payload.base_value || 1000) || 1000;
+          themeIndexHistoryModalState.currentReferenceDate = normalizeThemeIndexReferenceDate(referenceDate);
+          if (themeIndexHistoryModalState.referenceInput) {
+            themeIndexHistoryModalState.referenceInput.value = themeIndexHistoryModalState.currentReferenceDate;
+          }
+          themeIndexHistoryModalState.definition.textContent = referenceDate
+            ? `指数定义：基准日 ${referenceDate}，基点 ${baseValue.toFixed(0)}`
+            : `指数定义：基点 ${baseValue.toFixed(0)}`;
+        }
+        if ((!payload.series || !payload.series.length) && themeIndexHistoryModalState.empty) {
+          themeIndexHistoryModalState.empty.style.display = "grid";
+          themeIndexHistoryModalState.empty.textContent = "历史数据不足，暂时无法绘图。";
+        }
+      } catch (error) {
+        if (themeIndexHistoryModalState.status) {
+          themeIndexHistoryModalState.status.textContent = "加载失败";
+        }
+        if (themeIndexHistoryModalState.summary) {
+          themeIndexHistoryModalState.summary.textContent = "历史数据不足或暂时不可用。";
+        }
+        if (themeIndexHistoryModalState.definition) {
+          themeIndexHistoryModalState.definition.textContent = "指数定义：基准日待加载，基点 1000";
+        }
+        themeIndexHistoryModalState.currentMetrics = {};
+        applyThemeIndexPerformanceMetrics({});
+        if (themeIndexHistoryModalState.empty) {
+          themeIndexHistoryModalState.empty.style.display = "grid";
+          themeIndexHistoryModalState.empty.textContent = "历史数据不足，暂时无法绘图。";
+        }
+      }
+    }
+
+    function initThemeIndexHistoryModal() {
+      themeIndexHistoryModalState.root = document.getElementById("theme-index-history-modal");
+      if (!themeIndexHistoryModalState.root) {
+        return;
+      }
+      themeIndexHistoryModalState.title = document.getElementById("theme-index-history-title");
+      themeIndexHistoryModalState.subtitle = document.getElementById("theme-index-history-subtitle");
+      themeIndexHistoryModalState.status = document.getElementById("theme-index-history-status");
+      themeIndexHistoryModalState.summary = document.getElementById("theme-index-history-summary");
+      themeIndexHistoryModalState.empty = document.getElementById("theme-index-history-empty");
+      themeIndexHistoryModalState.svg = document.getElementById("theme-index-history-svg");
+      themeIndexHistoryModalState.overlay = document.getElementById("theme-index-history-overlay");
+      themeIndexHistoryModalState.hoverCard = document.getElementById("theme-index-history-hover-card");
+      themeIndexHistoryModalState.hoverDate = document.getElementById("theme-index-history-hover-date");
+      themeIndexHistoryModalState.hoverOpen = document.getElementById("theme-index-history-hover-open");
+      themeIndexHistoryModalState.hoverHigh = document.getElementById("theme-index-history-hover-high");
+      themeIndexHistoryModalState.hoverLow = document.getElementById("theme-index-history-hover-low");
+      themeIndexHistoryModalState.hoverClose = document.getElementById("theme-index-history-hover-close");
+      themeIndexHistoryModalState.hoverChange = document.getElementById("theme-index-history-hover-change");
+      themeIndexHistoryModalState.label = document.getElementById("theme-index-history-label");
+      themeIndexHistoryModalState.latest = document.getElementById("theme-index-history-latest");
+      themeIndexHistoryModalState.definition = document.getElementById("theme-index-history-definition");
+      themeIndexHistoryModalState.dailyChangeMetric = document.getElementById("theme-index-history-daily-change");
+      themeIndexHistoryModalState.dailyAmplitudeMetric = document.getElementById("theme-index-history-daily-amplitude");
+      themeIndexHistoryModalState.ytdChangeMetric = document.getElementById("theme-index-history-ytd-change");
+      themeIndexHistoryModalState.ytdAmplitudeMetric = document.getElementById("theme-index-history-ytd-amplitude");
+      themeIndexHistoryModalState.returnMetric = document.getElementById("theme-index-history-return");
+      themeIndexHistoryModalState.drawdownMetric = document.getElementById("theme-index-history-drawdown");
+      themeIndexHistoryModalState.rangeMetric = document.getElementById("theme-index-history-range-metric");
+      themeIndexHistoryModalState.referenceInput = document.getElementById("theme-index-reference-date-input");
+      themeIndexHistoryModalState.referenceApply = document.getElementById("theme-index-reference-date-apply");
+      themeIndexHistoryModalState.referenceReset = document.getElementById("theme-index-reference-date-reset");
+
+      document.querySelectorAll('[data-theme-index-card="true"]').forEach((card) => {
+        const open = () => {
+          openThemeIndexHistoryModal({
+            title: String(card.dataset.themeIndexTitle || "").trim(),
+            themeSlug: String(card.dataset.themeIndexSlug || "").trim(),
+            lookbackDays: normalizeThemeIndexLookback(card.dataset.themeIndexLookback || "max"),
+          });
+        };
+        card.addEventListener("click", open);
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            open();
+          }
+        });
+      });
+
+      themeIndexHistoryModalState.root.querySelectorAll("[data-theme-index-modal-close]").forEach((button) => {
+        button.addEventListener("click", closeThemeIndexHistoryModal);
+      });
+
+      document.querySelectorAll("[data-theme-index-range]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const days = normalizeThemeIndexLookback(button.dataset.themeIndexRange || "max");
+          themeIndexHistoryModalState.currentLookbackDays = days;
+          setThemeIndexRangeActive(days);
+          loadThemeIndexHistory(themeIndexHistoryModalState.currentThemeSlug, days);
+        });
+      });
+
+      if (themeIndexHistoryModalState.referenceApply) {
+        themeIndexHistoryModalState.referenceApply.addEventListener("click", () => {
+          themeIndexHistoryModalState.currentReferenceDate = normalizeThemeIndexReferenceDate(
+            themeIndexHistoryModalState.referenceInput?.value || ""
+          );
+          loadThemeIndexHistory(
+            themeIndexHistoryModalState.currentThemeSlug,
+            themeIndexHistoryModalState.currentLookbackDays
+          );
+        });
+      }
+
+      if (themeIndexHistoryModalState.referenceReset) {
+        themeIndexHistoryModalState.referenceReset.addEventListener("click", () => {
+          themeIndexHistoryModalState.currentReferenceDate = "";
+          if (themeIndexHistoryModalState.referenceInput) {
+            themeIndexHistoryModalState.referenceInput.value = "";
+          }
+          loadThemeIndexHistory(
+            themeIndexHistoryModalState.currentThemeSlug,
+            themeIndexHistoryModalState.currentLookbackDays
+          );
+        });
+      }
+
+      document.querySelectorAll("[data-theme-index-mode]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const mode = String(button.dataset.themeIndexMode || "candles");
+          themeIndexHistoryModalState.currentMode = mode;
+          setThemeIndexModeActive(mode);
+          if (mode === "candles") {
+            renderThemeIndexHistoryCandles(themeIndexHistoryModalState.currentSeries);
+          } else {
+            renderThemeIndexHistoryChart(themeIndexHistoryModalState.currentSeries);
+          }
+          hideThemeIndexHistoryHover();
+        });
+      });
+
+      if (themeIndexHistoryModalState.overlay) {
+        themeIndexHistoryModalState.overlay.addEventListener("mousemove", (event) => {
+          const series = Array.isArray(themeIndexHistoryModalState.currentSeries) ? themeIndexHistoryModalState.currentSeries : [];
+          if (!series.length) return;
+          const rect = themeIndexHistoryModalState.overlay.getBoundingClientRect();
+          const relativeX = Math.max(0, Math.min(event.clientX - rect.left, rect.width));
+          const index = Math.max(0, Math.min(series.length - 1, Math.round((relativeX / Math.max(rect.width, 1)) * (series.length - 1))));
+          syncThemeIndexHistoryHover(index, event.clientX, event.clientY);
+        });
+        themeIndexHistoryModalState.overlay.addEventListener("mouseleave", hideThemeIndexHistoryHover);
+      }
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && themeIndexHistoryModalState.root.classList.contains("is-open")) {
+          closeThemeIndexHistoryModal();
+        }
+      });
+    }
+
     async function loadAShareMatchQuotes() {
       const cards = Array.from(document.querySelectorAll("[data-a-share-code]"));
       const cardGroups = new Map();
@@ -1463,6 +2957,34 @@
             quoteNode.textContent = "行情加载失败";
           });
         });
+      }
+    }
+
+    async function loadThemeIndexSnapshots() {
+      const cards = Array.from(document.querySelectorAll('[data-theme-index-card="true"]'));
+      const themeSlugs = cards
+        .map((card) => String(card.dataset.themeIndexSlug || "").trim())
+        .filter(Boolean);
+      if (!themeSlugs.length) {
+        return;
+      }
+      try {
+        const response = await fetch("/a_share_matches/theme_index_snapshots", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          credentials: "same-origin",
+          body: JSON.stringify({ theme_slugs: themeSlugs }),
+        });
+        if (!response.ok) {
+          throw new Error("request_failed");
+        }
+        const payload = await response.json();
+        const snapshotMap = new Map((payload.snapshots || []).map((item) => [String(item.theme_slug || ""), item]));
+        updateThemeIndexCards(snapshotMap);
+      } catch (error) {
+        updateThemeIndexCards(new Map());
       }
     }
 
@@ -1548,6 +3070,11 @@
         });
       }
     }
+
+    const PRICE_REFRESH = {
+      pollIntervalMs: 30 * 1000,
+      lastPollStartedAt: Date.now(),
+    };
 
     const TWEET_SUMMARY_REFRESH = {
       dataVersion: "0",
@@ -1645,6 +3172,24 @@
       }
     });
 
+    async function refreshPriceQuotesIfNeeded() {
+      if (document.hidden) {
+        return;
+      }
+      PRICE_REFRESH.lastPollStartedAt = Date.now();
+      await Promise.all([
+        loadProjectStockQuotes(),
+        loadAShareMatchQuotes(),
+        loadThemeIndexSnapshots(),
+      ]);
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden && Date.now() - PRICE_REFRESH.lastPollStartedAt >= PRICE_REFRESH.pollIntervalMs) {
+        refreshPriceQuotesIfNeeded();
+      }
+    });
+
     function initThemeNavigation() {
       const sections = Array.from(document.querySelectorAll("[data-theme-section]"));
       const navLinks = Array.from(document.querySelectorAll("[data-theme-link]"));
@@ -1683,12 +3228,33 @@
       });
     }
 
+    function initAnalysisReturnAnchorMemory() {
+      const detailLinks = Array.from(document.querySelectorAll('a[href*="/a_share_matches/stock-analysis/"]'));
+      if (!detailLinks.length || !window.sessionStorage) {
+        return;
+      }
+
+      detailLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          const themeSection = link.closest("[data-theme-section]");
+          const themeId = String(themeSection?.id || "").trim();
+          const returnUrl = themeId ? `${window.location.pathname}#${themeId}` : window.location.pathname;
+          window.sessionStorage.setItem("aShareMatchesReturnUrl", returnUrl);
+        });
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
       initThemeNavigation();
+      initAnalysisReturnAnchorMemory();
       initChartModal();
+      initThemeIndexHistoryModal();
       loadProjectStockQuotes();
       loadProjectTweetSummaries(true);
       loadAShareMatchQuotes();
+      loadThemeIndexSnapshots();
+      loadStockAnalysisSummaries();
+      window.setInterval(refreshPriceQuotesIfNeeded, PRICE_REFRESH.pollIntervalMs);
       window.setInterval(refreshProjectTweetSummariesIfNeeded, TWEET_SUMMARY_REFRESH.pollIntervalMs);
     });
   </script>

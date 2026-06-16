@@ -41,6 +41,9 @@ def test_build_tick_snapshot_includes_price_and_swing_pct():
     assert snapshot["swing_rate"] == 8.2
     assert snapshot["high"] == 52.0
     assert snapshot["low"] == 48.0
+    assert snapshot["market_cap"] is None
+    assert snapshot["market_cap_text"] == "实时总市值待行情源补齐"
+    assert snapshot["market_cap_source"] == "tick_unavailable"
 
 
 def test_build_tick_snapshot_falls_back_to_last_price_when_reference_missing():
@@ -59,6 +62,24 @@ def test_build_tick_snapshot_falls_back_to_last_price_when_reference_missing():
     snapshot = build_tick_snapshot("000001", tick)
 
     assert snapshot["swing_rate"] == 7.0
+
+
+def test_build_tick_snapshot_includes_market_cap_when_tick_provides_it():
+    tick = SimpleNamespace(
+        code="688498",
+        last=50.0,
+        high=52.0,
+        low=48.0,
+        open=49.0,
+        rate=2.5,
+        market_value=1234567890.0,
+    )
+
+    snapshot = build_tick_snapshot("688498", tick)
+
+    assert snapshot["market_cap"] == 1234567890.0
+    assert snapshot["market_cap_text"] == "12.35亿"
+    assert snapshot["market_cap_source"] == "market_value"
 
 
 def test_normalize_a_share_code_adds_expected_exchange_prefix():

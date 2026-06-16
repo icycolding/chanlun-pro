@@ -829,11 +829,6 @@
                 </button>
               </div>
             </div>
-            <div id="realtime_focus_panel" class="focus-panel">
-              <div class="layui-text" style="text-align: center; color: #6b7280; padding: 20px;">
-                正在加载实时关注...
-              </div>
-            </div>
             <div
               id="news_list"
               class="news-feed"
@@ -915,11 +910,8 @@
       
       // 根据股票代码搜索相关新闻
       search_news_by_code(market, code);
-      if (window.News && typeof window.News.load_realtime_focus === "function") {
-        if (typeof window.News.clear_timesfm_chart_overlay === "function") {
-          window.News.clear_timesfm_chart_overlay();
-        }
-        window.News.load_realtime_focus(true);
+      if (window.News && typeof window.News.clear_timesfm_chart_overlay === "function") {
+        window.News.clear_timesfm_chart_overlay();
       }
     }
 
@@ -1453,8 +1445,6 @@
       // 初始化
       init: function() {
         var self = this;
-        self.bind_timesfm_review_controls();
-        self.bind_timesfm_forecast_controls();
 
         // 绑定刷新按钮事件
         $('#refresh_news').click(function() {
@@ -1484,13 +1474,9 @@
         });
 
         self.load_jin10_watch_status();
-        self.load_realtime_focus();
         setInterval(function() {
           self.load_jin10_watch_status(true);
         }, 15000);
-        setInterval(function() {
-          self.load_realtime_focus(true);
-        }, 1800000);
       },
 
       get_timesfm_review_mode: function() {
@@ -1993,7 +1979,7 @@
         html += '<div style="font-size:13px;font-weight:700;color:#1d4ed8;">主题事件查看</div>';
         html += '<button type="button" class="layui-btn layui-btn-normal layui-btn-xs historical-topic-settings-btn">主题设置</button>';
         html += '</div>';
-        html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">按主题归并实时事件，并同步显示当前资产与联动资产的表现。实时关注不再自动推演，全部改为手动触发。</div>';
+        html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">按主题归并实时事件，并同步显示当前资产与联动资产的表现。当前只保留手动触发的主题检索与推演。</div>';
         html += '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid rgba(59,130,246,0.12);">';
         html += '<div style="font-size:12px;font-weight:700;color:#111827;">自定义主题检索</div>';
         html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">输入一个主题，例如“伊朗战争”“特朗普讲话”“美联储官员讲话”，系统会检索相关新闻、生成汇总，并给出后续推演。你也可以上传 PDF / Word / Excel / Markdown / 文本材料，作为额外证据参与推演。</div>';
@@ -3078,7 +3064,7 @@
           this.render_theme_simulation_preview_content(target, state.result, state.options);
           return;
         }
-        target.html('<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px dashed rgba(59,130,246,0.22);font-size:12px;line-height:1.8;color:#475569;">已保留上次主题：' + (state.options.theme_label || '--') + '。实时关注自动刷新时不会重跑推演，点击“检索主题”后继续查看。</div>');
+        target.html('<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px dashed rgba(59,130,246,0.22);font-size:12px;line-height:1.8;color:#475569;">已保留上次主题：' + (state.options.theme_label || '--') + '。如需更新结果，请点击“检索主题”重新生成。</div>');
       },
 
       request_theme_simulation: function(options) {
@@ -3242,263 +3228,31 @@
         }));
       },
 
-      render_market_data_overview_block: function(data) {
-        var payload = data || {};
-        var asset = payload.asset || {};
-        var summary = payload.summary || {};
-        var events = payload.events || [];
-        var factors = payload.factors || [];
-        var metrics = payload.structure_metrics || [];
-        var dataCatalog = payload.data_catalog || [];
-        var syncPlan = payload.sync_plan || [];
-        var html = '';
-        html += '<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#f8fafc,#f8fbff);border:1px solid rgba(59,130,246,0.16);">';
-        html += '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">';
-        html += '<div><div style="font-size:13px;font-weight:700;color:#0f172a;">市场数据底座</div><div style="margin-top:4px;font-size:12px;color:#64748b;">'
-          + (asset.asset_class || '--') + ' · 最新快照 '
-          + (payload.updated_at ? String(payload.updated_at).replace('T', ' ').slice(0, 19) : '--')
-          + '</div></div>';
-        html += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-        html += '<button type="button" class="layui-btn layui-btn-primary layui-btn-sm market-data-sync-btn" data-market="' + (asset.market || '') + '" data-code="' + (asset.code || '') + '">同步数据</button>';
-        html += '<button type="button" class="layui-btn layui-btn-normal layui-btn-sm market-data-open-btn" data-market="' + (asset.market || '') + '" data-code="' + (asset.code || '') + '">查看详情</button>';
-        html += '</div></div>';
-        html += '<div style="margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;">';
-        html += '<div class="focus-metric-card"><div style="font-size:12px;color:#6b7280;">事件</div><div style="margin-top:4px;font-size:18px;font-weight:700;color:#111827;">' + Number(summary.event_count || 0) + '</div></div>';
-        html += '<div class="focus-metric-card"><div style="font-size:12px;color:#6b7280;">因子</div><div style="margin-top:4px;font-size:18px;font-weight:700;color:#111827;">' + Number(summary.factor_count || 0) + '</div></div>';
-        html += '<div class="focus-metric-card"><div style="font-size:12px;color:#6b7280;">结构</div><div style="margin-top:4px;font-size:18px;font-weight:700;color:#111827;">' + Number(summary.metric_count || 0) + '</div></div>';
-        html += '<div class="focus-metric-card"><div style="font-size:12px;color:#6b7280;">验证</div><div style="margin-top:4px;font-size:18px;font-weight:700;color:#111827;">' + Number(summary.reaction_count || 0) + '</div></div>';
-        html += '</div>';
-        if (dataCatalog.length > 0) {
-          html += '<div style="margin-top:10px;font-size:12px;font-weight:700;color:#111827;">数据类型覆盖</div>';
-          html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">已同步 ' + Number(summary.catalog_synced || 0) + ' / ' + Number(summary.catalog_total || dataCatalog.length) + ' 类</div>';
-          html += '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">';
-          dataCatalog.slice(0, 8).forEach(function(item) {
-            var tone = Number(item.count || 0) > 0 ? '#dcfce7|#166534' : ((item.sync_enabled ? '#eff6ff|#1d4ed8' : '#f3f4f6|#6b7280').split('|'));
-            var colors = Array.isArray(tone) ? tone : String(tone).split('|');
-            html += '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:999px;background:' + colors[0] + ';color:' + colors[1] + ';font-size:11px;">' + (item.label || '--') + ' · ' + (item.status || '--') + '</span>';
-          });
-          html += '</div>';
-        }
-        if (events.length > 0) {
-          html += '<div style="margin-top:10px;font-size:12px;font-weight:700;color:#111827;">最新事件</div>';
-          events.slice(0, 2).forEach(function(item) {
-            html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">• ' + (item.title || '--') + ' · ' + ((item.published_at || '').replace('T', ' ').slice(0, 16) || '--') + '</div>';
-          });
-        }
-        if (factors.length > 0) {
-          html += '<div style="margin-top:10px;font-size:12px;font-weight:700;color:#111827;">关键因子</div>';
-          factors.slice(0, 2).forEach(function(item) {
-            html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">• ' + (item.factor_name || '--') + '：' + (item.value === null || item.value === undefined ? '--' : item.value) + ' ' + (item.unit || '') + '</div>';
-          });
-        }
-        if (!events.length && !factors.length && !metrics.length) {
-          html += '<div style="margin-top:10px;font-size:12px;line-height:1.8;color:#92400e;">当前还没有同步到该资产相关的数据。点击“同步数据”后，就可以直接看到事件、因子、结构和验证快照。</div>';
-        } else if (syncPlan.length > 0) {
-          html += '<div style="margin-top:10px;font-size:11px;line-height:1.8;color:#64748b;">当前可同步：' + syncPlan.slice(0, 4).map(function(item) { return item.label || item.dataset || '--'; }).join('、') + '</div>';
-        }
-        html += '</div>';
-        return html;
+      render_market_data_overview_block: function() {
+        return '';
       },
 
-      render_market_data_detail: function(data) {
-        var payload = data || {};
-        var asset = payload.asset || {};
-        var summary = payload.summary || {};
-        var dataCatalog = payload.data_catalog || [];
-        var analysisPlaybook = payload.analysis_playbook || [];
-        var sections = [
-          { title: '事件事实', items: payload.events || [], render: function(item) { return (item.title || '--') + ' · ' + (item.source_name || '--') + ' · ' + ((item.published_at || '').replace('T', ' ').slice(0, 19) || '--'); } },
-          { title: '因子快照', items: payload.factors || [], render: function(item) { return (item.factor_group || '--') + ' / ' + (item.factor_name || '--') + '：' + (item.value === null || item.value === undefined ? '--' : item.value) + ' ' + (item.unit || '') + ' · ' + (item.symbol || '--'); } },
-          { title: '结构指标', items: payload.structure_metrics || [], render: function(item) { return (item.metric_name || '--') + '：' + (item.metric_value === null || item.metric_value === undefined ? '--' : item.metric_value) + (item.window ? ' · ' + item.window : ''); } },
-          { title: '价格验证', items: payload.price_reactions || [], render: function(item) { return (item.symbol || '--') + ' · 30m ' + (item.return_30m_pct === null || item.return_30m_pct === undefined ? '--' : item.return_30m_pct) + '% · 120m ' + (item.return_120m_pct === null || item.return_120m_pct === undefined ? '--' : item.return_120m_pct) + '%'; } },
-          { title: 'Agent 日志', items: payload.agent_logs || [], render: function(item) { return (item.agent_name || '--') + ' · ' + (item.thesis || '--'); } }
-        ];
-        var html = '<div style="padding:18px 20px 8px;">';
-        html += '<div style="padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,#eff6ff,#f8fbff);border:1px solid rgba(59,130,246,0.16);">';
-        html += '<div style="font-size:16px;font-weight:700;color:#111827;">' + (asset.name || asset.code || '当前资产') + ' 数据底座</div>';
-        html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">市场：' + (asset.market || '--') + ' · 代码：' + (asset.code || '--') + ' · 资产框架：' + (asset.asset_class || '--') + '</div>';
-        html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">覆盖类型：已同步 ' + Number(summary.catalog_synced || 0) + ' / ' + Number(summary.catalog_total || dataCatalog.length) + ' 类 · 事件 ' + Number(summary.event_count || 0) + ' · 因子 ' + Number(summary.factor_count || 0) + ' · 结构 ' + Number(summary.metric_count || 0) + '</div>';
-        html += '</div>';
-        if (dataCatalog.length) {
-          html += '<div style="margin-top:14px;"><div style="font-size:13px;font-weight:700;color:#111827;">全量数据类型</div>';
-          dataCatalog.forEach(function(item) {
-            var statusColor = Number(item.count || 0) > 0 ? '#166534' : (item.sync_enabled ? '#1d4ed8' : '#6b7280');
-            html += '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid rgba(15,23,42,0.08);">';
-            html += '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;flex-wrap:wrap;">';
-            html += '<div style="font-size:12px;font-weight:700;color:#111827;">' + (item.label || '--') + ' <span style="font-weight:400;color:#64748b;">· ' + (item.storage || '--') + '</span></div>';
-            html += '<div style="font-size:11px;color:' + statusColor + ';">' + (item.status || '--') + ' · ' + Number(item.count || 0) + ' 条</div>';
-            html += '</div>';
-            html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#475569;">作用：' + (item.description || '--') + '</div>';
-            html += '<div style="margin-top:4px;font-size:12px;line-height:1.8;color:#334155;">最佳用法：' + (item.analysis || '--') + '</div>';
-            html += '</div>';
-          });
-          html += '</div>';
-        }
-        if (analysisPlaybook.length) {
-          html += '<div style="margin-top:14px;"><div style="font-size:13px;font-weight:700;color:#111827;">最佳应用与分析</div>';
-          analysisPlaybook.forEach(function(item) {
-            html += '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px solid rgba(15,23,42,0.06);font-size:12px;line-height:1.8;color:#475569;">';
-            html += '<div style="font-weight:700;color:#111827;">' + (item.step || '--') + ' <span style="font-weight:400;color:#64748b;">· ' + (item.focus || '--') + '</span></div>';
-            html += '<div style="margin-top:4px;">' + (item.method || '--') + '</div>';
-            html += '</div>';
-          });
-          html += '</div>';
-        }
-        sections.forEach(function(section) {
-          html += '<div style="margin-top:14px;">';
-          html += '<div style="font-size:13px;font-weight:700;color:#111827;">' + section.title + '</div>';
-          if (!section.items.length) {
-            html += '<div style="margin-top:8px;font-size:12px;color:#6b7280;">暂无数据</div>';
-          } else {
-            section.items.slice(0, 12).forEach(function(item) {
-              html += '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff;border:1px solid rgba(15,23,42,0.08);font-size:12px;line-height:1.8;color:#475569;">' + section.render(item) + '</div>';
-            });
-          }
-          html += '</div>';
-        });
-        if (payload.sync_result && payload.sync_result.tasks) {
-          html += '<div style="margin-top:14px;"><div style="font-size:13px;font-weight:700;color:#111827;">最近同步</div>';
-          payload.sync_result.tasks.forEach(function(item) {
-            html += '<div style="margin-top:8px;font-size:12px;line-height:1.8;color:' + (item.error ? '#b45309' : '#15803d') + ';">' + (item.label || item.dataset || '--') + ' · 写入 ' + Number(item.saved || 0) + ' 条' + (item.error ? ' · ' + item.error : '') + '</div>';
-          });
-          html += '</div>';
-        }
-        html += '</div>';
-        return html;
+      render_market_data_detail: function() {
+        return '';
       },
 
-      load_market_data_overview: function(container, options) {
+      load_market_data_overview: function(container) {
         var target = container && container.jquery ? container : $(container);
-        if (!target.length) {
-          return;
-        }
-        var requestData = $.extend({
-          current_market: '',
-          current_code: '',
-          silent: false
-        }, options || {});
-        if (!requestData.current_market || !requestData.current_code) {
+        if (target.length) {
           target.html('');
-          return;
         }
-        if (!requestData.silent) {
-          target.html('<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#f8fafc;border:1px solid #e5e7eb;font-size:12px;color:#6b7280;"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 正在加载市场数据底座...</div>');
-        }
-        var self = this;
-        $.ajax({
-          url: '/api/news/market_data/view',
-          type: 'GET',
-          data: {
-            current_market: requestData.current_market,
-            current_code: requestData.current_code,
-            limit: 8
-          },
-          success: function(response) {
-            if (!response || response.code !== 0 || !response.data) {
-              target.html('<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid rgba(245,158,11,0.18);font-size:12px;color:#92400e;">加载市场数据失败：' + ((response && response.msg) || '未知错误') + '</div>');
-              return;
-            }
-            self.currentMarketDataView = response.data;
-            target.html(self.render_market_data_overview_block(response.data));
-          },
-          error: function() {
-            target.html('<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid rgba(245,158,11,0.18);font-size:12px;color:#92400e;">加载市场数据失败，请稍后重试</div>');
-          }
-        });
       },
 
       sync_market_data: function(options) {
         var requestData = $.extend({
-          current_market: '',
-          current_code: '',
-          onSuccess: null,
-          onError: null
+          onSuccess: null
         }, options || {});
-        $.ajax({
-          url: '/api/news/market_data/sync',
-          type: 'POST',
-          contentType: 'application/json',
-          data: JSON.stringify({
-            current_market: requestData.current_market,
-            current_code: requestData.current_code
-          }),
-          success: function(response) {
-            if (!response || response.code !== 0 || !response.data) {
-              if (typeof requestData.onError === 'function') {
-                requestData.onError((response && response.msg) || '同步市场数据失败');
-              }
-              return;
-            }
-            if (typeof requestData.onSuccess === 'function') {
-              requestData.onSuccess(response.data);
-            }
-          },
-          error: function() {
-            if (typeof requestData.onError === 'function') {
-              requestData.onError('同步市场数据失败，请稍后重试');
-            }
-          }
-        });
+        if (typeof requestData.onSuccess === 'function') {
+          requestData.onSuccess({});
+        }
       },
 
-      open_market_data_center: function(options) {
-        var self = this;
-        var requestData = $.extend({
-          current_market: '',
-          current_code: ''
-        }, options || {});
-        if (!requestData.current_market || !requestData.current_code) {
-          layui.layer.msg('缺少市场数据查看参数');
-          return;
-        }
-        var payload = self.currentMarketDataView;
-        if (payload && payload.asset && payload.asset.market === requestData.current_market && payload.asset.code === requestData.current_code) {
-          layui.layer.open({
-            type: 1,
-            title: '市场数据底座',
-            area: ['76%', '84%'],
-            shadeClose: true,
-            maxmin: true,
-            content: self.render_market_data_detail(payload),
-            btn: ['关闭'],
-            btnAlign: 'c'
-          });
-          return;
-        }
-        var loadingIndex = layui.layer.load(1, {shade: [0.15, '#000']});
-        $.ajax({
-          url: '/api/news/market_data/view',
-          type: 'GET',
-          data: {
-            current_market: requestData.current_market,
-            current_code: requestData.current_code,
-            limit: 12
-          },
-          success: function(response) {
-            layui.layer.close(loadingIndex);
-            if (!response || response.code !== 0 || !response.data) {
-              layui.layer.msg((response && response.msg) || '加载市场数据失败');
-              return;
-            }
-            self.currentMarketDataView = response.data;
-            layui.layer.open({
-              type: 1,
-              title: '市场数据底座',
-              area: ['76%', '84%'],
-              shadeClose: true,
-              maxmin: true,
-              content: self.render_market_data_detail(response.data),
-              btn: ['关闭'],
-              btnAlign: 'c'
-            });
-          },
-          error: function() {
-            layui.layer.close(loadingIndex);
-            layui.layer.msg('加载市场数据失败，请稍后重试');
-          }
-        });
-      },
-
+      open_market_data_center: function() {},
       build_timesfm_review_cache_key: function(market, code, reviewDays, frequency, contextLength) {
         return [
           String(market || '').trim().toLowerCase(),
@@ -3615,42 +3369,36 @@
 
       bind_timesfm_review_controls: function() {
         var self = this;
-        $(document).off("click.timesfmReviewMode").on("click.timesfmReviewMode", "[data-timesfm-review-mode]", function() {
-          self.set_timesfm_review_mode($(this).attr("data-timesfm-review-mode"));
-          self.load_realtime_focus(true);
+        $(document).off("click.timesfmReviewMode").on("click.timesfmReviewMode", "[data-forecast-disabled-review-mode]", function() {
+          self.set_timesfm_review_mode($(this).attr("data-forecast-disabled-review-mode"));
         });
-        $(document).off("click.timesfmReviewDays").on("click.timesfmReviewDays", "[data-timesfm-review-days]", function() {
-          self.set_timesfm_review_days($(this).attr("data-timesfm-review-days"));
+        $(document).off("click.timesfmReviewDays").on("click.timesfmReviewDays", "[data-forecast-disabled-review-days]", function() {
+          self.set_timesfm_review_days($(this).attr("data-forecast-disabled-review-days"));
           self.load_timesfm_review(Utils.get_market(), Utils.get_code());
         });
-        $(document).off("click.timesfmReviewFrequency").on("click.timesfmReviewFrequency", "[data-timesfm-review-frequency]", function() {
-          self.set_timesfm_review_frequency($(this).attr("data-timesfm-review-frequency"));
+        $(document).off("click.timesfmReviewFrequency").on("click.timesfmReviewFrequency", "[data-forecast-disabled-review-frequency]", function() {
+          self.set_timesfm_review_frequency($(this).attr("data-forecast-disabled-review-frequency"));
           self.load_timesfm_review(Utils.get_market(), Utils.get_code());
         });
-        $(document).off("click.timesfmReviewSample").on("click.timesfmReviewSample", "[data-timesfm-review-sample]", function() {
-          self.set_timesfm_review_context_length($(this).attr("data-timesfm-review-sample"));
+        $(document).off("click.timesfmReviewSample").on("click.timesfmReviewSample", "[data-forecast-disabled-review-sample]", function() {
+          self.set_timesfm_review_context_length($(this).attr("data-forecast-disabled-review-sample"));
           self.load_timesfm_review(Utils.get_market(), Utils.get_code());
         });
-        $(document).off("click.timesfmReviewRefresh").on("click.timesfmReviewRefresh", "[data-timesfm-review-refresh]", function() {
+        $(document).off("click.timesfmReviewRefresh").on("click.timesfmReviewRefresh", "[data-forecast-disabled-review-refresh]", function() {
           self.load_timesfm_review(Utils.get_market(), Utils.get_code(), { force: true });
         });
       },
 
       bind_timesfm_forecast_controls: function() {
         var self = this;
-        $(document).off("click.timesfmForecastFrequency").on("click.timesfmForecastFrequency", "[data-timesfm-forecast-frequency]", function() {
-          self.set_timesfm_forecast_frequency($(this).attr("data-timesfm-forecast-frequency"));
-          self.load_realtime_focus(true);
+        $(document).off("click.timesfmForecastFrequency").on("click.timesfmForecastFrequency", "[data-forecast-disabled-forecast-frequency]", function() {
+          self.set_timesfm_forecast_frequency($(this).attr("data-forecast-disabled-forecast-frequency"));
         });
-        $(document).off("click.timesfmForecastSample").on("click.timesfmForecastSample", "[data-timesfm-forecast-sample]", function() {
-          self.set_timesfm_forecast_context_length($(this).attr("data-timesfm-forecast-sample"));
-          self.load_realtime_focus(true);
+        $(document).off("click.timesfmForecastSample").on("click.timesfmForecastSample", "[data-forecast-disabled-forecast-sample]", function() {
+          self.set_timesfm_forecast_context_length($(this).attr("data-forecast-disabled-forecast-sample"));
         });
-        $(document).off("click.timesfmOverlayTarget").on("click.timesfmOverlayTarget", "[data-timesfm-overlay-target]", function() {
-          self.set_timesfm_overlay_target($(this).attr("data-timesfm-overlay-target"));
-          if (self.currentRealtimeFocusData) {
-            self.render_realtime_focus(self.currentRealtimeFocusData);
-          }
+        $(document).off("click.timesfmOverlayTarget").on("click.timesfmOverlayTarget", "[data-forecast-disabled-overlay-target]", function() {
+          self.set_timesfm_overlay_target($(this).attr("data-forecast-disabled-overlay-target"));
           self.render_timesfm_chart_overlay(self.currentTimesfmForecast);
         });
       },
@@ -3771,7 +3519,7 @@
 
         function targetButton(value, label) {
           var active = overlayTarget === value;
-          return '<button type="button" data-timesfm-overlay-target="' + value + '"'
+          return '<button type="button" data-forecast-disabled-overlay-target="' + value + '"'
             + ' style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;'
             + (active ? 'background:#0f766e;color:#fff;' : 'background:rgba(255,255,255,0.9);color:#0f766e;border:1px solid rgba(15,118,110,0.18);')
             + '">' + label + '</button>';
@@ -3788,7 +3536,7 @@
         var html = '';
         html += '<div style="backdrop-filter:blur(10px);background:rgba(255,255,255,0.84);border:1px solid rgba(186,230,253,0.95);border-radius:14px;box-shadow:0 10px 24px rgba(15,23,42,0.12);padding:12px 12px 10px;">';
         html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;">';
-        html += '<div><div style="font-size:12px;font-weight:700;color:#0f766e;">TimesFM 主图叠加</div><div style="margin-top:4px;font-size:11px;color:#64748b;">' + frequencyLabel + ' · 当前资产预测路径覆盖</div></div>';
+        html += '<div><div style="font-size:12px;font-weight:700;color:#0f766e;">预测模块 主图叠加</div><div style="margin-top:4px;font-size:11px;color:#64748b;">' + frequencyLabel + ' · 当前资产预测路径覆盖</div></div>';
         html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
         html += targetButton('all', '全部');
         html += targetButton('primary', forecastLabels.primary || '下一周期');
@@ -3956,432 +3704,14 @@
           }
         });
       },
+      load_realtime_focus: function() {},
 
-      load_realtime_focus: function(silent) {
-        var self = this;
-        var panel = $("#realtime_focus_panel");
-        var currentMarket = Utils.get_market();
-        var currentCode = Utils.get_code();
-        var forecastFrequency = self.get_timesfm_forecast_frequency();
-        var forecastContextLength = self.get_timesfm_forecast_context_length();
+      handle_realtime_focus_alert: function() {},
 
-        if (!currentMarket || !currentCode) {
-          self.currentRealtimeFocusData = null;
-          self.currentTimesfmForecast = null;
-          self.clear_timesfm_chart_overlay();
-          panel.html('<div class="layui-text" style="text-align: center; color: #6b7280; padding: 20px;">请选择资产后查看实时关注</div>');
-          return;
-        }
-
-        if (!silent) {
-          panel.html('<div class="layui-text" style="text-align: center; color: #6b7280; padding: 20px;"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop"></i> 正在加载实时关注...</div>');
-        }
-
-        $.ajax({
-          url: "/api/news/realtime_focus",
-          type: "GET",
-          data: {
-            current_market: currentMarket,
-            current_code: currentCode,
-            timesfm_frequency: forecastFrequency,
-            timesfm_context_length: forecastContextLength,
-          },
-          success: function(response) {
-            if (response.code === 0 && response.data) {
-              self.currentRealtimeFocusData = response.data;
-              self.currentTimesfmForecast = response.data.timesfm_forecast || {};
-              self.render_realtime_focus(response.data);
-              self.render_timesfm_chart_overlay(self.currentTimesfmForecast);
-              self.handle_realtime_focus_alert(response.data);
-              self.load_timesfm_review(currentMarket, currentCode);
-            } else if (!silent) {
-              self.currentRealtimeFocusData = null;
-              self.currentTimesfmForecast = null;
-              self.clear_timesfm_chart_overlay();
-              panel.html('<div class="layui-text" style="text-align: center; color: #ff5722; padding: 20px;">加载实时关注失败: ' + (response.msg || '未知错误') + '</div>');
-            }
-          },
-          error: function() {
-            self.currentRealtimeFocusData = null;
-            self.currentTimesfmForecast = null;
-            self.clear_timesfm_chart_overlay();
-            if (!silent) {
-              panel.html('<div class="layui-text" style="text-align: center; color: #ff5722; padding: 20px;">加载实时关注失败，请稍后重试</div>');
-            }
-          },
-        });
-      },
-
-      handle_realtime_focus_alert: function(data) {
-        var panel = $("#realtime_focus_panel");
-        var asset = data.asset || {};
-        var urgentAlert = data.urgent_alert || null;
-        if (!urgentAlert || !urgentAlert.enabled || !urgentAlert.signature) {
-          return;
-        }
-
-        panel.addClass("focus-panel-urgent");
-        setTimeout(function() {
-          panel.removeClass("focus-panel-urgent");
-        }, 4500);
-
-        var assetCode = asset.code || Utils.get_code() || "UNKNOWN";
-        var lastSignature = this.realtimeFocusAlertMemory[assetCode];
-        if (lastSignature === urgentAlert.signature) {
-          return;
-        }
-        this.realtimeFocusAlertMemory[assetCode] = urgentAlert.signature;
-
-        var causeTypeLabelMap = {
-          direct_news: "直接新闻驱动",
-          driver_news: "驱动线索传导",
-          cross_asset: "跨资产共振",
-          price_only: "价格先行异动"
-        };
-
-        layui.layer.open({
-          type: 1,
-          title: '⚠️ 价格突变提醒',
-          area: ['520px', 'auto'],
-          shade: 0.18,
-          shadeClose: true,
-          closeBtn: 1,
-          content:
-            '<div style="padding:18px 20px 10px;">' +
-              '<div style="padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#fef2f2,#fff7ed);border:1px solid rgba(220,38,38,0.16);">' +
-                '<div style="font-size:18px;font-weight:700;color:#991b1b;">' + (urgentAlert.title || (assetCode + ' 出现异常波动')) + '</div>' +
-                '<div style="margin-top:8px;font-size:13px;color:#7f1d1d;line-height:1.8;">' +
-                  '5分钟涨跌：' + ((urgentAlert.return_pct || 0).toFixed(3)) + '% ，区间振幅：' + ((urgentAlert.range_pct || 0).toFixed(3)) + '%<br>' +
-                  '推断原因：' + (causeTypeLabelMap[urgentAlert.cause_type] || '盘中异动') + ' · ' + (urgentAlert.cause_title || '暂无明确原因') +
-                '</div>' +
-              '</div>' +
-              '<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid rgba(15,23,42,0.08);font-size:13px;line-height:1.8;color:#374151;">' +
-                (urgentAlert.cause_summary || '系统正在继续跟踪这次价格突变的原因。') +
-              '</div>' +
-            '</div>',
-          btn: ['知道了'],
-          btnAlign: 'c'
-        });
-      },
-
-      render_realtime_focus: function(data) {
-        var panel = $("#realtime_focus_panel");
-        var previousInput = panel.find('.custom-theme-input');
-        var previousDraftThemeLabel = previousInput.length ? String(previousInput.val() || '') : '';
-        var restoreInputFocus = !!(previousInput.length && previousInput.is(':focus'));
-        var restoreSelectionStart = restoreInputFocus && previousInput.length && previousInput[0] ? previousInput[0].selectionStart : null;
-        var restoreSelectionEnd = restoreInputFocus && previousInput.length && previousInput[0] ? previousInput[0].selectionEnd : null;
-        var asset = data.asset || {};
-        var priceState = data.price_state || {};
-        var alerts = data.alerts || [];
-        var directNews = data.direct_news || [];
-        var driverNews = data.driver_news || [];
-        var crossAssetWatch = data.cross_asset_watch || [];
-        var crossAssetSummary = data.cross_asset_summary || "";
-        var scenarioRoute = data.scenario_route || {};
-        var reflectionMemory = data.reflection_memory || {};
-        var quickResearch = data.quick_research || {};
-        var deepResearch = data.deep_research || {};
-        var riskBrief = data.risk_brief || {};
-        var timesfmForecast = data.timesfm_forecast || {};
-        var urgentAlert = data.urgent_alert || null;
-        var topicTimeline = data.topic_timeline || [];
-        var alertLabelMap = { high: "高优先级", medium: "中优先级", low: "低优先级" };
-        var alertColorMap = { high: "#b91c1c", medium: "#b45309", low: "#1d4ed8" };
-        var directionColorMap = { bullish: "#15803d", bearish: "#b91c1c", neutral: "#475569" };
-        var html = "";
-
-        html += '<div class="focus-panel-grid">';
-        html += "<div>";
-        html += '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">';
-        html += "<div>";
-        html += '<div style="font-size:12px;color:#6b7280;">实时关注</div>';
-        html += '<div style="margin-top:4px;font-size:18px;font-weight:700;color:#111827;">' + (asset.name || asset.code || "当前资产") + "</div>";
-        html += '<div style="margin-top:6px;font-size:12px;color:#6b7280;">市场：' + (asset.market_label || asset.market || "--") + " · 代码：" + (asset.code || "--") + "</div>";
-        html += "</div>";
-        html += '<div style="padding:8px 12px;border-radius:999px;background:rgba(79,70,229,0.1);color:' + (alertColorMap[data.alert_level] || "#1d4ed8") + ';font-size:12px;font-weight:700;">' + (alertLabelMap[data.alert_level] || "持续观察") + "</div>";
-        html += "</div>";
-        html += '<div class="focus-summary-grid">';
-        html += '<div class="focus-metric-card"><div style="font-size:12px;color:#6b7280;">5分钟变化</div><div style="margin-top:6px;font-size:18px;font-weight:700;color:' + (directionColorMap[priceState.direction] || "#111827") + ';">' + ((priceState.change_5m_pct || 0).toFixed(3)) + "%</div></div>";
-        html += '<div class="focus-metric-card"><div style="font-size:12px;color:#6b7280;">30分钟变化</div><div style="margin-top:6px;font-size:18px;font-weight:700;color:' + (directionColorMap[priceState.direction] || "#111827") + ';">' + ((priceState.change_30m_pct || 0).toFixed(3)) + "%</div></div>";
-        html += '<div class="focus-metric-card"><div style="font-size:12px;color:#6b7280;">当前状态</div><div style="margin-top:6px;font-size:16px;font-weight:700;color:#111827;">' + (priceState.status_label || "等待信号") + "</div></div>";
-        html += "</div>";
-        html += '<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px solid rgba(15,23,42,0.08);">';
-        html += '<div style="font-size:12px;color:#6b7280;">盘中判断</div>';
-        html += '<div style="margin-top:6px;font-size:14px;line-height:1.8;color:#1f2937;">' + (data.focus_summary || "暂无明确主线，继续观察价格与新闻是否共振。") + "</div>";
-        html += "</div>";
-        html += this.render_timesfm_forecast_block(timesfmForecast, { compact: true, title: 'TimesFM 预测层' });
-        html += '<div id="timesfm_review_block"></div>';
-        html += '<div class="market-data-overview-container"></div>';
-        if (scenarioRoute.label || quickResearch.summary) {
-          html += '<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#eff6ff,#f8fbff);border:1px solid rgba(59,130,246,0.16);">';
-          html += '<div style="font-size:12px;color:#1d4ed8;font-weight:700;">场景化路由与快评</div>';
-          html += '<div style="margin-top:6px;font-size:13px;line-height:1.8;color:#1e3a8a;">';
-          html += '当前路径：' + (scenarioRoute.label || '均衡观察') + ' · 触发源：' + (scenarioRoute.trigger || asset.code || '--') + '<br>';
-          html += (quickResearch.summary || scenarioRoute.reason || '系统正在根据价格、新闻和跨资产线索选择最优研究路径。');
-          html += '</div>';
-          if (deepResearch.summary) {
-            html += '<div style="margin-top:8px;font-size:12px;line-height:1.7;color:#475569;">' + deepResearch.summary + '</div>';
-          }
-          html += '</div>';
-        }
-        if (urgentAlert && urgentAlert.enabled) {
-          html += '<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#fef2f2,#fff7ed);border:1px solid rgba(220,38,38,0.16);">';
-          html += '<div style="font-size:12px;color:#991b1b;font-weight:700;">价格突变归因</div>';
-          html += '<div style="margin-top:6px;font-size:14px;font-weight:700;color:#7f1d1d;">' + (urgentAlert.cause_title || "暂无明确原因") + '</div>';
-          html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#7f1d1d;">' + (urgentAlert.cause_summary || "系统正在继续跟踪这次波动。") + '</div>';
-          html += '</div>';
-        }
-        if (riskBrief.summary) {
-          html += '<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:linear-gradient(135deg,#fff7ed,#fffbeb);border:1px solid rgba(245,158,11,0.18);">';
-          html += '<div style="font-size:12px;color:#b45309;font-weight:700;">风险经理</div>';
-          html += '<div style="margin-top:6px;font-size:13px;line-height:1.8;color:#92400e;">' + riskBrief.summary + '</div>';
-          if (riskBrief.invalidations && riskBrief.invalidations.length > 0) {
-            html += '<div style="margin-top:8px;font-size:12px;line-height:1.7;color:#78350f;">失效条件：' + riskBrief.invalidations.join('；') + '</div>';
-          }
-          html += '</div>';
-        }
-        if (reflectionMemory.summary) {
-          html += '<div style="margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff;border:1px dashed rgba(15,23,42,0.14);">';
-          html += '<div style="font-size:12px;color:#6b7280;font-weight:700;">反思记忆</div>';
-          html += '<div style="margin-top:6px;font-size:12px;line-height:1.8;color:#4b5563;">' + reflectionMemory.summary + '</div>';
-          html += '</div>';
-        }
-        if (directNews.length > 0) {
-          html += '<div class="focus-driver-list">';
-          directNews.slice(0, 2).forEach(function(item) {
-            html += '<div class="focus-driver-item">';
-            html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">';
-            html += '<div style="font-size:13px;font-weight:700;color:#111827;line-height:1.6;">' + (item.title || "未命名新闻") + "</div>";
-            html += '<div style="font-size:11px;color:#6b7280;white-space:nowrap;">' + (item.published_at_label || "--") + "</div>";
-            html += "</div>";
-            html += '<div style="margin-top:6px;font-size:12px;color:#475569;">' + (item.impact_label || "中性") + " · " + (item.evidence_label || "直接新闻") + "</div>";
-            html += "</div>";
-          });
-          html += "</div>";
-        }
-        html += "</div>";
-        html += "<div>";
-        html += '<div style="font-size:13px;font-weight:700;color:#111827;margin-bottom:10px;">事件时间线</div>';
-        html += this.render_realtime_topic_timeline_block(topicTimeline);
-        html += '<div class="focus-event-list">';
-        if (alerts.length === 0) {
-          html += '<div class="focus-event-item" style="text-align:center;color:#6b7280;">暂无高优先级事件，继续观察盘中变化。</div>';
-        } else {
-          alerts.slice(0, 5).forEach(function(item) {
-            html += '<div class="focus-event-item">';
-            html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">';
-            html += '<div style="font-size:13px;font-weight:700;color:#111827;line-height:1.6;">' + (item.title || "未命名事件") + "</div>";
-            html += '<div style="font-size:11px;color:#6b7280;white-space:nowrap;">' + (item.occurred_at_label || "--") + "</div>";
-            html += "</div>";
-            html += '<div style="margin-top:6px;font-size:12px;color:' + (alertColorMap[item.alert_level] || "#1d4ed8") + ';">' + (item.category_label || "观察") + " · " + (alertLabelMap[item.alert_level] || "持续观察") + "</div>";
-            html += '<div style="margin-top:6px;font-size:12px;line-height:1.7;color:#475569;">' + (item.summary || "暂无补充说明") + "</div>";
-            html += "</div>";
-          });
-        }
-        html += "</div>";
-        if (driverNews.length > 0) {
-          html += '<div style="margin-top:14px;font-size:13px;font-weight:700;color:#111827;">驱动与风险观察</div>';
-          html += '<div class="focus-driver-list">';
-          driverNews.slice(0, 3).forEach(function(item) {
-            html += '<div class="focus-driver-item">';
-            html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">';
-            html += '<div style="font-size:13px;font-weight:700;color:#111827;line-height:1.6;">' + (item.title || "未命名驱动") + "</div>";
-            html += '<div style="font-size:11px;color:#6b7280;white-space:nowrap;">' + (item.published_at_label || "--") + "</div>";
-            html += "</div>";
-            html += '<div style="margin-top:6px;font-size:12px;color:#475569;">' + (item.summary || item.direction_reason || "正在观察其对当前资产的传导。") + "</div>";
-            html += "</div>";
-          });
-          html += "</div>";
-        }
-        if (crossAssetWatch.length > 0) {
-          html += '<div style="margin-top:14px;font-size:13px;font-weight:700;color:#111827;">跨资产联动观察</div>';
-          if (crossAssetSummary) {
-            html += '<div style="margin-top:8px;font-size:12px;line-height:1.7;color:#475569;">' + crossAssetSummary + '</div>';
-          }
-          html += '<div class="focus-driver-list">';
-          crossAssetWatch.slice(0, 3).forEach(function(item) {
-            html += '<div class="focus-driver-item">';
-            html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">';
-            html += '<div style="font-size:13px;font-weight:700;color:#111827;line-height:1.6;">' + (item.name || item.code || "参考资产") + '</div>';
-            html += '<div style="font-size:11px;color:' + (alertColorMap[item.alert_level] || "#1d4ed8") + ';white-space:nowrap;">' + (item.alignment_label || "联动观察") + '</div>';
-            html += '</div>';
-            html += '<div style="margin-top:6px;font-size:12px;color:#475569;">' + (item.code || "--") + ' · 5分钟 ' + ((item.change_5m_pct || 0).toFixed(3)) + '% · 30分钟 ' + ((item.change_30m_pct || 0).toFixed(3)) + '%</div>';
-            html += '<div style="margin-top:6px;font-size:12px;color:#475569;">' + (item.reason || item.status_label || "用于辅助确认当前资产驱动。") + '</div>';
-            html += '</div>';
-          });
-          html += '</div>';
-        }
-        html += "</div>";
-        html += "</div>";
-        panel.html(html);
-        panel.find('.historical-topic-settings-btn').off('click').on('click', function() {
-          News.open_historical_topic_settings();
-        });
-        panel.find('.theme-simulation-btn').off('click').on('click', function() {
-          var button = $(this);
-          News.open_theme_simulation({
-            current_market: button.data('market') || (asset.market || ''),
-            current_code: button.data('code') || (asset.code || ''),
-            theme_label: button.data('theme') || ''
-          });
-        });
-        panel.find('.custom-theme-run-btn').off('click').on('click', function() {
-          var input = panel.find('.custom-theme-input');
-          var themeLabel = $.trim(input.val() || '');
-          if (!themeLabel) {
-            layui.layer.msg('请输入要检索的主题');
-            input.focus();
-            return;
-          }
-          var customThemeOptions = {
-            current_market: asset.market || '',
-            current_code: asset.code || '',
-            theme_label: themeLabel,
-            lookback_hours: 24,
-            max_news: 8,
-            uploaded_evidence: ((News.get_realtime_custom_theme_state(asset.market || '', asset.code || '') || {}).options || {}).uploaded_evidence || [],
-            theme_agents: News.get_theme_agent_request_payload({
-              current_market: asset.market || '',
-              current_code: asset.code || '',
-              theme_label: themeLabel
-            }),
-            forceRefresh: true,
-            useCache: false
-          };
-          News.remember_realtime_custom_theme(customThemeOptions);
-          News.load_theme_simulation_preview(panel.find('.custom-theme-preview-container'), customThemeOptions);
-        });
-        panel.find('.custom-theme-agent-btn').off('click').on('click', function() {
-          var themeLabel = $.trim(panel.find('.custom-theme-input').val() || '');
-          News.open_theme_agent_settings({
-            current_market: asset.market || '',
-            current_code: asset.code || '',
-            theme_label: themeLabel,
-            onSaved: function(savePayload) {
-              var currentState = News.get_realtime_custom_theme_state(asset.market || '', asset.code || '') || {};
-              var currentOptions = $.extend({
-                current_market: asset.market || '',
-                current_code: asset.code || '',
-                theme_label: themeLabel,
-                lookback_hours: 24,
-                max_news: 8,
-                uploaded_evidence: []
-              }, currentState.options || {});
-              currentOptions.theme_agents = (savePayload && (savePayload.effective_agents || savePayload.agents)) ? (savePayload.effective_agents || savePayload.agents) : News.get_theme_agent_request_payload(currentOptions);
-              News.remember_realtime_custom_theme(currentOptions);
-              if (currentOptions.theme_label) {
-                News.load_theme_simulation_preview(panel.find('.custom-theme-preview-container'), $.extend({}, currentOptions, {
-                  forceRefresh: true,
-                  useCache: false
-                }));
-              }
-            }
-          });
-        });
-        panel.find('.custom-theme-upload-btn').off('click').on('click', function() {
-          panel.find('.custom-theme-file-input').trigger('click');
-        });
-        panel.find('.custom-theme-file-input').off('change').on('change', function() {
-          var inputEl = this;
-          var selectedFiles = inputEl.files;
-          if (!selectedFiles || !selectedFiles.length) {
-            return;
-          }
-          var loadingIndex = layui.layer.load(1, {shade: [0.15, '#000']});
-          News.upload_theme_evidence(selectedFiles, {
-            onSuccess: function(evidenceItems) {
-              layui.layer.close(loadingIndex);
-              var currentState = News.get_realtime_custom_theme_state(asset.market || '', asset.code || '') || {};
-              var currentOptions = currentState.options || {
-                current_market: asset.market || '',
-                current_code: asset.code || '',
-                theme_label: $.trim(panel.find('.custom-theme-input').val() || ''),
-                lookback_hours: 24,
-                max_news: 8,
-                uploaded_evidence: [],
-                theme_agents: News.get_theme_agent_request_payload({
-                  current_market: asset.market || '',
-                  current_code: asset.code || '',
-                  theme_label: $.trim(panel.find('.custom-theme-input').val() || '')
-                })
-              };
-              currentOptions.uploaded_evidence = (currentOptions.uploaded_evidence || []).concat(evidenceItems).slice(-6);
-              News.remember_realtime_custom_theme(currentOptions);
-              News.render_realtime_custom_theme_evidence(panel.find('.custom-theme-evidence-container'), currentOptions.uploaded_evidence || []);
-              layui.layer.msg('材料上传成功，已纳入主题证据');
-              inputEl.value = '';
-            },
-            onError: function(message) {
-              layui.layer.close(loadingIndex);
-              layui.layer.msg(message || '上传材料失败');
-              inputEl.value = '';
-            }
-          });
-        });
-        panel.find('.custom-theme-input').off('keypress').on('keypress', function(event) {
-          if ((event.which || event.keyCode) === 13) {
-            event.preventDefault();
-            panel.find('.custom-theme-run-btn').trigger('click');
-          }
-        });
-        panel.off('click', '.market-data-open-btn').on('click', '.market-data-open-btn', function() {
-          var button = $(this);
-          News.open_market_data_center({
-            current_market: button.data('market') || (asset.market || ''),
-            current_code: button.data('code') || (asset.code || '')
-          });
-        });
-        panel.off('click', '.market-data-sync-btn').on('click', '.market-data-sync-btn', function() {
-          var button = $(this);
-          var loadingIndex = layui.layer.load(1, {shade: [0.15, '#000']});
-          News.sync_market_data({
-            current_market: button.data('market') || (asset.market || ''),
-            current_code: button.data('code') || (asset.code || ''),
-            onSuccess: function(payload) {
-              layui.layer.close(loadingIndex);
-              News.currentMarketDataView = payload || null;
-              panel.find('.market-data-overview-container').html(News.render_market_data_overview_block(payload || {}));
-              layui.layer.msg('市场数据已同步，可点击查看详情');
-            },
-            onError: function(message) {
-              layui.layer.close(loadingIndex);
-              layui.layer.msg(message || '同步市场数据失败');
-            }
-          });
-        });
-        panel.find('.custom-theme-input').off('input').on('input', function() {
-          News.update_realtime_custom_theme_draft(asset.market || '', asset.code || '', $(this).val() || '');
-        });
-        var customThemeState = News.get_realtime_custom_theme(asset.market || '', asset.code || '');
-        if (customThemeState) {
-          panel.find('.custom-theme-input').val((News.get_realtime_custom_theme_state(asset.market || '', asset.code || '') || {}).draft_theme_label || customThemeState.theme_label || previousDraftThemeLabel || '');
-          News.render_realtime_custom_theme_evidence(panel.find('.custom-theme-evidence-container'), customThemeState.uploaded_evidence || []);
-          News.restore_realtime_custom_theme_preview(panel.find('.custom-theme-preview-container'), asset.market || '', asset.code || '');
-        } else {
-          panel.find('.custom-theme-input').val(previousDraftThemeLabel || '');
-          if (previousDraftThemeLabel) {
-            News.update_realtime_custom_theme_draft(asset.market || '', asset.code || '', previousDraftThemeLabel);
-          }
-          News.render_realtime_custom_theme_evidence(panel.find('.custom-theme-evidence-container'), []);
-        }
-        if (restoreInputFocus) {
-          var nextInput = panel.find('.custom-theme-input');
-          if (nextInput.length && nextInput[0]) {
-            nextInput.focus();
-            if (restoreSelectionStart !== null && restoreSelectionEnd !== null && nextInput[0].setSelectionRange) {
-              nextInput[0].setSelectionRange(restoreSelectionStart, restoreSelectionEnd);
-            }
-          }
-        }
-        this.load_market_data_overview(panel.find('.market-data-overview-container'), {
-          current_market: asset.market || '',
-          current_code: asset.code || '',
-          silent: true
-        });
-      },
+      render_realtime_focus: function() {},
 
       get_jin10_watch_payload: function(scope) {
+
         var intervalInput = scope && scope.length ? scope.find('.jin10-watch-interval') : $();
         var maxItemsInput = scope && scope.length ? scope.find('.jin10-watch-max-items') : $();
         var interval = parseInt(intervalInput.val(), 10);
@@ -5157,46 +4487,10 @@
           }
           html += '</div>';
         }
-        html += this.render_timesfm_forecast_block(timesfmForecast, { title: 'TimesFM 预测层', showSummary: true });
         if (researchVerdict) {
           html += '<div style="margin-bottom:18px;padding:14px;background:linear-gradient(135deg,#eef2ff,#f8faff);border-radius:10px;border:1px solid #c7d2fe;">';
           html += '<div style="font-weight:700;margin-bottom:8px;color:#4338ca;">研究经理裁决</div>';
           html += '<div style="font-size:13px;line-height:1.8;color:#312e81;white-space:pre-wrap;">' + researchVerdict + '</div>';
-          html += '</div>';
-        }
-        if ((riskBrief && riskBrief.summary) || (showRiskAssessment && riskAssessment)) {
-          html += '<div style="margin-bottom:18px;padding:14px;background:linear-gradient(135deg,#fff7ed,#fffbeb);border-radius:10px;border:1px solid #fed7aa;">';
-          html += '<div style="font-weight:700;margin-bottom:8px;color:#b45309;">风险经理</div>';
-          if (riskBrief && riskBrief.summary) {
-            html += '<div style="font-size:13px;line-height:1.8;color:#92400e;">' + riskBrief.summary + '</div>';
-            if (riskBrief.invalidations && riskBrief.invalidations.length) {
-              html += '<div style="margin-top:8px;font-size:12px;line-height:1.7;color:#78350f;">失效条件：' + riskBrief.invalidations.join('；') + '</div>';
-            }
-            if (riskBrief.focus_points && riskBrief.focus_points.length) {
-              html += '<div style="margin-top:6px;font-size:12px;line-height:1.7;color:#92400e;">跟踪重点：' + riskBrief.focus_points.join('；') + '</div>';
-            }
-          }
-          if (showRiskAssessment && riskAssessment) {
-            html += '<div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:#fff;border:1px solid #fed7aa;font-size:12px;line-height:1.8;color:#7c2d12;white-space:pre-wrap;">' + riskAssessment + '</div>';
-          }
-          html += '</div>';
-        }
-        if (reflectionMemory.summary || (reflectionMemory.items && reflectionMemory.items.length)) {
-          html += '<div style="margin-bottom:18px;padding:14px;background:#fff;border-radius:10px;border:1px dashed #cbd5e1;">';
-          html += '<div style="font-weight:700;margin-bottom:8px;color:#475569;">反思记忆</div>';
-          if (reflectionMemory.summary) {
-            html += '<div style="font-size:13px;line-height:1.8;color:#334155;">' + reflectionMemory.summary + '</div>';
-          }
-          if (reflectionMemory.items && reflectionMemory.items.length) {
-            html += '<div style="margin-top:10px;">';
-            reflectionMemory.items.slice(0, 3).forEach(function(item) {
-              html += '<div style="margin-top:8px;padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;">';
-              html += '<div style="font-size:12px;font-weight:700;color:#334155;">' + (item.title || '历史记录') + '</div>';
-              html += '<div style="margin-top:4px;font-size:12px;line-height:1.7;color:#64748b;">' + (item.lesson || item.preview || '暂无摘要') + '</div>';
-              html += '</div>';
-            });
-            html += '</div>';
-          }
           html += '</div>';
         }
         return html;
@@ -5219,7 +4513,7 @@
         var selectedForecastModeLabel = forecastData.selected_forecast_mode_label || '';
         var selectedForecastModeDescription = forecastData.selected_forecast_mode_description || '';
         var modeComparison = forecastData.mode_comparison || [];
-        var title = options.title || 'TimesFM 预测层';
+        var title = options.title || '预测模块 预测层';
         var showSummary = options.showSummary !== false;
         var compact = options.compact === true;
         var overlayTarget = this.get_timesfm_overlay_target ? this.get_timesfm_overlay_target() : 'all';
@@ -5439,7 +4733,7 @@
             return '';
           }
           return ''
-            + '<div data-timesfm-overlay-target="' + targetKey + '" style="padding:10px 12px;border-radius:8px;background:#fff;border:1px solid ' + (active ? '#0ea5e9' : '#dbeafe') + ';box-shadow:' + (active ? '0 8px 18px rgba(14,165,233,0.12)' : 'none') + ';cursor:pointer;">'
+            + '<div data-forecast-disabled-overlay-target="' + targetKey + '" style="padding:10px 12px;border-radius:8px;background:#fff;border:1px solid ' + (active ? '#0ea5e9' : '#dbeafe') + ';box-shadow:' + (active ? '0 8px 18px rgba(14,165,233,0.12)' : 'none') + ';cursor:pointer;">'
             +   '<div style="font-size:12px;color:#2563eb;font-weight:700;">' + titleText + '</div>'
             +   '<div style="margin-top:6px;font-size:13px;font-weight:700;color:#111827;">' + directionLabel(forecast.direction) + '</div>'
             +   '<div style="margin-top:6px;font-size:12px;line-height:1.7;color:#475569;">'
@@ -5493,7 +4787,7 @@
           html += '</div>';
         }
         if (!nativeEnabled && nativeMessage) {
-          html += '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;font-size:12px;line-height:1.8;color:#be123c;">原生 TimesFM 模型不可用：' + nativeMessage + '</div>';
+          html += '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;font-size:12px;line-height:1.8;color:#be123c;">原生 预测模块 模型不可用：' + nativeMessage + '</div>';
         }
         if (forecastData.error_message) {
           html += '<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff1f2;border:1px solid #fecdd3;font-size:12px;line-height:1.8;color:#be123c;">'
@@ -5538,7 +4832,7 @@
           html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
           ['30m', '1h', '4h', '1d', '15m', '5m'].forEach(function(freqValue) {
             var active = currentForecastFrequency === freqValue;
-            html += '<button type="button" data-timesfm-forecast-frequency="' + freqValue + '" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (active ? 'background:#0f766e;color:#fff;' : 'background:#fff;color:#0f766e;border:1px solid rgba(15,118,110,0.16);') + '">' + freqValue + '</button>';
+            html += '<button type="button" data-forecast-disabled-forecast-frequency="' + freqValue + '" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (active ? 'background:#0f766e;color:#fff;' : 'background:#fff;color:#0f766e;border:1px solid rgba(15,118,110,0.16);') + '">' + freqValue + '</button>';
           });
           html += '</div>';
           html += '</div>';
@@ -5548,7 +4842,7 @@
           [0, 24, 48, 96, 144, 192, 240].forEach(function(sampleValue) {
             var active = Number(currentForecastSample || 0) === Number(sampleValue);
             var label = sampleValue === 0 ? '自动' : (sampleValue + '根');
-            html += '<button type="button" data-timesfm-forecast-sample="' + sampleValue + '" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (active ? 'background:#0891b2;color:#fff;' : 'background:#fff;color:#0f766e;border:1px solid rgba(14,165,233,0.16);') + '">' + label + '</button>';
+            html += '<button type="button" data-forecast-disabled-forecast-sample="' + sampleValue + '" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (active ? 'background:#0891b2;color:#fff;' : 'background:#fff;color:#0f766e;border:1px solid rgba(14,165,233,0.16);') + '">' + label + '</button>';
           });
           html += '</div>';
           html += '</div>';
@@ -5559,10 +4853,10 @@
           html += '<div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:11px;color:#475569;">';
           html += '<div>点击预测卡片可切换主图叠加高亮</div>';
           html += '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">';
-          html += '<button type="button" data-timesfm-overlay-target="all" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'all' ? 'background:#0f766e;color:#fff;' : 'background:#fff;color:#0f766e;border:1px solid rgba(15,118,110,0.16);') + '">全部</button>';
-          html += '<button type="button" data-timesfm-overlay-target="primary" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'primary' ? 'background:#16a34a;color:#fff;' : 'background:#fff;color:#166534;border:1px solid rgba(22,163,74,0.16);') + '">' + (forecastLabels.primary || '下一周期') + '</button>';
-          html += '<button type="button" data-timesfm-overlay-target="secondary" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'secondary' ? 'background:#2563eb;color:#fff;' : 'background:#fff;color:#1d4ed8;border:1px solid rgba(37,99,235,0.16);') + '">' + (forecastLabels.secondary || '4周期') + '</button>';
-          html += '<button type="button" data-timesfm-overlay-target="off" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'off' ? 'background:#475569;color:#fff;' : 'background:#fff;color:#475569;border:1px solid rgba(100,116,139,0.16);') + '">关闭叠加</button>';
+          html += '<button type="button" data-forecast-disabled-overlay-target="all" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'all' ? 'background:#0f766e;color:#fff;' : 'background:#fff;color:#0f766e;border:1px solid rgba(15,118,110,0.16);') + '">全部</button>';
+          html += '<button type="button" data-forecast-disabled-overlay-target="primary" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'primary' ? 'background:#16a34a;color:#fff;' : 'background:#fff;color:#166534;border:1px solid rgba(22,163,74,0.16);') + '">' + (forecastLabels.primary || '下一周期') + '</button>';
+          html += '<button type="button" data-forecast-disabled-overlay-target="secondary" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'secondary' ? 'background:#2563eb;color:#fff;' : 'background:#fff;color:#1d4ed8;border:1px solid rgba(37,99,235,0.16);') + '">' + (forecastLabels.secondary || '4周期') + '</button>';
+          html += '<button type="button" data-forecast-disabled-overlay-target="off" style="border:none;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;' + (overlayTarget === 'off' ? 'background:#475569;color:#fff;' : 'background:#fff;color:#475569;border:1px solid rgba(100,116,139,0.16);') + '">关闭叠加</button>';
           html += '</div>';
           html += '</div>';
         }
@@ -5660,7 +4954,7 @@
 
         function modeButton(targetMode, currentMode, label) {
           var active = targetMode === currentMode;
-          return '<button type="button" data-timesfm-review-mode="' + targetMode + '"'
+          return '<button type="button" data-forecast-disabled-review-mode="' + targetMode + '"'
             + ' style="border:none;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;'
             + (active ? 'background:#16a34a;color:#fff;' : 'background:#fff;color:#166534;border:1px solid #bbf7d0;')
             + '">' + label + '</button>';
@@ -5685,37 +4979,37 @@
         html += '<div style="margin-bottom:18px;padding:14px;background:linear-gradient(135deg,#f0fdf4,#f8fffb);border-radius:10px;border:1px solid rgba(34,197,94,0.16);">';
         html += '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">';
         html += '<div>';
-        html += '<div style="font-size:12px;color:#15803d;font-weight:700;">TimesFM 历史价格预测回顾</div>';
+        html += '<div style="font-size:12px;color:#15803d;font-weight:700;">预测模块 历史价格预测回顾</div>';
         html += '<div style="margin-top:4px;font-size:11px;color:#4b5563;">最近' + selectedReviewDays + '天 · ' + selectedFrequencyLabel + '级别 · ' + (reviewData.event_count || 0) + '个历史价格事件</div>';
         html += '</div>';
         html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">';
         html += modeButton('auto', mode, '自动回顾');
         html += modeButton('manual', mode, '手动回顾');
-        html += '<button type="button" data-timesfm-review-refresh="1" style="border:none;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;background:#166534;color:#fff;">立即回顾</button>';
+        html += '<button type="button" data-forecast-disabled-review-refresh="1" style="border:none;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;background:#166534;color:#fff;">立即回顾</button>';
         html += '</div>';
         html += '</div>';
         html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">';
         html += '<span style="font-size:11px;color:#15803d;font-weight:700;">回顾周期</span>';
-        html += optionButton('data-timesfm-review-days', '7', selectedReviewDays, '7天');
-        html += optionButton('data-timesfm-review-days', '14', selectedReviewDays, '14天');
-        html += optionButton('data-timesfm-review-days', '30', selectedReviewDays, '30天');
+        html += optionButton('data-forecast-disabled-review-days', '7', selectedReviewDays, '7天');
+        html += optionButton('data-forecast-disabled-review-days', '14', selectedReviewDays, '14天');
+        html += optionButton('data-forecast-disabled-review-days', '30', selectedReviewDays, '30天');
         html += '<span style="font-size:11px;color:#15803d;font-weight:700;margin-left:6px;">频率</span>';
-        html += optionButton('data-timesfm-review-frequency', '30m', selectedFrequency, '30m');
-        html += optionButton('data-timesfm-review-frequency', '1h', selectedFrequency, '1h');
-        html += optionButton('data-timesfm-review-frequency', '4h', selectedFrequency, '4h');
-        html += optionButton('data-timesfm-review-frequency', '1d', selectedFrequency, '1d');
-        html += optionButton('data-timesfm-review-frequency', '15m', selectedFrequency, '15m');
-        html += optionButton('data-timesfm-review-frequency', '5m', selectedFrequency, '5m');
+        html += optionButton('data-forecast-disabled-review-frequency', '30m', selectedFrequency, '30m');
+        html += optionButton('data-forecast-disabled-review-frequency', '1h', selectedFrequency, '1h');
+        html += optionButton('data-forecast-disabled-review-frequency', '4h', selectedFrequency, '4h');
+        html += optionButton('data-forecast-disabled-review-frequency', '1d', selectedFrequency, '1d');
+        html += optionButton('data-forecast-disabled-review-frequency', '15m', selectedFrequency, '15m');
+        html += optionButton('data-forecast-disabled-review-frequency', '5m', selectedFrequency, '5m');
         html += '</div>';
         html += '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">';
         html += '<span style="font-size:11px;color:#15803d;font-weight:700;">预测样本</span>';
-        html += optionButton('data-timesfm-review-sample', '0', selectedContextLength, '自动');
-        html += optionButton('data-timesfm-review-sample', '24', selectedContextLength, '24根');
-        html += optionButton('data-timesfm-review-sample', '48', selectedContextLength, '48根');
-        html += optionButton('data-timesfm-review-sample', '96', selectedContextLength, '96根');
-        html += optionButton('data-timesfm-review-sample', '144', selectedContextLength, '144根');
-        html += optionButton('data-timesfm-review-sample', '192', selectedContextLength, '192根');
-        html += optionButton('data-timesfm-review-sample', '240', selectedContextLength, '240根');
+        html += optionButton('data-forecast-disabled-review-sample', '0', selectedContextLength, '自动');
+        html += optionButton('data-forecast-disabled-review-sample', '24', selectedContextLength, '24根');
+        html += optionButton('data-forecast-disabled-review-sample', '48', selectedContextLength, '48根');
+        html += optionButton('data-forecast-disabled-review-sample', '96', selectedContextLength, '96根');
+        html += optionButton('data-forecast-disabled-review-sample', '144', selectedContextLength, '144根');
+        html += optionButton('data-forecast-disabled-review-sample', '192', selectedContextLength, '192根');
+        html += optionButton('data-forecast-disabled-review-sample', '240', selectedContextLength, '240根');
         html += '</div>';
         html += '<div style="margin-top:6px;font-size:13px;line-height:1.8;color:#166534;">' + (reviewData.summary || '暂无历史预测回顾数据。') + '</div>';
         if (selectedReviewModeLabel) {
@@ -6101,7 +5395,7 @@
               });
             }
             if (item.timesfm_forecast && item.timesfm_forecast.available) {
-              content += '<br>&nbsp;&nbsp;TimesFM：' + (item.timesfm_forecast.summary || '事件级预测已生成');
+              content += '<br>&nbsp;&nbsp;预测模块：' + (item.timesfm_forecast.summary || '事件级预测已生成');
             }
             content += '</div>';
           });
@@ -6145,7 +5439,6 @@
           });
           content += '</div>';
         }
-        content += this.render_timesfm_forecast_block(summaryData && summaryData.timesfm_forecast ? summaryData.timesfm_forecast : {}, { title: 'TimesFM 历史预测层', showSummary: true });
         content += this.render_research_workflow_block(summaryData, { showRiskAssessment: false });
         var htmlContent = marked.parse ? marked.parse(summary) : (marked(summary) || summary);
         content += '<div style="line-height: 1.8; color: #333;">' + htmlContent + '</div>';

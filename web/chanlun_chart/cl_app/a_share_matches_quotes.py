@@ -31,6 +31,28 @@ def _infer_reference_price(last_price: float, rate: float, open_price: float) ->
     return 0.0
 
 
+def _pick_market_cap_value(tick: Any) -> tuple[float | None, str]:
+    for field_name in ("market_cap", "market_value", "capitalization", "total_mv", "circulation_value"):
+        raw_value = getattr(tick, field_name, None)
+        number = _safe_float(raw_value)
+        if number > 0:
+            return number, field_name
+    return None, "tick_unavailable"
+
+
+def _format_market_cap(value: float | None) -> str:
+    if value is None or value <= 0:
+        return "实时总市值待行情源补齐"
+    abs_value = abs(value)
+    if abs_value >= 1_0000_0000_0000:
+        return f"{value / 1_0000_0000_0000:.2f}万亿"
+    if abs_value >= 1_0000_0000:
+        return f"{value / 1_0000_0000:.2f}亿"
+    if abs_value >= 1_0000:
+        return f"{value / 1_0000:.2f}万"
+    return f"{value:.2f}"
+
+
 def normalize_a_share_code(code: str) -> str:
     normalized = str(code or "").strip().upper()
     if not normalized:
@@ -173,6 +195,7 @@ def build_tick_snapshot(code: str, tick: Any) -> Dict[str, float | str]:
     high = _safe_float(getattr(tick, "high", 0.0))
     low = _safe_float(getattr(tick, "low", 0.0))
     open_price = _safe_float(getattr(tick, "open", 0.0))
+    market_cap, market_cap_source = _pick_market_cap_value(tick)
 
     reference_price = _infer_reference_price(last_price, rate, open_price)
     swing_rate = round(((high - low) / reference_price) * 100, 2) if reference_price > 0 else 0.0
@@ -185,4 +208,7 @@ def build_tick_snapshot(code: str, tick: Any) -> Dict[str, float | str]:
         "low": low,
         "open": open_price,
         "swing_rate": swing_rate,
+        "market_cap": market_cap,
+        "market_cap_text": _format_market_cap(market_cap),
+        "market_cap_source": market_cap_source,
     }
