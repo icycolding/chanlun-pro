@@ -1058,6 +1058,27 @@
   <script src="{{ url_for('static', filename='js/bkgn.js') }}"></script>
   <script>
     $(function () {
+      function persistUrlParamSelection(market, code) {
+        const maxAttempts = 20;
+        let attempt = 0;
+
+        function tryPersist() {
+          if (window.Utils && typeof window.Utils.set_local_data === 'function') {
+            window.Utils.set_local_data('market', market);
+            window.Utils.set_local_data(market + '_code', code);
+            return;
+          }
+          if (attempt >= maxAttempts) {
+            console.warn('Utils 未就绪，跳过 URL 参数缓存初始化');
+            return;
+          }
+          attempt += 1;
+          window.setTimeout(tryPersist, 50);
+        }
+
+        tryPersist();
+      }
+
       // 处理URL参数
       function handleUrlParams() {
         const urlParams = new URLSearchParams(window.location.search);
@@ -1072,8 +1093,7 @@
         if (market && code) {
           console.log('URL参数检测到:', 'market=' + market, 'code=' + code);
           // 设置市场和代码到localStorage
-          Utils.set_local_data('market', market);
-          Utils.set_local_data(market + '_code', code);
+          persistUrlParamSelection(market, code);
           
           // 更新表单选择
           setTimeout(function() {
