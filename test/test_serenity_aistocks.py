@@ -39,7 +39,7 @@ def app_client():
         app,
         status_provider=lambda: {
             "running": True,
-            "interval_seconds": 60,
+            "interval_seconds": 180,
             "last_run_at": "2026-06-17T10:00:00",
             "last_success_count": 18,
             "last_unsupported_count": 2,
@@ -200,7 +200,7 @@ def test_serenity_aistocks_index_template_renders_sheet_cards(monkeypatch):
             "selected_sheet_summary": workbook["sheets"][0],
             "sync_status": {
                 "running": True,
-                "interval_seconds": 60,
+                "interval_seconds": 180,
                 "last_run_at_text": "2026-06-17 10:00:00",
                 "last_success_count": 18,
                 "last_total_candidates": 20,
@@ -241,7 +241,7 @@ def test_serenity_aistocks_index_template_includes_price_cells_and_restore_hooks
             "selected_sheet_summary": workbook["sheets"][0],
             "sync_status": {
                 "running": True,
-                "interval_seconds": 60,
+                "interval_seconds": 180,
                 "last_run_at_text": "2026-06-17 10:00:00",
                 "last_success_count": 18,
                 "last_total_candidates": 20,
@@ -277,6 +277,7 @@ def test_serenity_aistocks_index_template_includes_price_cells_and_restore_hooks
     assert "/serenity/aistocks/recent-three-buy-times" in html
     assert "recent-three-buy-time" in html
     assert "扫描异常" in html
+    assert "const REFRESH_INTERVAL_MS = 180000;" in html
 
 
 def test_serenity_aistocks_index_template_renders_cached_recent_three_buy(monkeypatch):
@@ -307,7 +308,7 @@ def test_serenity_aistocks_index_template_renders_cached_recent_three_buy(monkey
             "selected_sheet_summary": workbook["sheets"][0],
             "sync_status": {
                 "running": True,
-                "interval_seconds": 60,
+                "interval_seconds": 180,
                 "last_run_at_text": "2026-06-17 10:00:00",
                 "last_success_count": 18,
                 "last_total_candidates": 20,
@@ -339,7 +340,7 @@ def test_serenity_aistocks_index_template_includes_rate_sort_controls(monkeypatc
             "selected_sheet_summary": workbook["sheets"][0],
             "sync_status": {
                 "running": True,
-                "interval_seconds": 60,
+                "interval_seconds": 180,
                 "last_run_at_text": "2026-06-17 10:00:00",
                 "last_success_count": 18,
                 "last_total_candidates": 20,
@@ -379,7 +380,7 @@ def test_serenity_aistocks_index_template_includes_chart_trigger_on_stock_name(m
             "selected_sheet_summary": workbook["sheets"][0],
             "sync_status": {
                 "running": True,
-                "interval_seconds": 60,
+                "interval_seconds": 180,
                 "last_run_at_text": "2026-06-17 10:00:00",
                 "last_success_count": 18,
                 "last_total_candidates": 20,
@@ -683,3 +684,12 @@ def test_sync_serenity_aistocks_latest_prices_deduplicates_targets_and_replaces_
     assert captured["rows"][0]["market"] == "a"
     assert captured["rows"][0]["code"] == "SH.600183"
     assert captured["rows"][0]["price_text"] == "23.450"
+
+
+def test_serenity_aistocks_scheduler_default_interval_is_180_seconds():
+    source = (
+        PROJECT_ROOT / "web" / "chanlun_chart" / "cl_app" / "__init__.py"
+    ).read_text(encoding="utf-8")
+
+    assert '"interval_seconds": 180' in source
+    assert "_start_serenity_aistocks_price_sync(interval_seconds=180)" in source

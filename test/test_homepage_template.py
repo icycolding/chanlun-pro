@@ -60,3 +60,10 @@ def test_homepage_template_removes_timesfm_controls():
     assert "风险经理" not in html
     assert "反思记忆" not in html
     assert 'id="realtime_focus_panel"' not in html
+
+
+def test_homepage_template_includes_serenity_aistocks_button():
+    html = _render_homepage_template()
+
+    assert "Serenity AI Stocks" in html
+    assert 'href="http://127.0.0.1:9900/serenity/aistocks"' in html

@@ -326,7 +326,7 @@ def create_app(test_config=None):
         "last_error": "",
     }
     serenity_aistocks_price_sync_status = {
-        "interval_seconds": 60,
+        "interval_seconds": 180,
         "started_at": None,
         "last_run_at": None,
         "last_success_count": 0,
@@ -2812,6 +2812,6 @@ def create_app(test_config=None):
     app.register_blueprint(chat_bp)
 
     if not app.config.get("TESTING", False):
-        _start_serenity_aistocks_price_sync(interval_seconds=60)
+        _start_serenity_aistocks_price_sync(interval_seconds=180)
 
     return app
