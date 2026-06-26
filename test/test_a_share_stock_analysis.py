@@ -245,10 +245,16 @@ def test_build_stock_analysis_detail_payload_includes_selection_metrics_for_proj
     assert project_payload["selection_reason"]["summary"]
     assert project_payload["market_cap_research"]["current_text"]
     assert project_payload["segment_market_view"]["market_size_text"]
+    assert project_payload["sector_context_view"]["sector_name"]
+    assert project_payload["sector_context_view"]["growth_outlook"]
+    assert project_payload["sector_context_view"]["company_position_text"]
     assert project_payload["market_cap_live_text"] == "实时总市值待行情源补齐"
     assert match_payload["selection_reason"]["summary"]
     assert match_payload["market_cap_research"]["current_text"]
     assert match_payload["segment_market_view"]["company_share_text"]
+    assert match_payload["sector_context_view"]["sector_name"]
+    assert match_payload["sector_context_view"]["market_size_text"]
+    assert match_payload["sector_context_view"]["company_share_text"]
     assert match_payload["market_cap_live_text"] == "实时总市值待行情源补齐"
 
 
@@ -283,6 +289,9 @@ def test_build_stock_analysis_detail_payload_falls_back_to_default_selection_met
     assert payload["market_cap_research"]["current_text"]
     assert payload["segment_market_view"]["market_size_text"]
     assert payload["segment_market_view"]["company_share_text"]
+    assert payload["sector_context_view"]["sector_name"] == "板块待补充"
+    assert payload["sector_context_view"]["growth_outlook"] == "增长前景待 AI 研究补齐"
+    assert payload["sector_context_view"]["company_position_text"] == "行业地位待 AI 研究补齐"
     assert payload["market_cap_live_text"] == "实时总市值待行情源补齐"
 
 
@@ -406,6 +415,16 @@ def test_a_share_match_stock_analysis_template_renders_selection_metrics_panel()
                 "company_share_text": "公司份额约低个位数。",
                 "share_level": "早期卡位",
             },
+            "sector_context_view": {
+                "sector_name": "光模块上游激光器",
+                "sector_role": "上游关键光源平台",
+                "market_size_text": "对应细分板块可按数十亿美元级理解。",
+                "growth_outlook": "受 1.6T 与 CPO 升级拉动，未来 2-3 年仍有较高增长弹性。",
+                "company_position_text": "在上游激光链中更接近早期核心卡位。",
+                "company_share_text": "公司份额更适合按低个位数到中个位数理解。",
+                "share_level": "早期卡位",
+                "evidence_note": "结合财报、产业链验证与 AI 摘要归纳。",
+            },
         }
     )
 
@@ -418,6 +437,10 @@ def test_a_share_match_stock_analysis_template_renders_selection_metrics_panel()
     assert "环节市场规模" in html
     assert "公司份额" in html
     assert "份额等级" in html
+    assert "行业画像" in html
+    assert "所属板块" in html
+    assert "增长前景" in html
+    assert "行业地位" in html
 
 
 def test_a_share_match_stock_analysis_template_renders_live_quote_refresh_controls():

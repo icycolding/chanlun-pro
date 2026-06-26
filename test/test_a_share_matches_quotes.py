@@ -90,6 +90,12 @@ def test_normalize_a_share_code_adds_expected_exchange_prefix():
     assert normalize_a_share_code("830000") == "BJ.830000"
 
 
+def test_normalize_a_share_code_supports_prefixed_exchange_codes():
+    assert normalize_a_share_code("sh600183") == "SH.600183"
+    assert normalize_a_share_code("sz002281") == "SZ.002281"
+    assert normalize_a_share_code("bj830000") == "BJ.830000"
+
+
 def test_normalize_market_codes_only_changes_a_share_market():
     assert normalize_market_codes("a", ["688498", "SZ.300394"]) == [
         "SH.688498",

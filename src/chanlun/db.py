@@ -1,6 +1,7 @@
 import datetime
 import hashlib
 import json
+import re
 import time
 import warnings
 from typing import Any, Dict, List, Optional, Union
@@ -21,6 +22,7 @@ from sqlalchemy import (
     func,
     inspect,
     or_,
+    tuple_,
 )
 from sqlalchemy.dialects.mysql import insert
 from sqlalchemy.exc import OperationalError
@@ -36,6 +38,25 @@ warnings.filterwarnings("ignore")
 # https://docs.sqlalchemy.org/en/20/core/types.html
 
 Base = declarative_base()
+
+
+def _normalize_serenity_aistocks_market_code(market: str, code: str) -> tuple[str, str]:
+    normalized_market = str(market or "").strip().lower()
+    normalized_code = str(code or "").strip().upper()
+    if not normalized_market or not normalized_code:
+        return normalized_market, normalized_code
+    if normalized_market == "a":
+        if "." in normalized_code:
+            return normalized_market, normalized_code
+        if re.fullmatch(r"(SH|SZ|BJ)\d{6}", normalized_code):
+            return normalized_market, f"{normalized_code[:2]}.{normalized_code[2:]}"
+    elif normalized_market == "hk":
+        digits = re.sub(r"\D", "", normalized_code)
+        if digits:
+            return normalized_market, f"KH.{digits.zfill(5)[-5:]}"
+    elif normalized_market == "us":
+        return normalized_market, normalized_code
+    return normalized_market, normalized_code
 
 
 class TableByCompanyFinancials(Base):
@@ -294,6 +315,49 @@ class TableByMarketSummary(Base):
     
     # 添加配置设置编码
     __table_args__ = {"mysql_collate": "utf8mb4_general_ci"}
+
+
+class TableBySerenityAIStocksLatestPrice(Base):
+    __tablename__ = "cl_serenity_aistocks_latest_price"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    market = Column(String(20), nullable=False, comment="市场")
+    code = Column(String(20), nullable=False, comment="规范化后的代码")
+    symbol = Column(String(50), comment="原始展示代码")
+    price = Column(Float, comment="最新价")
+    rate = Column(Float, comment="涨跌幅")
+    price_text = Column(String(50), comment="价格展示文本")
+    rate_text = Column(String(50), comment="涨跌幅展示文本")
+    status = Column(String(20), comment="状态 ok unsupported error", default="ok")
+    source = Column(String(100), comment="数据来源")
+    fetched_at = Column(DateTime, comment="行情抓取时间")
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)
+
+    __table_args__ = (
+        UniqueConstraint("market", "code", name="table_serenity_aistocks_market_code_unique"),
+        {"mysql_collate": "utf8mb4_general_ci"},
+    )
+
+
+class TableBySerenityAIStocksRecentThreeBuy(Base):
+    __tablename__ = "cl_serenity_aistocks_recent_three_buy"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    market = Column(String(20), nullable=False, comment="市场")
+    code = Column(String(20), nullable=False, comment="规范化后的代码")
+    symbol = Column(String(50), comment="原始展示代码")
+    recent_three_buy_time = Column(DateTime, comment="最近三买时间")
+    recent_three_buy_time_text = Column(String(50), comment="最近三买展示文本")
+    label = Column(String(50), comment="最近三买标签")
+    status = Column(String(20), comment="状态 ok not_found unsupported error", default="ok")
+    source = Column(String(100), comment="数据来源")
+    scanned_at = Column(DateTime, comment="扫描时间")
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)
+
+    __table_args__ = (
+        UniqueConstraint("market", "code", name="table_serenity_aistocks_recent_three_buy_market_code_unique"),
+        {"mysql_collate": "utf8mb4_general_ci"},
+    )
 
 
 class TableByEconomicData(Base):
@@ -1517,6 +1581,176 @@ class DB(object):
             session.commit()
 
         return True
+
+    def serenity_aistocks_latest_prices_replace(self, rows: List[dict]) -> bool:
+        with self.Session() as session:
+            now = datetime.datetime.now()
+            for row in rows or []:
+                market, code = _normalize_serenity_aistocks_market_code(
+                    row.get("market"), row.get("code")
+                )
+                if not market or not code:
+                    continue
+
+                existing = (
+                    session.query(TableBySerenityAIStocksLatestPrice)
+                    .filter(
+                        TableBySerenityAIStocksLatestPrice.market == market,
+                        TableBySerenityAIStocksLatestPrice.code == code,
+                    )
+                    .first()
+                )
+
+                payload = {
+                    "market": market,
+                    "code": code,
+                    "symbol": row.get("symbol"),
+                    "price": row.get("price"),
+                    "rate": row.get("rate"),
+                    "price_text": row.get("price_text"),
+                    "rate_text": row.get("rate_text"),
+                    "status": row.get("status", "ok"),
+                    "source": row.get("source"),
+                    "fetched_at": row.get("fetched_at"),
+                    "updated_at": row.get("updated_at") or now,
+                }
+
+                if existing:
+                    for key, value in payload.items():
+                        if value is not None and hasattr(existing, key):
+                            setattr(existing, key, value)
+                else:
+                    session.add(TableBySerenityAIStocksLatestPrice(**payload))
+            session.commit()
+        return True
+
+    def serenity_aistocks_latest_prices_query(self, items: List[dict]) -> List[dict]:
+        normalized_keys: list[tuple[str, str]] = []
+        for item in items or []:
+            market, code = _normalize_serenity_aistocks_market_code(
+                item.get("market"), item.get("code")
+            )
+            if market and code and (market, code) not in normalized_keys:
+                normalized_keys.append((market, code))
+
+        if not normalized_keys:
+            return []
+
+        with self.Session() as session:
+            rows = (
+                session.query(TableBySerenityAIStocksLatestPrice)
+                .filter(
+                    tuple_(
+                        TableBySerenityAIStocksLatestPrice.market,
+                        TableBySerenityAIStocksLatestPrice.code,
+                    ).in_(normalized_keys)
+                )
+                .all()
+            )
+
+            return [
+                {
+                    "market": row.market,
+                    "code": row.code,
+                    "symbol": row.symbol or row.code,
+                    "price": row.price,
+                    "rate": row.rate,
+                    "price_text": row.price_text or "--",
+                    "rate_text": row.rate_text or "--",
+                    "status": row.status or "ok",
+                    "source": row.source or "",
+                    "fetched_at": row.fetched_at,
+                    "updated_at": row.updated_at,
+                    "updated_at_text": fun.datetime_to_str(row.updated_at)
+                    if row.updated_at is not None
+                    else "",
+                }
+                for row in rows
+            ]
+
+    def serenity_aistocks_recent_three_buy_replace(self, rows: List[dict]) -> bool:
+        with self.Session() as session:
+            now = datetime.datetime.now()
+            for row in rows or []:
+                market, code = _normalize_serenity_aistocks_market_code(
+                    row.get("market"), row.get("code")
+                )
+                if not market or not code:
+                    continue
+
+                existing = (
+                    session.query(TableBySerenityAIStocksRecentThreeBuy)
+                    .filter(
+                        TableBySerenityAIStocksRecentThreeBuy.market == market,
+                        TableBySerenityAIStocksRecentThreeBuy.code == code,
+                    )
+                    .first()
+                )
+
+                payload = {
+                    "market": market,
+                    "code": code,
+                    "symbol": row.get("symbol"),
+                    "recent_three_buy_time": row.get("recent_three_buy_time"),
+                    "recent_three_buy_time_text": row.get("recent_three_buy_time_text"),
+                    "label": row.get("label"),
+                    "status": row.get("status", "ok"),
+                    "source": row.get("source"),
+                    "scanned_at": row.get("scanned_at"),
+                    "updated_at": row.get("updated_at") or now,
+                }
+
+                if existing:
+                    for key, value in payload.items():
+                        if value is not None and hasattr(existing, key):
+                            setattr(existing, key, value)
+                else:
+                    session.add(TableBySerenityAIStocksRecentThreeBuy(**payload))
+            session.commit()
+        return True
+
+    def serenity_aistocks_recent_three_buy_query(self, items: List[dict]) -> List[dict]:
+        normalized_keys: list[tuple[str, str]] = []
+        for item in items or []:
+            market, code = _normalize_serenity_aistocks_market_code(
+                item.get("market"), item.get("code")
+            )
+            if market and code and (market, code) not in normalized_keys:
+                normalized_keys.append((market, code))
+
+        if not normalized_keys:
+            return []
+
+        with self.Session() as session:
+            rows = (
+                session.query(TableBySerenityAIStocksRecentThreeBuy)
+                .filter(
+                    tuple_(
+                        TableBySerenityAIStocksRecentThreeBuy.market,
+                        TableBySerenityAIStocksRecentThreeBuy.code,
+                    ).in_(normalized_keys)
+                )
+                .all()
+            )
+
+            return [
+                {
+                    "market": row.market,
+                    "code": row.code,
+                    "symbol": row.symbol or row.code,
+                    "recent_three_buy_time": row.recent_three_buy_time,
+                    "recent_three_buy_time_text": row.recent_three_buy_time_text or "--",
+                    "label": row.label or "未扫描",
+                    "status": row.status or "ok",
+                    "source": row.source or "",
+                    "scanned_at": row.scanned_at,
+                    "updated_at": row.updated_at,
+                    "updated_at_text": fun.datetime_to_str(row.updated_at)
+                    if row.updated_at is not None
+                    else "",
+                }
+                for row in rows
+            ]
 
     def news_insert(self, news_data: dict) -> bool:
         """

@@ -1382,6 +1382,21 @@
                 </div>
                 <div class="selection-metric-grid">
                   <div class="selection-metric-card">
+                    <span class="selection-metric-label">所属板块</span>
+                    <span class="selection-metric-value">{{ stock.sector_context_view.sector_name }}</span>
+                    <div class="selection-metric-detail">{{ stock.sector_context_view.sector_role }}</div>
+                  </div>
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">增长前景</span>
+                    <span class="selection-metric-value">{{ stock.sector_context_view.growth_outlook }}</span>
+                  </div>
+                  <div class="selection-metric-card">
+                    <span class="selection-metric-label">行业地位</span>
+                    <span class="selection-metric-value">{{ stock.sector_context_view.company_position_text }}</span>
+                  </div>
+                </div>
+                <div class="selection-metric-grid">
+                  <div class="selection-metric-card">
                     <span class="selection-metric-label">稀缺性</span>
                     <span class="selection-metric-value">{{ stock.scarcity_view.label }}</span>
                     <div class="selection-metric-detail">{{ stock.scarcity_view.detail }}</div>
@@ -1494,6 +1509,21 @@
                       </div>
                       <div class="selection-metric-grid">
                         <div class="selection-metric-card">
+                          <span class="selection-metric-label">所属板块</span>
+                          <span class="selection-metric-value">{{ match.sector_context_view.sector_name }}</span>
+                          <div class="selection-metric-detail">{{ match.sector_context_view.sector_role }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">增长前景</span>
+                          <span class="selection-metric-value">{{ match.sector_context_view.growth_outlook }}</span>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">行业地位</span>
+                          <span class="selection-metric-value">{{ match.sector_context_view.company_position_text }}</span>
+                        </div>
+                      </div>
+                      <div class="selection-metric-grid">
+                        <div class="selection-metric-card">
                           <span class="selection-metric-label">稀缺性</span>
                           <span class="selection-metric-value">{{ match.scarcity_view.label }}</span>
                           <div class="selection-metric-detail">{{ match.scarcity_view.detail }}</div>
@@ -1601,6 +1631,21 @@
                         <div class="selection-reason-title">为什么符合</div>
                         <p class="selection-reason-text">{{ match.selection_reason.summary }}</p>
                         <p class="selection-basis-text">依据：{{ match.selection_reason.fit_basis }}</p>
+                      </div>
+                      <div class="selection-metric-grid">
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">所属板块</span>
+                          <span class="selection-metric-value">{{ match.sector_context_view.sector_name }}</span>
+                          <div class="selection-metric-detail">{{ match.sector_context_view.sector_role }}</div>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">增长前景</span>
+                          <span class="selection-metric-value">{{ match.sector_context_view.growth_outlook }}</span>
+                        </div>
+                        <div class="selection-metric-card">
+                          <span class="selection-metric-label">行业地位</span>
+                          <span class="selection-metric-value">{{ match.sector_context_view.company_position_text }}</span>
+                        </div>
                       </div>
                       <div class="selection-metric-grid">
                         <div class="selection-metric-card">

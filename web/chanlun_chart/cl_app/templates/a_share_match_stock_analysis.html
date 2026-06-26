@@ -214,6 +214,7 @@
   data-market="{{ analysis.market or '' }}"
 >
   {% set live_quote = analysis.live_quote or {} %}
+  {% set sector_context = analysis.get("sector_context_view", {}) %}
   <main class="page">
     <section class="panel">
       <div class="eyebrow">个股分析详情</div>
@@ -276,6 +277,38 @@
     <section class="panel">
       <h2 class="section-title">AI 财务解读</h2>
       <p class="summary">{{ analysis.financial_ai_analysis }}</p>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">行业画像</h2>
+      <div class="selection-metric-grid">
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">所属板块</span>
+          <span class="selection-metric-value">{{ sector_context.get("sector_name", "板块待补充") }}</span>
+          <p class="selection-metric-detail">{{ sector_context.get("sector_role", "板块定位待 AI 研究补齐") }}</p>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">增长前景</span>
+          <span class="selection-metric-value">{{ sector_context.get("growth_outlook", "增长前景待 AI 研究补齐") }}</span>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">行业地位</span>
+          <span class="selection-metric-value">{{ sector_context.get("company_position_text", "行业地位待 AI 研究补齐") }}</span>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">市场空间</span>
+          <span class="selection-metric-value">{{ sector_context.get("market_size_text", "对应板块市场空间待研究补齐") }}</span>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">公司份额</span>
+          <span class="selection-metric-value">{{ sector_context.get("company_share_text", "公司份额待研究补齐") }}</span>
+          <p class="selection-metric-detail">份额等级：{{ sector_context.get("share_level", "待补充") }}</p>
+        </div>
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">判断依据</span>
+          <span class="selection-metric-value">{{ sector_context.get("evidence_note", "优先结合财报、行业验证与 AI 摘要继续补齐。") }}</span>
+        </div>
+      </div>
     </section>
 
     <section class="panel">

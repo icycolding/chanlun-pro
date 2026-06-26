@@ -80,6 +80,10 @@ from .a_share_stock_analysis import (
     build_stock_analysis_summaries,
 )
 from .a_share_stock_analysis_workspace import sync_workspace_stock_analysis_payload
+from .serenity_aistocks import (
+    register_serenity_aistocks_routes,
+    sync_serenity_aistocks_latest_prices,
+)
 from .tv_chart_request_mode import (
     apply_lite_chart_config_override,
     is_lite_chart_request,
@@ -308,6 +312,7 @@ def create_app(test_config=None):
     __log = fun.get_logger()
     jin10_watch_job_id = "jin10_news_watch"
     jin10_watch_state_path = get_data_path() / "jin10_seen.json"
+    serenity_aistocks_price_job_id = "serenity_aistocks_latest_price_sync"
     jin10_watch_status = {
         "interval": 30,
         "max_items": 50,
@@ -320,6 +325,30 @@ def create_app(test_config=None):
         "last_vector_synced": 0,
         "last_error": "",
     }
+    serenity_aistocks_price_sync_status = {
+        "interval_seconds": 60,
+        "started_at": None,
+        "last_run_at": None,
+        "last_success_count": 0,
+        "last_unsupported_count": 0,
+        "last_error_count": 0,
+        "last_total_candidates": 0,
+        "last_error": "",
+    }
+
+    def _serenity_aistocks_price_sync_snapshot():
+        job = scheduler.get_job(serenity_aistocks_price_job_id)
+        return {
+            "running": job is not None,
+            "interval_seconds": serenity_aistocks_price_sync_status["interval_seconds"],
+            "started_at": serenity_aistocks_price_sync_status["started_at"],
+            "last_run_at": serenity_aistocks_price_sync_status["last_run_at"],
+            "last_success_count": serenity_aistocks_price_sync_status["last_success_count"],
+            "last_unsupported_count": serenity_aistocks_price_sync_status["last_unsupported_count"],
+            "last_error_count": serenity_aistocks_price_sync_status["last_error_count"],
+            "last_total_candidates": serenity_aistocks_price_sync_status["last_total_candidates"],
+            "last_error": serenity_aistocks_price_sync_status["last_error"],
+        }
 
     def _jin10_watch_snapshot():
         job = scheduler.get_job(jin10_watch_job_id)
@@ -365,6 +394,51 @@ def create_app(test_config=None):
             __log.error(f"金十新闻同步失败: {str(e)}")
             raise
 
+    def _run_serenity_aistocks_price_sync_job():
+        run_at = datetime.datetime.now()
+        try:
+            result = sync_serenity_aistocks_latest_prices(db_instance=db)
+            serenity_aistocks_price_sync_status["last_run_at"] = run_at.isoformat()
+            serenity_aistocks_price_sync_status["last_success_count"] = int(
+                result.get("success_count", 0)
+            )
+            serenity_aistocks_price_sync_status["last_unsupported_count"] = int(
+                result.get("unsupported_count", 0)
+            )
+            serenity_aistocks_price_sync_status["last_error_count"] = int(
+                result.get("error_count", 0)
+            )
+            serenity_aistocks_price_sync_status["last_total_candidates"] = int(
+                result.get("total_candidates", 0)
+            )
+            serenity_aistocks_price_sync_status["last_error"] = ""
+            __log.info(
+                "Serenity AI Stocks 价格同步完成 "
+                f"success={serenity_aistocks_price_sync_status['last_success_count']} "
+                f"unsupported={serenity_aistocks_price_sync_status['last_unsupported_count']} "
+                f"errors={serenity_aistocks_price_sync_status['last_error_count']}"
+            )
+        except Exception as e:
+            serenity_aistocks_price_sync_status["last_run_at"] = run_at.isoformat()
+            serenity_aistocks_price_sync_status["last_error"] = str(e)
+            __log.error(f"Serenity AI Stocks 价格同步失败: {str(e)}")
+
+    def _start_serenity_aistocks_price_sync(interval_seconds: int = 60):
+        serenity_aistocks_price_sync_status["interval_seconds"] = interval_seconds
+        serenity_aistocks_price_sync_status["started_at"] = datetime.datetime.now().isoformat()
+        scheduler.add_job(
+            _run_serenity_aistocks_price_sync_job,
+            trigger="interval",
+            seconds=interval_seconds,
+            id=serenity_aistocks_price_job_id,
+            name="Serenity AI Stocks 定时价格入库",
+            replace_existing=True,
+            next_run_time=datetime.datetime.now(),
+            coalesce=True,
+            max_instances=1,
+            misfire_grace_time=max(interval_seconds, 30),
+        )
+
     def _start_jin10_watch(interval: int, max_items: int, url: str, state_path: str):
         resolved_state_path = pathlib.Path(state_path).expanduser().resolve()
         resolved_state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -400,6 +474,8 @@ def create_app(test_config=None):
 
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+    if test_config:
+        app.config.update(test_config)
     app.logger.addFilter(
         lambda record: "/static/" not in record.getMessage().lower()
     )  # 过滤静态资源请求日志
@@ -409,6 +485,9 @@ def create_app(test_config=None):
     login_manager = LoginManager()  # 实例化登录管理对象
     login_manager.init_app(app)  # 初始化应用
     login_manager.login_view = "login_opt"  # 设置用户登录视图函数 endpoint
+    register_serenity_aistocks_routes(
+        app, status_provider=_serenity_aistocks_price_sync_snapshot
+    )
 
     class LoginUser(UserMixin):
         def __init__(self) -> None:
@@ -2731,5 +2810,8 @@ def create_app(test_config=None):
     # 注册 AGI Chat API 蓝图
     from .ai_agent.chat_api import chat_bp
     app.register_blueprint(chat_bp)
+
+    if not app.config.get("TESTING", False):
+        _start_serenity_aistocks_price_sync(interval_seconds=60)
 
     return app

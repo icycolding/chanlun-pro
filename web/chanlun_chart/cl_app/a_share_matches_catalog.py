@@ -68,6 +68,16 @@ _THEME_ACCENTS: dict[str, dict[str, str]] = {
         "accent_soft": "rgba(192, 132, 252, 0.12)",
         "accent_line": "rgba(192, 132, 252, 0.28)",
     },
+    "AI稀有金属 / 关键矿物 / 上游资源": {
+        "accent": "#a855f7",
+        "accent_soft": "rgba(168, 85, 247, 0.12)",
+        "accent_line": "rgba(168, 85, 247, 0.28)",
+    },
+    "创新药 / BD出海 / CXO服务": {
+        "accent": "#14b8a6",
+        "accent_soft": "rgba(20, 184, 166, 0.12)",
+        "accent_line": "rgba(20, 184, 166, 0.28)",
+    },
     "机器人 / 具身智能 / 核心部件": {
         "accent": "#2dd4bf",
         "accent_soft": "rgba(45, 212, 191, 0.12)",
@@ -110,6 +120,11 @@ _PROJECT_STOCK_REASON_DATA: dict[str, dict[str, Any]] = {
     "AXTI": {
         "serenity_reason_summary": "Serenity 看 AXTI，明显是按上游材料和 InP / III-V 衬底链来看的。真正吸引力在于它处在化合物半导体和 photonics 的基底层，属于产业要往上做时绕不开的上游材料。推荐理由不是短期主题热度，而是材料 choke point 和供给位置。",
         "serenity_reason_highlights": ["InP / III-V 上游材料", "化合物半导体基底层", "材料 choke point"],
+        "tweet_detail_label": "查看推荐脉络",
+    },
+    "MP": {
+        "serenity_reason_summary": "Serenity 看 MP，不会把它当普通稀土资源 beta，而是把它放到稀土分离、NdPr、磁材和 physical AI 执行链上看。真正吸引力在于它更接近高性能 NdFeB 永磁材料的上游 choke point，尤其当机器人电机和高端工业磁材需求开始兑现时，这层最容易先紧。",
+        "serenity_reason_highlights": ["NdPr / 稀土分离卡位", "高性能 NdFeB 永磁", "physical AI / 机器人电机上游"],
         "tweet_detail_label": "查看推荐脉络",
     },
     "IQE": {
@@ -190,6 +205,21 @@ _PROJECT_STOCK_REASON_DATA: dict[str, dict[str, Any]] = {
     "VNP": {
         "serenity_reason_summary": "Serenity 看 5N Plus，核心是关键矿物、战略材料与供应链安全，而不是普通有色资源故事。它的吸引力来自材料自主可控、关键元素供给和高端工业链需求的重合。推荐理由更偏向战略地位与上游资源卡位。",
         "serenity_reason_highlights": ["关键矿物 / 战略材料", "供应链安全", "上游资源卡位"],
+        "tweet_detail_label": "查看推荐脉络",
+    },
+    "ONC": {
+        "serenity_reason_summary": "Serenity 看 BeOne，不是把它当一只普通中国创新药 ADR，而是把它视为少数已经跨过全球研发、全球商业化和制造兑现门槛的平台型肿瘤药企。真正稀缺的不是单个管线，而是被全球收入和执行体系验证的平台能力。",
+        "serenity_reason_highlights": ["全球化商业化药企", "肿瘤平台能力", "研发+制造+商业化闭环"],
+        "tweet_detail_label": "查看推荐脉络",
+    },
+    "9926": {
+        "serenity_reason_summary": "Serenity 看康方，不是单纯押国内创新药情绪，而是看它的双抗平台和授权出海定价权。真正值得盯的是，海外大药企和资本愿不愿意为这条管线与平台高价买单，这比短期国内销售弹性更接近创新药真实卡点。",
+        "serenity_reason_highlights": ["双抗平台", "BD / 授权出海", "全球化定价验证"],
+        "tweet_detail_label": "查看推荐脉络",
+    },
+    "2269": {
+        "serenity_reason_summary": "Serenity 看药明生物，不是把它当泛 CXO，而是把它看成创新药后端工艺开发和商业化生产的卖铲人平台。真正关键的是，当 ADC、生物药和多项目平台进入后段放量时，谁能稳稳接住工艺放大、PPQ 和商业化生产。",
+        "serenity_reason_highlights": ["生物药 / ADC CDMO", "后端工艺放大", "创新药卖铲子平台"],
         "tweet_detail_label": "查看推荐脉络",
     },
     "VPG": {
@@ -298,6 +328,43 @@ def _segment_market_view(
     }
 
 
+def _sector_context_view(
+    sector_name: str = "",
+    sector_role: str = "",
+    market_size_text: str = "",
+    growth_outlook: str = "",
+    company_position_text: str = "",
+    company_share_text: str = "",
+    share_level: str = "",
+    evidence_note: str = "",
+) -> dict[str, str]:
+    return {
+        "sector_name": str(sector_name or "板块待补充"),
+        "sector_role": str(sector_role or "板块定位待 AI 研究补齐"),
+        "market_size_text": str(market_size_text or "对应板块市场空间待研究补齐"),
+        "growth_outlook": str(growth_outlook or "增长前景待 AI 研究补齐"),
+        "company_position_text": str(company_position_text or "行业地位待 AI 研究补齐"),
+        "company_share_text": str(company_share_text or "公司份额待研究补齐"),
+        "share_level": str(share_level or "待补充"),
+        "evidence_note": str(evidence_note or "优先结合财报、行业验证与 AI 摘要继续补齐。"),
+    }
+
+
+def _sector_context_from_segment(
+    segment_view: dict[str, str] | None = None,
+    selection_reason: dict[str, str] | None = None,
+) -> dict[str, str]:
+    normalized_segment = segment_view or {}
+    normalized_reason = selection_reason or {}
+    return _sector_context_view(
+        market_size_text=normalized_segment.get("market_size_text", ""),
+        growth_outlook=normalized_reason.get("fit_basis", ""),
+        company_position_text=normalized_reason.get("summary", ""),
+        company_share_text=normalized_segment.get("company_share_text", ""),
+        share_level=normalized_segment.get("share_level", ""),
+    )
+
+
 _PROJECT_SOURCE_VALIDATIONS: dict[str, dict[str, Any]] = {
     "SIVE": _source_validation(
         summary="官方光子交换路线与权威媒体均支持外置光源和上游激光仍是 CPO 关键卡点。",
@@ -339,6 +406,13 @@ _PROJECT_SOURCE_VALIDATIONS: dict[str, dict[str, Any]] = {
         sources=[
             _source("AXT Investor Overview", "https://investors.axt.com/Investors/Overview/", "公司官网"),
             _source("AXT FY2025 Results", "https://investors.axt.com/Investors/news/news-details/2026/AXT-Inc--Announces-Fourth-Quarter-and-Fiscal-Year-2025-Financial-Results/default.aspx", "公司业绩公告"),
+        ],
+    ),
+    "MP": _source_validation(
+        summary="MP Materials 年报与季度业绩都验证了 NdPr oxide 放量、重稀土分离推进和商业化磁体路线，这比普通稀土资源逻辑更接近 physical AI 上游卡点。",
+        sources=[
+            _source("MP Materials FY2025 Results", "https://investors.mpmaterials.com/news/news-details/2026/MP-Materials-Reports-Fourth-Quarter-and-Full-Year-2025-Results/default.aspx", "公司业绩公告"),
+            _source("MP Materials Q3 2025 Results", "https://investors.mpmaterials.com/news/news-details/2025/MP-Materials-Reports-Third-Quarter-2025-Results/default.aspx", "公司业绩公告"),
         ],
     ),
     "IQE": _source_validation(
@@ -423,6 +497,27 @@ _PROJECT_SOURCE_VALIDATIONS: dict[str, dict[str, Any]] = {
         sources=[
             _source("5N Plus Financial Documents", "https://www.5nplus.com/en/investors/financial-documents/", "公司财务文件"),
             _source("5N Plus Q1 2026 Results", "https://www.5nplus.com/en/news/5n-plus-inc-reports-first-quarter-2026-financials/", "业绩公告"),
+        ],
+    ),
+    "ONC": _source_validation(
+        summary="BeOne 年报与 2026Q1 业绩公告共同验证其已进入全球肿瘤药商业化和平台化兑现阶段，不再只是单管线中国 Biotech 映射。",
+        sources=[
+            _source("BeOne Medicines FY2025 Results", "https://ir.beonemedicines.com/news-releases/news-release-details/beone-medicines-reports-fourth-quarter-and-full-year-2025", "公司业绩公告"),
+            _source("BeOne Medicines Q1 2026 Results", "https://ir.beonemedicines.com/news-releases/news-release-details/beone-medicines-reports-first-quarter-2026-financial-results", "公司业绩公告"),
+        ],
+    ),
+    "9926": _source_validation(
+        summary="康方生物年报与 Summit 对 ivonescimab 的全球开发披露共同验证其双抗平台已被海外高价验证，核心看点是 BD / 授权出海而不是单一国内销售。",
+        sources=[
+            _source("康方生物 2025 年报", "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0327/2026032702618_c.pdf", "公司年报"),
+            _source("Summit Therapeutics ivonescimab update", "https://www.smmttx.com/investors/news-events/press-releases/detail/178/summit-therapeutics-reports-fourth-quarter-and-full-year", "海外合作方公告"),
+        ],
+    ),
+    "2269": _source_validation(
+        summary="药明生物年报与业绩材料共同验证其生物药/ADC CRDMO 平台和后端工艺放大能力，符合创新药卖铲子逻辑。",
+        sources=[
+            _source("药明生物 2025 年报", "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/0325/2026032502625_c.pdf", "公司年报"),
+            _source("药明生物 2025 年业绩演示材料", "https://www.wuxibiologics.com/wp-content/uploads/2026/03/2025-Annual-Results-Presentation.pdf", "公司业绩材料"),
         ],
     ),
     "VPG": _source_validation(
@@ -625,6 +720,62 @@ _A_SHARE_SOURCE_VALIDATIONS: dict[str, dict[str, Any]] = {
             _source("北方稀土 业绩暨现金分红说明会公告", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2025-04-29/600111_20250429_5FHL.pdf", "公司公告"),
         ],
     ),
+    "600497": _source_validation(
+        summary="驰宏锌锗官网产品资料与年报都验证其高纯四氯化锗和锗深加工业务，适合作为 AI 光通信材料链的候选映射。",
+        sources=[
+            _source("驰宏锌锗产品中心", "https://www.chxz.com.cn/chanpinzhongxin/index.jhtml", "公司官网"),
+            _source("驰宏锌锗 2024 年报", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2025-03-29/600497_20250329_3J49.pdf", "公司年报"),
+        ],
+    ),
+    "300748": _source_validation(
+        summary="金力永磁年报与调研纪要都验证其高性能钕铁硼和具身机器人电机转子小批量交付进展，是永磁主线里更贴近 physical AI 的映射。",
+        sources=[
+            _source("金力永磁 2025 年报", "http://static.cninfo.com.cn/finalpage/2026-03-28/1225035174.PDF", "公司年报"),
+            _source("金力永磁 2026 年投资者关系记录", "http://static.cninfo.com.cn/finalpage/2026-05-12/1225288802.PDF", "投资者关系记录"),
+        ],
+    ),
+    "688235": _source_validation(
+        summary="百济神州年报与业绩公告共同验证其全球化商业化和 BTK/肿瘤平台收入兑现，是 ONC 最直接的 A 股主映射。",
+        sources=[
+            _source("百济神州 2025 年报", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-03-27/688235_20260327_2YRM.pdf", "公司年报"),
+            _source("百济神州 2026Q1 业绩公告", "https://ir.beigene.com/news-releases/news-release-details/beigene-reports-first-quarter-2026-financial-results", "公司业绩公告"),
+        ],
+    ),
+    "688331": _source_validation(
+        summary="荣昌生物年报与出海授权披露共同验证其 ADC 与全球合作潜力，适合作为全球化创新药候选映射。",
+        sources=[
+            _source("荣昌生物 2025 年报", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-03-28/688331_20260328_6M4U.pdf", "公司年报"),
+            _source("荣昌生物 海外授权公告", "http://static.cninfo.com.cn/finalpage/2026-02-10/1224959120.PDF", "公司公告"),
+        ],
+    ),
+    "688506": _source_validation(
+        summary="百利天恒年报与 BMS 合作披露共同验证其 ADC 管线已被全球大药企高价验证，是 BD 出海主线最纯的 A 股样本之一。",
+        sources=[
+            _source("百利天恒 2025 年报", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-03-28/688506_20260328_JB4L.pdf", "公司年报"),
+            _source("百利天恒 与 BMS 合作公告", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2023-12-11/688506_20231211_0W7D.pdf", "公司公告"),
+        ],
+    ),
+    "688062": _source_validation(
+        summary="迈威生物年报与出海推进公告共同验证其平台型生物药和海外开发路径，适合作为双抗平台候选映射。",
+        sources=[
+            _source("迈威生物 2025 年报", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-03-29/688062_20260329_FM4K.pdf", "公司年报"),
+            _source("迈威生物 海外开发进展公告", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2025-11-21/688062_20251121_5Q2P.pdf", "公司公告"),
+        ],
+    ),
+    "603259": _source_validation(
+        summary="药明康德年报与业绩材料共同验证其 CRDMO 与 TIDES 平台能力，是创新药卖铲子主线最直接的 A 股主映射。",
+        sources=[
+            _source("药明康德 2025 年报", "https://www.sse.com.cn/disclosure/listedinfo/announcement/c/new/2026-03-18/603259_20260318_9JPR.pdf", "公司年报"),
+            _source("药明康德 2025 年业绩演示材料", "https://ir.wuxiapptec.com/static-files/0c86bbbc-0a14-4ac7-a843-2f42d82b0efc", "公司业绩材料"),
+        ],
+    ),
+    "300759": _source_validation(
+        summary="康龙化成年报与业绩说明会共同验证其一体化医药研发服务平台，是药明生物 / 药明康德 链条的候选卖铲子映射。",
+        sources=[
+            _source("康龙化成 2025 年报", "http://static.cninfo.com.cn/finalpage/2026-03-28/1225039662.PDF", "公司年报"),
+            _source("康龙化成 2026 年业绩说明会记录", "http://static.cninfo.com.cn/finalpage/2026-05-09/1225268893.PDF", "业绩说明会"),
+        ],
+    ),
     "688160": _source_validation(
         summary="权威媒体与经营数据页面共同验证其机器人业务高增长与关节平台布局。",
         sources=[
@@ -700,6 +851,15 @@ _PROJECT_SELECTION_METRICS: dict[str, dict[str, Any]] = {
         "capacity_view": _capacity_view("扩产难", "材料纯度、良率和下游认证共同决定扩产速度。"),
         "pricing_view": _pricing_view("有涨价基础", "材料端一旦供给偏紧，价格传导通常比下游更直接。"),
         "segment_market_view": _segment_market_view("InP / III-V 基底环节可按数十亿美元级理解。", "公司份额更适合按中个位数到低双位数理解。", "中高"),
+    },
+    "MP": {
+        "selection_reason": _selection_reason(
+            "符合 Serenity 方法，因为它卡在 NdPr、稀土分离和高性能 NdFeB 永磁这条更接近 physical AI 的真实稀缺层，不是普通稀土资源行情映射。",
+            "AI 需求若从数据中心继续外溢到机器人和高端工业，最先紧的往往是人形机器人电机和高性能磁材，而 MP 更接近这层上游 choke point。"),
+        "scarcity_view": _scarcity_view("高", "稀土分离、重稀土、磁材认证和高性能 NdFeB 产线都不是简单复制，真正稀缺的是分离与磁体链条一体化。"),
+        "capacity_view": _capacity_view("扩产难", "扩量不只是多挖矿，还要看重稀土分离线、磁体产能爬坡和下游客户验证。"),
+        "pricing_view": _pricing_view("有涨价基础", "当 NdPr 与高性能磁材进入紧平衡，分离和磁体链条更容易承接结构性定价权。"),
+        "segment_market_view": _segment_market_view("NdPr oxide / high-performance NdFeB / magnetics 环节可按数十亿美元到百亿美元级理解。", "公司份额适合按北美关键稀土与磁体平台理解。", "高"),
     },
     "IQE": {
         "selection_reason": _selection_reason(
@@ -845,6 +1005,33 @@ _PROJECT_SELECTION_METRICS: dict[str, dict[str, Any]] = {
         "pricing_view": _pricing_view("有涨价基础", "出口管制、价格底和战略采购都可能放大关键矿物的定价权。"),
         "segment_market_view": _segment_market_view("关键矿物 / 稀土磁材 / 锑 / 钨 / 铜可按数十亿美元到百亿美元级理解。", "更适合按战略矿种组合锚点理解。", "高"),
     },
+    "ONC": {
+        "selection_reason": _selection_reason(
+            "符合 Serenity 方法，因为它已经跨过全球化商业化门槛，卡的不是单条中国创新药情绪，而是研发、临床、商业化和制造一起兑现的平台能力。",
+            "真正稀缺的是少数中国 Biotech 能把全球肿瘤研发和商业化做成平台，这比单个临床 readout 更接近长期 choke point。"),
+        "scarcity_view": _scarcity_view("高", "全球肿瘤药平台能力、商业化执行和制造协同都需要多年积累，不是单个 license-in/out 就能复制。"),
+        "capacity_view": _capacity_view("中高", "扩张更多取决于全球商业化推进、临床开发效率和制造网络协同。"),
+        "pricing_view": _pricing_view("有涨价基础", "真正进入全球商业化的平台药企，在新适应症和新区域放量时更有定价与估值中枢上移能力。"),
+        "segment_market_view": _segment_market_view("全球肿瘤创新药平台可按数百亿美元级理解。", "公司份额更适合按全球化成长平台理解。", "高"),
+    },
+    "9926": {
+        "selection_reason": _selection_reason(
+            "符合 Serenity 方法，因为它的核心卡点是双抗平台被海外高价 BD / 授权出海验证，而不是单纯国内创新药情绪。",
+            "创新药真正稀缺的不是概念管线，而是海外大药企愿意为之付大价钱的平台和分子，这比短期院内放量更重要。"),
+        "scarcity_view": _scarcity_view("高", "双抗平台、全球临床路径和 BD 定价权三者叠加，才构成真正稀缺性。"),
+        "capacity_view": _capacity_view("中高", "扩张取决于海外临床推进、注册节奏和后续适应症兑现，而不是简单加销售队伍。"),
+        "pricing_view": _pricing_view("有涨价基础", "被海外高价验证的平台型创新药，估值和商业价值都更容易被重新锚定。"),
+        "segment_market_view": _segment_market_view("双抗 / 肿瘤创新药 / 授权出海平台可按数十亿美元到百亿美元级理解。", "公司份额适合按中国创新药全球化平台理解。", "中高"),
+    },
+    "2269": {
+        "selection_reason": _selection_reason(
+            "符合 Serenity 方法，因为它不是泛 CRO，而是卡在生物药 / ADC 后端工艺开发、PPQ 和商业化生产这层创新药卖铲子平台。",
+            "创新药真正难的是把前端管线变成稳定可交付的商业化产能，这一层比单纯临床服务更接近长期价值捕获。"),
+        "scarcity_view": _scarcity_view("高", "后端工艺放大、质量体系和商业化生产平台壁垒都很高，客户切换成本也更大。"),
+        "capacity_view": _capacity_view("扩产难", "要同步解决工艺开发、产能爬坡、客户验证和商业批生产，不是普通外包产线平移。"),
+        "pricing_view": _pricing_view("有涨价基础", "高难度生物药与 ADC 项目一旦进入后端生产，平台型 CDMO 更容易维持定价与客户粘性。"),
+        "segment_market_view": _segment_market_view("生物药 / ADC CDMO / CRDMO 环节可按数十亿美元到百亿美元级理解。", "公司份额适合按全球重要卖铲子平台理解。", "高"),
+    },
     "VPG": {
         "selection_reason": _selection_reason(
             "符合 Serenity 方法，因为它卡在高精度 sensing、力控与机器人手部这些高附加值 choke point。",
@@ -962,7 +1149,7 @@ _MATCH_SELECTION_METRICS: dict[str, dict[str, Any]] = {
         "segment_market_view": _segment_market_view("III-V 材料与外延平台可按数十亿美元级理解。", "公司份额适合按中高个位数理解。", "中高"),
     },
     "002428": {
-        "selection_reason": _selection_reason("符合，因为它更纯地映射磷化铟 / 材料链，是 Serenity 偏好的材料 choke point，控股子公司已批量供货磷化铟晶片。", "比平台股更接近关键材料层，且近期下游需求快速增长、公司已批量供货并推进扩产，是少数有现实兑现抓手的材料映射。"),
+        "selection_reason": _selection_reason("符合，因为它更纯地映射磷化铟 / 锗材料链，是 Serenity 偏好的材料 choke point，控股子公司光纤级四氯化锗销量同比上涨，且已批量供货磷化铟晶片。", "比平台股更接近关键材料层，既有光纤级四氯化锗这种 AI 光通信材料抓手，也有磷化铟晶片批量供货并推进扩产，是少数有现实兑现抓手的材料映射。"),
         "scarcity_view": _scarcity_view("高", "关键化合物半导体材料供应更稀缺，替代更慢。"),
         "capacity_view": _capacity_view("扩产难", "受原料、良率和下游验证共同约束，现有高品质磷化铟单晶片项目计划建设期 18个月，扩产并不快。"),
         "pricing_view": _pricing_view("有涨价基础", "材料端供给紧时通常更容易直接涨价，公司已公开表示近期下游对磷化铟晶片需求快速增长且价格有所上涨。"),
@@ -1274,6 +1461,70 @@ _MATCH_SELECTION_METRICS: dict[str, dict[str, Any]] = {
         "market_cap_research": _market_cap_research("当前更适合按资源+加工一体化平台理解。", "若战略材料属性被继续重估，可上修估值。"),
         "segment_market_view": _segment_market_view("稀土资源 + 加工一体化环节可按数十亿美元级理解。", "公司份额适合按国内重要平台理解。", "中"),
     },
+    "600497": {
+        "selection_reason": _selection_reason("符合，因为它承接锗深加工与高纯四氯化锗，是 AXTI / 云南锗业 主线外更贴近 AI 光通信材料的候选映射。", "相比泛有色资源，它更有锗深加工和高纯四氯化锗抓手，适合作为 InP / 锗材料链的候选补充。"),
+        "scarcity_view": _scarcity_view("中高", "高纯四氯化锗和锗深加工壁垒高于普通有色冶炼，但稀缺性仍弱于最纯材料主映射。"),
+        "capacity_view": _capacity_view("中高", "扩量既受锗原料约束，也受高纯材料良率、认证和下游导入节奏影响。"),
+        "pricing_view": _pricing_view("有涨价基础", "高纯锗材料若进入供需偏紧阶段，价格传导通常强于普通资源品。"),
+        "market_cap_research": _market_cap_research("当前更适合按锗深加工候选样本理解。", "若 AI 光通信材料属性被市场强化，可看阶段性重估。"),
+        "segment_market_view": _segment_market_view("锗深加工 / 高纯四氯化锗环节可按数十亿美元级理解。", "公司份额适合按国内重要补充平台理解。", "中"),
+    },
+    "300748": {
+        "selection_reason": _selection_reason("符合，因为它是高性能钕铁硼核心映射，且公司已把人形机器人电机转子和具身智能应用写进核心增量方向。", "相比普通磁材股，它更接近人形机器人和高端工业电机这条 physical AI 主线，是永磁材料里更纯的映射。"),
+        "scarcity_view": _scarcity_view("高", "高性能钕铁硼、重稀土配方和高端电机客户认证都构成较强壁垒。"),
+        "capacity_view": _capacity_view("中高", "扩量不只是加产能，还要看高性能磁材良率、客户验证和机器人电机转子导入。"),
+        "pricing_view": _pricing_view("有涨价基础", "高性能磁材更依赖性能溢价和客户认证，供需偏紧时价格弹性更强。"),
+        "market_cap_research": _market_cap_research("当前更适合按高性能永磁平台理解。", "若人形机器人需求真正放量，可显著上修估值中枢。"),
+        "segment_market_view": _segment_market_view("高性能 NdFeB / 机器人电机转子环节可按数十亿美元级理解。", "公司份额适合按国内核心永磁平台理解。", "中高"),
+    },
+    "688235": {
+        "selection_reason": _selection_reason("符合，因为它是少数已被全球化商业化验证的中国创新药平台，BTK 与肿瘤药收入兑现让它不再只是研发故事。", "与单临床催化型 Biotech 不同，它已经把全球化、商业化和平台能力做成现实收入，这层更接近 ONC 的真实映射。"),
+        "scarcity_view": _scarcity_view("高", "全球化商业化、国际临床与肿瘤平台协同都需要长期积累，复制难度高。"),
+        "capacity_view": _capacity_view("中高", "扩张取决于全球市场推进、适应症扩展和制造配套，不只是多推几个产品。"),
+        "pricing_view": _pricing_view("有涨价基础", "真正全球化商业化的平台药企，更容易获得估值中枢和产品价值双提升。"),
+        "market_cap_research": _market_cap_research("当前更适合按中国全球化创新药平台理解。", "若全球收入和新适应症持续兑现，可上修平台估值。"),
+        "segment_market_view": _segment_market_view("全球化肿瘤创新药平台可按数百亿美元级理解。", "公司份额适合按中国创新药出海龙头样本理解。", "高"),
+    },
+    "688331": {
+        "selection_reason": _selection_reason("符合，因为它承接 ADC 与出海授权逻辑，是中国创新药里更贴近全球合作验证的候选平台。", "它不像百济那样已全面商业化，但 ADC 与海外合作让它更接近创新药全球化兑现层。"),
+        "scarcity_view": _scarcity_view("中高", "ADC 差异化分子和全球合作路径具备壁垒，但平台厚度仍弱于第一主映射。"),
+        "capacity_view": _capacity_view("中高", "扩张要看临床推进、出海合作和商业化节奏共同兑现。"),
+        "pricing_view": _pricing_view("有涨价基础", "若海外合作继续推进，分子价值和平台估值都更容易上修。"),
+        "market_cap_research": _market_cap_research("当前更适合按 ADC 出海候选样本理解。", "若全球合作和临床推进顺利，可看更高平台估值。"),
+        "segment_market_view": _segment_market_view("ADC / 差异化肿瘤创新药环节可按数十亿美元级理解。", "公司份额适合按中国出海创新药候选样本理解。", "中高"),
+    },
+    "688506": {
+        "selection_reason": _selection_reason("符合，因为它是 A 股里最接近 ADC 高价 BD 出海定价的样本，BMS 对核心资产的高额合作验证了平台价值。", "创新药主题里最值得优先看的是谁已经被海外大药企高价定价，百利天恒与 BMS 的合作让它非常接近这层真实稀缺性。"),
+        "scarcity_view": _scarcity_view("高", "被全球大药企高价验证的 ADC 分子和平台能力都很稀缺。"),
+        "capacity_view": _capacity_view("中高", "后续要看全球临床、适应症扩展和平台后续项目推进，不是一次性授权就结束。"),
+        "pricing_view": _pricing_view("有涨价基础", "高额首付款和里程碑已经验证其分子价值，后续临床推进时估值更容易继续上修。"),
+        "market_cap_research": _market_cap_research("当前更适合按 ADC 全球化平台理解。", "若全球临床和后续项目顺利推进，可切到更高平台估值。"),
+        "segment_market_view": _segment_market_view("ADC / 全球 BD 出海平台可按数十亿美元到百亿美元级理解。", "公司份额适合按中国创新药高价验证样本理解。", "高"),
+    },
+    "688062": {
+        "selection_reason": _selection_reason("符合，因为它更接近平台型双抗/生物药候选样本，能补足康方主线外的出海推进观察。", "虽然还没达到最硬的高价授权层级，但平台型双抗和海外推进让它适合作为候选映射。"),
+        "scarcity_view": _scarcity_view("中高", "平台型双抗与海外推进路径具备一定壁垒，但验证强度弱于主映射。"),
+        "capacity_view": _capacity_view("中高", "扩张取决于研发推进、出海节奏和临床兑现。"),
+        "pricing_view": _pricing_view("待验证", "估值上修仍更多依赖后续临床与合作验证。"),
+        "market_cap_research": _market_cap_research("当前更适合按平台型创新药候选理解。", "若海外推进提速，可看估值重锚。"),
+        "segment_market_view": _segment_market_view("双抗 / 生物药平台环节可按数十亿美元级理解。", "公司份额适合按候选平台样本理解。", "中"),
+    },
+    "603259": {
+        "selection_reason": _selection_reason("符合，因为它不是泛 CRO，而是把 CRDMO 和 TIDES 做成现实收入与订单的平台型卖铲人。", "创新药放量不只看前端管线，后端开发与生产承接才是长期价值捕获层，药明康德更接近这层硬卡位，尤其要看 TIDES 能力和在手订单兑现。"),
+        "scarcity_view": _scarcity_view("高", "CRDMO 平台、TIDES 能力和全球客户粘性共同构成强壁垒。"),
+        "capacity_view": _capacity_view("中高", "扩量要看在手订单转化、TIDES 产能和全球交付协同。"),
+        "pricing_view": _pricing_view("有涨价基础", "高难度外包项目和平台型服务通常更容易维持价格与订单质量。"),
+        "market_cap_research": _market_cap_research("当前更适合按全球 CRDMO 平台理解。", "若 TIDES 与高端项目继续放量，可维持更高平台估值。"),
+        "segment_market_view": _segment_market_view("CRDMO / TIDES / 创新药外包平台可按数十亿美元到百亿美元级理解。", "公司份额适合按中国卖铲子龙头理解。", "高"),
+    },
+    "300759": {
+        "selection_reason": _selection_reason("符合，因为它是一体化医药研发服务平台，是创新药卖铲子链的候选补充映射。", "相比药明系主映射，它更偏前中段一体化服务承接，适合作为 CXO 扩散层观察样本。"),
+        "scarcity_view": _scarcity_view("中高", "一体化研发服务平台具备一定壁垒，但后端商业化承接强度弱于主映射。"),
+        "capacity_view": _capacity_view("中高", "扩量主要看订单、项目结构和全球客户推进节奏。"),
+        "pricing_view": _pricing_view("结构升级", "利润改善更依赖高价值项目占比提升，而不是单纯提价。"),
+        "market_cap_research": _market_cap_research("当前更适合按一体化医药研发服务平台理解。", "若高端客户和全球项目占比提升，可看阶段性重估。"),
+        "segment_market_view": _segment_market_view("医药研发服务 / CXO 一体化环节可按数十亿美元级理解。", "公司份额适合按国内重要候选平台理解。", "中高"),
+    },
     "600259": {
         "selection_reason": _selection_reason("符合，因为它承接战略资源逻辑，是关键矿物链的补充映射。", "方向相关，但相较稀土冶炼分离和深加工平台，层级略靠后。"),
         "scarcity_view": _scarcity_view("中", "资源属性有价值，但加工与系统地位弱于核心主映射。"),
@@ -1446,9 +1697,12 @@ def _match(
     pricing_view: dict[str, str] | None = None,
     market_cap_research: dict[str, str] | None = None,
     segment_market_view: dict[str, str] | None = None,
+    sector_context_view: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     source_meta = source_validation or _A_SHARE_SOURCE_VALIDATIONS.get(code) or _source_validation()
     metric_meta = _MATCH_SELECTION_METRICS.get(code, {})
+    resolved_selection_reason = selection_reason or metric_meta.get("selection_reason") or _selection_reason(judgement, mapping_path)
+    resolved_segment_market_view = segment_market_view or metric_meta.get("segment_market_view") or _segment_market_view()
     return {
         "code": code,
         "name": name,
@@ -1474,12 +1728,16 @@ def _match(
         "latest_news_preview": [],
         "analysis_source_label": "",
         "source_validation": source_meta,
-        "selection_reason": selection_reason or metric_meta.get("selection_reason") or _selection_reason(judgement, mapping_path),
+        "selection_reason": resolved_selection_reason,
         "scarcity_view": scarcity_view or metric_meta.get("scarcity_view") or _scarcity_view("中", source_meta.get("summary") or supply_chain_position),
         "capacity_view": capacity_view or metric_meta.get("capacity_view") or _capacity_view("待验证", major_risk),
         "pricing_view": pricing_view or metric_meta.get("pricing_view") or _pricing_view("待验证", "当前更适合先跟踪供需与客户验证，价格传导待进一步确认。"),
         "market_cap_research": market_cap_research or metric_meta.get("market_cap_research") or _market_cap_research("研究市值待补充", "上行情形待补充"),
-        "segment_market_view": segment_market_view or metric_meta.get("segment_market_view") or _segment_market_view(),
+        "segment_market_view": resolved_segment_market_view,
+        "sector_context_view": sector_context_view or metric_meta.get("sector_context_view") or _sector_context_from_segment(
+            resolved_segment_market_view,
+            resolved_selection_reason,
+        ),
     }
 
 
@@ -1967,6 +2225,120 @@ _THEME_RELATED_STOCKS: dict[str, list[dict[str, Any]]] = {
             major_risk="综合资源属性会削弱纯主线映射。",
         ),
     ],
+    "AI稀有金属 / 关键矿物 / 上游资源": [
+        _related_stock(
+            code="002428",
+            name="云南锗业",
+            role="锗 / 化合物半导体材料",
+            serenity_bucket="核心卡位",
+            serenity_angle="更接近 InP、磷化铟和光纤级四氯化锗这些 AI 光通信材料层，是最纯的材料 choke point 之一。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="小中市值关键材料票，空间看材料属性被重新定价。",
+            major_risk="下游验证节奏和资源价格波动会放大估值波动。",
+        ),
+        _related_stock(
+            code="600497",
+            name="驰宏锌锗",
+            role="锗深加工 / 高纯四氯化锗",
+            serenity_bucket="关键受益",
+            serenity_angle="更像锗深加工与高纯四氯化锗补充映射，适合跟踪 AI 光通信材料扩散。",
+            stage="主题识别 -> 客户验证",
+            market_cap_hint="中等市值锗材料候选平台，空间更看高纯材料业务被识别。",
+            major_risk="综合有色属性会稀释 AI 稀有金属主题纯度。",
+        ),
+        _related_stock(
+            code="600111",
+            name="北方稀土",
+            role="稀土分离 / NdPr",
+            serenity_bucket="核心卡位",
+            serenity_angle="真正卡住的是冶炼分离和 NdPr，而不是泛稀土资源价格，这层更接近永磁主线的真实上游约束。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="大市值战略资源平台，空间看 NdPr 与分离环节被重新定价。",
+            major_risk="商品价格和政策预期会干扰平台型稀缺性定价。",
+        ),
+        _related_stock(
+            code="300748",
+            name="金力永磁",
+            role="高性能钕铁硼 / 机器人电机转子",
+            serenity_bucket="关键受益",
+            serenity_angle="它是永磁主线里最接近人形机器人电机和高性能磁材放量的 A 股映射，不只是普通磁材 beta。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="中大市值高性能永磁平台，空间看机器人和高端工业电机需求兑现。",
+            major_risk="机器人需求若慢于预期，市场仍会按传统新能源磁材估值处理。",
+        ),
+        _related_stock(
+            code="600392",
+            name="盛和资源",
+            role="资源 + 加工一体化",
+            serenity_bucket="观察候选",
+            serenity_angle="作为资源+加工一体化补充样本，可观察战略材料主线如何向更多深加工环节扩散。",
+            stage="主题识别期",
+            market_cap_hint="中等市值资源加工平台，空间更看战略材料逻辑被强化。",
+            major_risk="资源价格波动会掩盖 AI 稀有金属主线。",
+        ),
+    ],
+    "创新药 / BD出海 / CXO服务": [
+        _related_stock(
+            code="688235",
+            name="百济神州",
+            role="全球化商业化创新药平台",
+            serenity_bucket="核心卡位",
+            serenity_angle="中国创新药里少数已被全球商业化验证的平台，是 ONC 主线最直接的 A 股落点。",
+            stage="收入放量 -> 利润兑现",
+            market_cap_hint="大市值全球化药企平台，空间看全球收入和新适应症兑现。",
+            major_risk="全球竞争和销售费用节奏会影响平台估值抬升速度。",
+        ),
+        _related_stock(
+            code="688506",
+            name="百利天恒",
+            role="ADC / 全球 BD 出海",
+            serenity_bucket="核心卡位",
+            serenity_angle="最接近高价 BD 出海与 ADC 全球定价验证，是中国创新药里最纯的 Serenity 味道样本之一。",
+            stage="客户验证 -> 收入放量",
+            market_cap_hint="中大市值创新药平台，空间看全球临床推进和后续 BD 验证。",
+            major_risk="后续临床推进若不及预期，估值会高度波动。",
+        ),
+        _related_stock(
+            code="603259",
+            name="药明康德",
+            role="CRDMO / TIDES 平台",
+            serenity_bucket="核心卡位",
+            serenity_angle="创新药真正放量时，后端 CRDMO 和 TIDES 承接层最容易持续拿订单，是卖铲子主线核心平台。",
+            stage="收入兑现期",
+            market_cap_hint="大市值卖铲子平台，空间看高端项目和 TIDES 继续上量。",
+            major_risk="海外政策与地缘变量会影响订单预期和估值中枢。",
+        ),
+        _related_stock(
+            code="688331",
+            name="荣昌生物",
+            role="ADC / 全球合作候选",
+            serenity_bucket="关键受益",
+            serenity_angle="更适合作为 ADC 和全球合作扩散观察样本，验证创新药主题是否继续外溢到第二梯队。",
+            stage="客户验证期",
+            market_cap_hint="中市值创新药候选平台，空间看出海合作和临床推进。",
+            major_risk="平台验证强度弱于主映射，波动更大。",
+        ),
+        _related_stock(
+            code="688062",
+            name="迈威生物",
+            role="双抗 / 平台型生物药",
+            serenity_bucket="观察候选",
+            serenity_angle="更像双抗与平台型生物药扩散层观察样本，可补足康方主线外的第二梯队。",
+            stage="主题识别 -> 客户验证",
+            market_cap_hint="中市值平台型候选，空间看出海推进是否被市场重新定价。",
+            major_risk="当前验证强度仍弱于主映射，容易被情绪交易主导。",
+        ),
+        _related_stock(
+            code="300759",
+            name="康龙化成",
+            role="一体化医药研发服务",
+            serenity_bucket="观察候选",
+            serenity_angle="更适合观察创新药卖铲子主线向一体化研发服务平台的扩散，不是最硬卡点但方向一致。",
+            stage="收入兑现期",
+            market_cap_hint="中大市值 CXO 平台，空间看全球客户与高价值项目占比。",
+            major_risk="创新药景气若减弱，CXO 扩散层会比主映射更先受压。",
+        ),
+    ],
     "机器人 / 具身智能 / 核心部件": [
         _related_stock(
             code="300124",
@@ -2054,6 +2426,7 @@ def _stock(
     pricing_view: dict[str, str] | None = None,
     market_cap_research: dict[str, str] | None = None,
     segment_market_view: dict[str, str] | None = None,
+    sector_context_view: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     reason_data = _PROJECT_STOCK_REASON_DATA.get(symbol, {})
     note = get_project_tweet_note(symbol)
@@ -2061,6 +2434,11 @@ def _stock(
     metric_meta = _PROJECT_SELECTION_METRICS.get(symbol, {})
     note_market_cap = note.get("market_cap_view") or {}
     scenarios = note_market_cap.get("scenarios") or []
+    resolved_selection_reason = selection_reason or metric_meta.get("selection_reason") or _selection_reason(
+        reason_data.get("serenity_reason_summary", research_summary),
+        research_summary,
+    )
+    resolved_segment_market_view = segment_market_view or metric_meta.get("segment_market_view") or _segment_market_view()
     return {
         "symbol": symbol,
         "display_name": display_name,
@@ -2091,10 +2469,7 @@ def _stock(
         "latest_news_preview": [],
         "analysis_source_label": "",
         "source_validation": source_meta,
-        "selection_reason": selection_reason or metric_meta.get("selection_reason") or _selection_reason(
-            reason_data.get("serenity_reason_summary", research_summary),
-            research_summary,
-        ),
+        "selection_reason": resolved_selection_reason,
         "scarcity_view": scarcity_view or metric_meta.get("scarcity_view") or _scarcity_view("中高", source_meta.get("summary") or research_summary),
         "capacity_view": capacity_view or metric_meta.get("capacity_view") or _capacity_view(
             "待验证",
@@ -2105,7 +2480,11 @@ def _stock(
             str(note_market_cap.get("current_anchor") or "研究市值待补充"),
             str((scenarios[-1] if scenarios else {}).get("market_cap") or "上行情形待补充"),
         ),
-        "segment_market_view": segment_market_view or metric_meta.get("segment_market_view") or _segment_market_view(),
+        "segment_market_view": resolved_segment_market_view,
+        "sector_context_view": sector_context_view or metric_meta.get("sector_context_view") or _sector_context_from_segment(
+            resolved_segment_market_view,
+            resolved_selection_reason,
+        ),
         "stage_snapshot": {
             "name": str((note.get("stage_view") or {}).get("name") or ""),
             "next_step": str((note.get("stage_view") or {}).get("next_step") or ""),
@@ -3369,6 +3748,201 @@ _THEMES: list[dict[str, Any]] = [
                         mapping_path="5N Plus -> strategic materials -> A股资源平台",
                         judgement="方向一致，但和关键矿物纯主线相比更偏综合资源平台。",
                         major_risk="综合资源属性会降低单一战略材料映射纯度。",
+                    ),
+                ],
+            ),
+        ],
+    ),
+    _theme(
+        "AI稀有金属 / 关键矿物 / 上游资源",
+        [
+            _stock(
+                symbol="AXTI",
+                display_name="AXT Inc",
+                company_name="AXT, Inc.",
+                exchange="NASDAQ",
+                market="US",
+                isin="US00246W1036",
+                numeric_code="-",
+                theme_chip="InP / germanium / compound semiconductor materials",
+                research_summary="AI 稀有金属主题里，AXTI 不是终端器件映射，而是更上游的 InP、锗材料和复合半导体基底锚点。A 股映射应优先找材料和高纯深加工，而不是泛光通信设备。",
+                main_matches=[
+                    _match(
+                        code="002428",
+                        name="云南锗业",
+                        role="磷化铟 / 锗材料",
+                        score=16,
+                        supply_chain_position="关键材料 / 化合物半导体材料",
+                        mapping_path="AXTI -> InP / germanium materials -> A股关键材料",
+                        judgement="更纯的关键材料映射，最接近 Serenity 喜欢的材料 choke point。",
+                        major_risk="材料验证和下游放量节奏仍会影响估值兑现速度。",
+                    ),
+                ],
+                candidate_matches=[
+                    _match(
+                        code="600497",
+                        name="驰宏锌锗",
+                        role="锗深加工 / 高纯四氯化锗",
+                        score=12,
+                        supply_chain_position="锗深加工 / 高纯材料",
+                        mapping_path="AXTI -> germanium processing -> A股锗深加工",
+                        judgement="更像高纯锗材料的候选补充映射，方向对但纯度和直接性弱于主映射。",
+                        major_risk="综合有色属性会稀释 AI 光通信材料主线。",
+                    ),
+                ],
+            ),
+            _stock(
+                symbol="MP",
+                display_name="MP Materials",
+                company_name="MP Materials Corp.",
+                exchange="NYSE",
+                market="US",
+                isin="US5533681012",
+                numeric_code="-",
+                theme_chip="NdPr / rare earth separation / high-performance magnets",
+                research_summary="MP 代表的是稀土分离、NdPr 和高性能永磁主线，这比泛资源股更接近 AI 继续向机器人和高端工业扩散时的真实稀缺层。A 股映射应优先看稀土分离和高性能 NdFeB。",
+                main_matches=[
+                    _match(
+                        code="600111",
+                        name="北方稀土",
+                        role="稀土分离 / NdPr",
+                        score=17,
+                        supply_chain_position="稀土冶炼分离 / NdPr 上游",
+                        mapping_path="MP -> rare earth separation -> A股稀土分离平台",
+                        judgement="最贴近真正的战略材料 choke point，优先级高于泛资源映射。",
+                        major_risk="价格周期会干扰市场对战略材料平台的长期定价。",
+                    ),
+                    _match(
+                        code="300748",
+                        name="金力永磁",
+                        role="高性能钕铁硼 / 机器人电机转子",
+                        score=16,
+                        supply_chain_position="高性能永磁 / 机器人电机材料",
+                        mapping_path="MP -> high-performance magnets -> A股高性能 NdFeB",
+                        judgement="最接近永磁和 physical AI 电机主线的 A 股映射，纯度高于泛新能源磁材逻辑。",
+                        major_risk="机器人需求兑现若慢于预期，市场仍会按传统磁材估值处理。",
+                    ),
+                ],
+                candidate_matches=[
+                    _match(
+                        code="600392",
+                        name="盛和资源",
+                        role="资源 + 加工一体化",
+                        score=13,
+                        supply_chain_position="资源加工一体化",
+                        mapping_path="MP -> rare earth processing -> A股资源加工一体化",
+                        judgement="方向一致，但与稀土分离和高性能磁材相比更偏次级补充映射。",
+                        major_risk="商品价格和外部供给扰动会放大波动。",
+                    ),
+                ],
+            ),
+        ],
+    ),
+    _theme(
+        "创新药 / BD出海 / CXO服务",
+        [
+            _stock(
+                symbol="ONC",
+                display_name="BeOne Medicines",
+                company_name="BeOne Medicines Ltd.",
+                exchange="NASDAQ",
+                market="US",
+                isin="US07725L1026",
+                numeric_code="-",
+                theme_chip="Global oncology biopharma / commercialization platform",
+                research_summary="创新药主题里，BeOne 代表的是少数已经把全球肿瘤研发、商业化和制造平台做成现实收入的中国创新药公司。A 股映射应优先找全球化商业化能力最强的平台药企，而不是纯临床博弈标的。",
+                main_matches=[
+                    _match(
+                        code="688235",
+                        name="百济神州",
+                        role="全球化商业化创新药平台",
+                        score=18,
+                        supply_chain_position="全球化创新药平台",
+                        mapping_path="BeOne -> global oncology platform -> A股全球化创新药",
+                        judgement="最直接的 A 股主映射，平台能力、全球商业化和收入兑现最接近海外锚点。",
+                        major_risk="全球竞争和费用投放节奏会影响利润兑现速度。",
+                    ),
+                ],
+                candidate_matches=[
+                    _match(
+                        code="688331",
+                        name="荣昌生物",
+                        role="ADC / 全球合作候选",
+                        score=14,
+                        supply_chain_position="差异化创新药 / 出海合作",
+                        mapping_path="BeOne -> global oncology expansion -> A股 ADC 候选平台",
+                        judgement="方向一致，但平台厚度和商业化验证仍弱于主映射，适合放在候选池。",
+                        major_risk="临床推进和海外合作进展若偏慢，弹性会先回落。",
+                    ),
+                ],
+            ),
+            _stock(
+                symbol="9926",
+                display_name="康方生物-B",
+                company_name="Akeso, Inc.",
+                exchange="HKEX",
+                market="Hong Kong",
+                isin="KYG0146B1032",
+                numeric_code="09926",
+                theme_chip="PD-1/VEGF bispecific / licensing / global BD",
+                research_summary="康方代表的是中国创新药被海外高价 BD 和授权出海验证的主线。真正值得映射的是平台、分子和全球定价能力，而不是单一国内销售弹性。",
+                main_matches=[
+                    _match(
+                        code="688506",
+                        name="百利天恒",
+                        role="ADC / 全球 BD 出海",
+                        score=18,
+                        supply_chain_position="全球化创新药 / 高价 BD 验证",
+                        mapping_path="Akeso -> global BD / licensing -> A股高价出海创新药",
+                        judgement="最贴近高价 BD 出海和全球定价验证，是这条主线最纯的 A 股样本之一。",
+                        major_risk="后续临床推进和适应症扩展若不及预期，估值波动会很大。",
+                    ),
+                ],
+                candidate_matches=[
+                    _match(
+                        code="688062",
+                        name="迈威生物",
+                        role="平台型双抗 / 生物药",
+                        score=13,
+                        supply_chain_position="双抗平台 / 出海候选",
+                        mapping_path="Akeso -> bispecific platform -> A股双抗候选平台",
+                        judgement="更适合作为平台型候选映射，方向对但验证强度弱于主映射。",
+                        major_risk="仍需更多出海合作和临床推进来证明平台价值。",
+                    ),
+                ],
+            ),
+            _stock(
+                symbol="2269",
+                display_name="药明生物",
+                company_name="WuXi Biologics (Cayman) Inc.",
+                exchange="HKEX",
+                market="Hong Kong",
+                isin="KYG970081173",
+                numeric_code="02269",
+                theme_chip="Biologics / ADC CDMO / commercialization manufacturing",
+                research_summary="药明生物这条线代表的是创新药卖铲子逻辑，重点不在前端临床，而在生物药和 ADC 后端工艺开发、放大生产和商业化承接。A 股映射应优先找 CRDMO 和一体化服务平台。",
+                main_matches=[
+                    _match(
+                        code="603259",
+                        name="药明康德",
+                        role="CRDMO / TIDES 平台",
+                        score=17,
+                        supply_chain_position="创新药卖铲子 / CRDMO",
+                        mapping_path="WuXi Biologics -> biologics/ADC outsourcing -> A股 CRDMO 平台",
+                        judgement="最贴近创新药后端承接层，是卖铲子主线最直接的 A 股主映射。",
+                        major_risk="外部政策和地缘变量会影响订单预期与估值中枢。",
+                    ),
+                ],
+                candidate_matches=[
+                    _match(
+                        code="300759",
+                        name="康龙化成",
+                        role="一体化医药研发服务",
+                        score=13,
+                        supply_chain_position="CXO / 一体化研发服务",
+                        mapping_path="WuXi Biologics -> biopharma service chain -> A股 CXO 平台",
+                        judgement="方向一致，但更偏扩散层的一体化服务映射，适合作为候选池。",
+                        major_risk="若创新药景气走弱，CXO 扩散层会比主映射先受压。",
                     ),
                 ],
             ),

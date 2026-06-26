@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ sheet.sheet_name }} - Serenity AI Stocks</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .page {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 28px 20px 48px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+        .header h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+        .header p {
+            margin: 0;
+            color: #64748b;
+        }
+        .button {
+            display: inline-block;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .table-shell {
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+        .sync-status {
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            padding: 18px 20px;
+            margin-bottom: 18px;
+        }
+        .sync-status h2 {
+            margin: 0 0 12px;
+            font-size: 18px;
+        }
+        .sync-status-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        .sync-metric {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .sync-metric-label {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .sync-metric-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .sync-error {
+            color: #b91c1c;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+        .table-scroll {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 900px;
+        }
+        thead {
+            background: #e2e8f0;
+        }
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            text-align: left;
+            font-size: 14px;
+        }
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+        .price-cell {
+            min-width: 140px;
+        }
+        .price-main {
+            font-weight: 700;
+        }
+        .price-sub {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .status-unsupported .price-main {
+            color: #94a3b8;
+        }
+        .status-pending .price-main {
+            color: #475569;
+        }
+        .status-up .price-main,
+        .status-up .price-sub {
+            color: #dc2626;
+        }
+        .status-down .price-main,
+        .status-down .price-sub {
+            color: #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <section class="header">
+            <div>
+                <h1>{{ sheet.sheet_name }}</h1>
+                <p>保留 Excel 原始列，并在最后新增价格列；首屏优先展示数据库最新同步价格，随后定时从数据库刷新。</p>
+            </div>
+            <a class="button" href="/serenity/aistocks">返回总览</a>
+        </section>
+
+        <section class="sync-status" id="sync-status-panel">
+            <h2>后台同步状态</h2>
+            <div class="sync-status-grid">
+                <div class="sync-metric">
+                    <div class="sync-metric-label">运行状态</div>
+                    <div class="sync-metric-value" id="sync-status-label">{{ sync_status.status_label }}</div>
+                </div>
+                <div class="sync-metric">
+                    <div class="sync-metric-label">上次同步</div>
+                    <div class="sync-metric-value" id="sync-last-run">{{ sync_status.last_run_at_text or "等待后台同步" }}</div>
+                </div>
+                <div class="sync-metric">
+                    <div class="sync-metric-label">成功数 / 总数</div>
+                    <div class="sync-metric-value" id="sync-success-summary">{{ sync_status.last_success_count }} / {{ sync_status.last_total_candidates }}</div>
+                </div>
+                <div class="sync-metric">
+                    <div class="sync-metric-label">同步周期</div>
+                    <div class="sync-metric-value" id="sync-interval">{{ sync_status.interval_seconds }} 秒</div>
+                </div>
+            </div>
+            <div class="sync-error" id="sync-error-text">{% if sync_status.last_error %}{{ sync_status.last_error }}{% endif %}</div>
+        </section>
+
+        <section class="table-shell">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            {% for column in sheet.columns %}
+                            <th>{{ column }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in sheet.rows %}
+                        {% set quote = row.quote_target or {} %}
+                        <tr>
+                            {% for column in sheet.columns[:-1] %}
+                            <td>{{ row.cells.get(column, "") }}</td>
+                            {% endfor %}
+                            <td
+                                class="price-cell status-{{ row.price_status }}"
+                                data-row-id="{{ row.row_id }}"
+                                data-market="{{ quote.get('market', '') }}"
+                                data-code="{{ quote.get('code', '') }}"
+                                data-symbol="{{ quote.get('symbol', '') }}"
+                                title="{{ '数据库最新同步价格：' ~ row.updated_at_text if row.updated_at_text else '数据库最新同步价格：等待后台同步' }}"
+                            >
+                                <span class="price-main">
+                                    {% if row.price_status == 'unsupported' %}
+                                    价格不可用
+                                    {% elif row.price_status == 'ok' %}
+                                    {{ row.price_text }}
+                                    {% elif row.price_status == 'error' %}
+                                    等待后台同步
+                                    {% else %}
+                                    价格加载中
+                                    {% endif %}
+                                </span>
+                                <span class="price-sub">
+                                    {% if row.price_status == 'ok' %}
+                                    {{ row.rate_text }}{% if row.updated_at_text %} · {{ row.updated_at_text }}{% endif %}
+                                    {% elif row.price_status == 'unsupported' %}
+                                    --
+                                    {% elif row.price_status == 'error' %}
+                                    等待后台同步
+                                    {% else %}
+                                    等待后台同步
+                                    {% endif %}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const PRICE_API_URL = "/serenity/aistocks/prices";
+        const STATUS_API_URL = "/serenity/aistocks/status";
+        const REFRESH_INTERVAL_MS = 60000;
+
+        function collectPriceItems() {
+            return Array.from(document.querySelectorAll(".price-cell"))
+                .map((cell) => ({
+                    row_id: cell.dataset.rowId,
+                    market: cell.dataset.market,
+                    code: cell.dataset.code,
+                    symbol: cell.dataset.symbol,
+                }))
+                .filter((item) => item.row_id && item.market && item.code);
+        }
+
+        function applyPriceDirectionState(cell, rateText, unsupported = false) {
+            if (!cell) {
+                return;
+            }
+            cell.classList.remove("status-up", "status-down");
+            if (unsupported) {
+                return;
+            }
+            const rateNumber = Number.parseFloat(String(rateText || "").replace("%", ""));
+            if (Number.isNaN(rateNumber)) {
+                return;
+            }
+            if (rateNumber > 0) {
+                cell.classList.add("status-up");
+            } else if (rateNumber < 0) {
+                cell.classList.add("status-down");
+            }
+        }
+
+        function updatePriceCell(rowId, priceText, rateText, unsupported = false) {
+            const cell = document.querySelector(`.price-cell[data-row-id="${rowId}"]`);
+            if (!cell) {
+                return;
+            }
+            const main = cell.querySelector(".price-main");
+            const sub = cell.querySelector(".price-sub");
+            cell.classList.toggle("status-unsupported", unsupported);
+            cell.classList.toggle("status-pending", false);
+            applyPriceDirectionState(cell, rateText, unsupported);
+            if (main) {
+                main.textContent = unsupported ? "价格不可用" : (priceText || "--");
+            }
+            if (sub) {
+                sub.textContent = unsupported ? "--" : (rateText || "--");
+            }
+        }
+
+        async function refreshPrices() {
+            const items = collectPriceItems();
+            if (!items.length) {
+                return;
+            }
+            try {
+                const response = await fetch(PRICE_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ items }),
+                });
+                if (!response.ok) {
+                    return;
+                }
+                const payload = await response.json();
+                (payload.quotes || []).forEach((quote) => {
+                    updatePriceCell(quote.row_id, quote.price_text, quote.rate_text, false);
+                });
+                (payload.unsupported || []).forEach((item) => {
+                    updatePriceCell(item.row_id, "", "", true);
+                });
+            } catch (error) {
+                console.warn("Serenity AI Stocks price refresh failed", error);
+            }
+        }
+
+        async function refreshSyncStatus() {
+            try {
+                const response = await fetch(STATUS_API_URL);
+                if (!response.ok) {
+                    return;
+                }
+                const status = await response.json();
+                const statusLabel = document.getElementById("sync-status-label");
+                const lastRun = document.getElementById("sync-last-run");
+                const successSummary = document.getElementById("sync-success-summary");
+                const interval = document.getElementById("sync-interval");
+                const errorText = document.getElementById("sync-error-text");
+                if (statusLabel) {
+                    statusLabel.textContent = status.status_label || "未知";
+                }
+                if (lastRun) {
+                    lastRun.textContent = status.last_run_at_text || "等待后台同步";
+                }
+                if (successSummary) {
+                    successSummary.textContent = `${status.last_success_count || 0} / ${status.last_total_candidates || 0}`;
+                }
+                if (interval) {
+                    interval.textContent = `${status.interval_seconds || 60} 秒`;
+                }
+                if (errorText) {
+                    errorText.textContent = status.last_error || "";
+                }
+            } catch (error) {
+                console.warn("Serenity AI Stocks sync status refresh failed", error);
+            }
+        }
+
+        refreshSyncStatus();
+        refreshPrices();
+        setInterval(refreshSyncStatus, REFRESH_INTERVAL_MS);
+        setInterval(refreshPrices, REFRESH_INTERVAL_MS);
+    </script>
+</body>
+</html>

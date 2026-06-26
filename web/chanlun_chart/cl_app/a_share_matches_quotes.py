@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, Iterable, List, Optional
 
 
@@ -59,6 +60,8 @@ def normalize_a_share_code(code: str) -> str:
         return normalized
     if "." in normalized:
         return normalized
+    if re.fullmatch(r"(SH|SZ|BJ)\d{6}", normalized):
+        return f"{normalized[:2]}.{normalized[2:]}"
     if len(normalized) != 6 or not normalized.isdigit():
         return normalized
 

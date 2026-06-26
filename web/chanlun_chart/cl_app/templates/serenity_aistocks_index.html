@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serenity AI Stocks{% if selected_sheet %} - {{ selected_sheet.sheet_name }}{% endif %}</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        .page {
+            max-width: 1460px;
+            margin: 0 auto;
+            padding: 24px 20px 40px;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+            gap: 20px;
+            align-items: start;
+        }
+        .sidebar {
+            position: static;
+        }
+        .sidebar-panel,
+        .content-panel,
+        .sheet-link,
+        .compact-sync-status,
+        .table-shell {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        }
+        .sidebar-panel {
+            padding: 18px;
+        }
+        .section-title {
+            margin: 0 0 12px;
+            font-size: 20px;
+        }
+        .section-desc {
+            margin: 0 0 14px;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .sheet-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .sheet-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+            padding: 16px;
+            border: 1px solid transparent;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .sheet-link:hover {
+            transform: translateY(-1px);
+            border-color: #bfdbfe;
+        }
+        .sheet-link.active {
+            border-color: #2563eb;
+            box-shadow: 0 18px 38px rgba(37, 99, 235, 0.16);
+            background: linear-gradient(180deg, #eff6ff, #ffffff);
+        }
+        .sheet-link-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .sheet-link-title {
+            margin: 0;
+            font-size: 17px;
+        }
+        .sheet-badge {
+            background: #dbeafe;
+            color: #1d4ed8;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .sheet-link.active .sheet-badge {
+            background: #2563eb;
+            color: #fff;
+        }
+        .sheet-meta {
+            color: #475569;
+            font-size: 13px;
+            margin: 8px 0 0;
+        }
+        .sample-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .sample-chip {
+            background: #e2e8f0;
+            color: #0f172a;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .content {
+            min-width: 0;
+        }
+        .content-panel {
+            padding: 22px 24px;
+            margin-bottom: 18px;
+        }
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .content-header h2 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+        .content-header p {
+            margin: 0;
+            color: #64748b;
+            line-height: 1.6;
+        }
+        .sheet-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 18px;
+        }
+        .summary-card,
+        .sync-metric {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .summary-label,
+        .sync-metric-label {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .summary-value,
+        .sync-metric-value {
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .compact-sync-status {
+            margin-top: 14px;
+            padding: 14px 16px;
+        }
+        .compact-sync-status h3 {
+            margin: 0 0 10px;
+            font-size: 15px;
+        }
+        .compact-sync-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .sync-error {
+            color: #b91c1c;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .table-shell {
+            overflow: hidden;
+        }
+        .table-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 18px 0;
+        }
+        .three-buy-button {
+            border: 0;
+            border-radius: 999px;
+            background: #0f172a;
+            color: #fff;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .three-buy-button[disabled] {
+            opacity: 0.6;
+            cursor: wait;
+        }
+        .three-buy-status {
+            color: #64748b;
+            font-size: 12px;
+        }
+        .table-scroll {
+            overflow-x: auto;
+            padding-top: 12px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1080px;
+        }
+        thead {
+            background: #e2e8f0;
+        }
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: top;
+            text-align: left;
+            font-size: 14px;
+        }
+        tbody tr:hover {
+            background: #f8fafc;
+        }
+        .sortable-price-header,
+        .sortable-three-buy-header {
+            min-width: 170px;
+        }
+        .sort-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            font: inherit;
+            font-weight: 700;
+            color: inherit;
+            cursor: pointer;
+        }
+        .sort-indicator {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .stock-chart-trigger {
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: #2563eb;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: left;
+        }
+        .stock-chart-trigger:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        .price-cell {
+            min-width: 140px;
+        }
+        .three-buy-cell {
+            min-width: 132px;
+        }
+        .three-buy-main {
+            font-weight: 700;
+        }
+        .three-buy-sub {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .price-main {
+            font-weight: 700;
+        }
+        .price-sub {
+            display: block;
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .status-unsupported .price-main {
+            color: #94a3b8;
+        }
+        .status-pending .price-main {
+            color: #475569;
+        }
+        .status-up .price-main,
+        .status-up .price-sub {
+            color: #dc2626;
+        }
+        .status-down .price-main,
+        .status-down .price-sub {
+            color: #16a34a;
+        }
+        .empty-state {
+            padding: 48px 24px;
+            text-align: center;
+            color: #64748b;
+        }
+        .chart-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            display: none;
+        }
+        .chart-modal.is-open {
+            display: block;
+        }
+        .chart-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.56);
+        }
+        .chart-modal-dialog {
+            position: relative;
+            width: min(1200px, calc(100vw - 32px));
+            margin: 32px auto;
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+            overflow: hidden;
+        }
+        .chart-modal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .chart-modal-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .chart-modal-subtitle {
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 13px;
+        }
+        .chart-modal-close {
+            border: 0;
+            background: transparent;
+            color: #475569;
+            cursor: pointer;
+            font-size: 28px;
+            line-height: 1;
+        }
+        .chart-modal-body {
+            position: relative;
+            min-height: 70vh;
+            background: #f8fafc;
+        }
+        .chart-modal-frame {
+            width: 100%;
+            height: 70vh;
+            border: 0;
+            display: none;
+            background: #fff;
+        }
+        .chart-modal-frame.is-visible {
+            display: block;
+        }
+        .chart-modal-loading,
+        .chart-modal-message {
+            position: absolute;
+            inset: 0;
+            display: none;
+            place-items: center;
+            padding: 24px;
+        }
+        .chart-modal-loading.is-visible,
+        .chart-modal-message.is-visible {
+            display: grid;
+        }
+        .chart-modal-message-card {
+            max-width: 420px;
+            padding: 22px 24px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+            text-align: center;
+        }
+        .chart-modal-message-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .chart-modal-message-text {
+            margin-top: 10px;
+            color: #64748b;
+            line-height: 1.7;
+        }
+        .chart-modal-actions {
+            margin-top: 14px;
+        }
+        .chart-modal-open-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+            padding: 0 14px;
+            border-radius: 999px;
+            background: #2563eb;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        @media (max-width: 1080px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 720px) {
+            .page {
+                padding: 16px 14px 30px;
+            }
+            .content-header,
+            .sheet-link-header {
+                flex-direction: column;
+            }
+            .sheet-summary-grid,
+            .compact-sync-grid {
+                grid-template-columns: repeat(2, minmax(120px, 1fr));
+            }
+            .chart-modal-dialog {
+                width: min(100vw - 16px, 1200px);
+                margin: 8px auto;
+            }
+            .chart-modal-body,
+            .chart-modal-frame {
+                min-height: 78vh;
+                height: 78vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <div class="layout">
+            <aside class="sidebar">
+                <section class="sidebar-panel">
+                    <h2 class="section-title">Sheet 总览</h2>
+                    <p class="section-desc">点击左侧任一 Sheet，会在右侧直接切换股票表格，并保留当前 URL 作为可分享入口。</p>
+                    <div class="sheet-nav">
+                        {% for sheet in workbook.sheets %}
+                        <a
+                            class="sheet-link{% if sheet.sheet_slug == selected_sheet_slug %} active{% endif %}"
+                            href="/serenity/aistocks/{{ sheet.sheet_slug }}"
+                            data-sheet-slug="{{ sheet.sheet_slug }}"
+                        >
+                            <div class="sheet-link-header">
+                                <h3 class="sheet-link-title">{{ sheet.sheet_name }}</h3>
+                                <span class="sheet-badge">{{ sheet.row_count }} 行</span>
+                            </div>
+                            <div class="sheet-meta">原始列数：{{ sheet.columns | length - 1 }}</div>
+                            <div class="sheet-meta">可尝试抓价：{{ sheet.has_price_candidates }}</div>
+                            {% if sheet.sample_symbols %}
+                            <div class="sample-list">
+                                {% for symbol in sheet.sample_symbols %}
+                                <span class="sample-chip">{{ symbol }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </section>
+
+                <section class="compact-sync-status" id="sync-status-panel">
+                    <h3>后台同步</h3>
+                    <div class="compact-sync-grid">
+                        <div class="sync-metric">
+                            <div class="sync-metric-label">运行状态</div>
+                            <div class="sync-metric-value" id="sync-status-label">{{ sync_status.status_label }}</div>
+                        </div>
+                        <div class="sync-metric">
+                            <div class="sync-metric-label">上次同步</div>
+                            <div class="sync-metric-value" id="sync-last-run">{{ sync_status.last_run_at_text or "等待后台同步" }}</div>
+                        </div>
+                        <div class="sync-metric">
+                            <div class="sync-metric-label">成功数 / 总数</div>
+                            <div class="sync-metric-value" id="sync-success-summary">{{ sync_status.last_success_count }} / {{ sync_status.last_total_candidates }}</div>
+                        </div>
+                    </div>
+                    <div class="sync-error" id="sync-error-text">{% if sync_status.last_error %}{{ sync_status.last_error }}{% endif %}</div>
+                </section>
+            </aside>
+
+            <section class="content">
+                {% if selected_sheet %}
+                <section class="content-panel">
+                    <div class="content-header">
+                        <div>
+                            <h2>{{ selected_sheet.sheet_name }}</h2>
+                            <p>保留 Excel 原始列，并在最后新增价格列；首屏优先展示数据库最新同步价格，随后定时从数据库刷新。</p>
+                        </div>
+                    </div>
+                    <div class="sheet-summary-grid">
+                        <div class="summary-card">
+                            <div class="summary-label">当前 Sheet</div>
+                            <div class="summary-value">{{ selected_sheet.sheet_name }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">原始列数</div>
+                            <div class="summary-value">{{ selected_sheet.columns | length - 1 }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">数据行数</div>
+                            <div class="summary-value">{{ selected_sheet.row_count }}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-label">可抓价数量</div>
+                            <div class="summary-value">{{ selected_sheet_summary.has_price_candidates if selected_sheet_summary else 0 }}</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="table-shell">
+                    <div class="table-toolbar">
+                        <button type="button" class="three-buy-button" id="recent-three-buy-button">查找 3买时间</button>
+                        <div class="three-buy-status" id="recent-three-buy-status">显示日线最近一个 3B/L3B 时间</div>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    {% for column in selected_sheet.columns[:-1] %}
+                                    <th>{{ column }}</th>
+                                    {% endfor %}
+                                    <th class="sortable-three-buy-header">
+                                        <button
+                                            type="button"
+                                            id="three-buy-sort-button"
+                                            class="sort-button"
+                                            data-sort-state="none"
+                                        >
+                                            <span>最近 3买</span>
+                                            <span class="sort-indicator" id="three-buy-sort-indicator">原顺序</span>
+                                        </button>
+                                    </th>
+                                    <th class="sortable-price-header">
+                                        <button
+                                            type="button"
+                                            id="rate-sort-button"
+                                            class="sort-button"
+                                            data-sort-state="none"
+                                        >
+                                            <span>价格</span>
+                                            <span class="sort-indicator" id="rate-sort-indicator">原顺序</span>
+                                        </button>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in selected_sheet.rows %}
+                                {% set quote = row.quote_target or {} %}
+                                {% set rate_value = row.rate_text.replace('%', '').strip() if row.price_status == 'ok' else '' %}
+                                <tr
+                                    data-original-index="{{ loop.index0 }}"
+                                    data-rate-value="{{ rate_value }}"
+                                    data-three-buy-value=""
+                                >
+                                    {% for column in selected_sheet.columns[:-1] %}
+                                    <td>
+                                        {% if column == "名称" %}
+                                        <button
+                                            type="button"
+                                            class="stock-chart-trigger"
+                                            data-chart-trigger
+                                            data-chart-title="{{ row.chart_title }}"
+                                            data-chart-frequency="{{ row.chart_frequency_label }}"
+                                            data-chart-url="{{ row.chart_url }}"
+                                            data-chart-unavailable-reason="{{ row.chart_unavailable_reason }}"
+                                        >
+                                            {{ row.cells.get(column, "") or (row.quote_target or {}).get("symbol", "") }}
+                                        </button>
+                                        {% else %}
+                                        {{ row.cells.get(column, "") }}
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                    <td
+                                        class="three-buy-cell"
+                                        data-row-id="{{ row.row_id }}"
+                                        data-market="{{ quote.get('market', '') }}"
+                                        data-code="{{ quote.get('code', '') }}"
+                                        data-symbol="{{ quote.get('symbol', '') }}"
+                                    >
+                                        <span class="three-buy-main recent-three-buy-time">{{ row.recent_three_buy_time_text }}</span>
+                                        <span class="three-buy-sub">{{ row.recent_three_buy_label }}</span>
+                                    </td>
+                                    <td
+                                        class="price-cell status-{{ row.price_status }}"
+                                        data-row-id="{{ row.row_id }}"
+                                        data-market="{{ quote.get('market', '') }}"
+                                        data-code="{{ quote.get('code', '') }}"
+                                        data-symbol="{{ quote.get('symbol', '') }}"
+                                        title="{{ '数据库最新同步价格：' ~ row.updated_at_text if row.updated_at_text else '数据库最新同步价格：等待后台同步' }}"
+                                    >
+                                        <span class="price-main">
+                                            {% if row.price_status == 'unsupported' %}
+                                            价格不可用
+                                            {% elif row.price_status == 'ok' %}
+                                            {{ row.price_text }}
+                                            {% elif row.price_status == 'error' %}
+                                            等待后台同步
+                                            {% else %}
+                                            价格加载中
+                                            {% endif %}
+                                        </span>
+                                        <span class="price-sub">
+                                            {% if row.price_status == 'ok' %}
+                                            {{ row.rate_text }}{% if row.updated_at_text %} · {{ row.updated_at_text }}{% endif %}
+                                            {% elif row.price_status == 'unsupported' %}
+                                            --
+                                            {% elif row.price_status == 'error' %}
+                                            等待后台同步
+                                            {% else %}
+                                            等待后台同步
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                {% else %}
+                <section class="content-panel empty-state">
+                    当前 workbook 没有可展示的 Sheet。
+                </section>
+                {% endif %}
+            </section>
+        </div>
+    </main>
+
+    <div class="chart-modal" id="chart-modal" aria-hidden="true">
+        <div class="chart-modal-backdrop" data-chart-modal-close></div>
+        <section class="chart-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="chart-modal-title">
+            <div class="chart-modal-head">
+                <div>
+                    <div class="chart-modal-title" id="chart-modal-title">缠论图</div>
+                    <div class="chart-modal-subtitle" id="chart-modal-subtitle">展示方式：主页图形</div>
+                </div>
+                <button type="button" class="chart-modal-close" data-chart-modal-close aria-label="关闭">×</button>
+            </div>
+            <div class="chart-modal-body">
+                <div class="chart-modal-loading" id="chart-modal-loading">图形预热中...</div>
+                <iframe class="chart-modal-frame" id="chart-modal-frame" loading="lazy" referrerpolicy="same-origin"></iframe>
+                <div class="chart-modal-message" id="chart-modal-message">
+                    <div class="chart-modal-message-card">
+                        <div class="chart-modal-message-title">暂时无法打开缠论图</div>
+                        <div class="chart-modal-message-text" id="chart-modal-message-text">当前未获取到可用图表地址。</div>
+                        <div class="chart-modal-actions">
+                            <a
+                                class="chart-modal-open-link"
+                                id="chart-modal-open-new-tab"
+                                href="#"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                新标签页打开
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const PRICE_API_URL = "/serenity/aistocks/prices";
+        const STATUS_API_URL = "/serenity/aistocks/status";
+        const RECENT_THREE_BUY_API_URL = "/serenity/aistocks/recent-three-buy-times";
+        const REFRESH_INTERVAL_MS = 60000;
+        const OVERVIEW_PATH = "/serenity/aistocks";
+        const STORAGE_KEY = "lastSerenityAIStocksSheetSlug";
+        const CURRENT_SHEET_SLUG = "{{ selected_sheet_slug or '' }}";
+        const SHEET_SLUGS = [{% for slug in sheet_slugs %}"{{ slug }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+        let currentRateSortState = "none";
+        let currentThreeBuySortState = "none";
+        const chartModalState = {
+            root: null,
+            frame: null,
+            loading: null,
+            message: null,
+            messageText: null,
+            title: null,
+            subtitle: null,
+            openNewTab: null,
+            currentUrl: "",
+            warmUrl: "",
+        };
+
+        function isOverviewPath() {
+            const pathname = window.location.pathname.replace(/\/$/, "");
+            return pathname === OVERVIEW_PATH;
+        }
+
+        function restoreSavedSheetSelection() {
+            if (!isOverviewPath()) {
+                return false;
+            }
+            const savedSlug = window.localStorage.getItem(STORAGE_KEY);
+            if (!savedSlug || !SHEET_SLUGS.includes(savedSlug) || savedSlug === CURRENT_SHEET_SLUG) {
+                return false;
+            }
+            window.location.replace(`${OVERVIEW_PATH}/${savedSlug}`);
+            return true;
+        }
+
+        function persistSelectedSheetSlug() {
+            if (!CURRENT_SHEET_SLUG || isOverviewPath()) {
+                return;
+            }
+            window.localStorage.setItem(STORAGE_KEY, CURRENT_SHEET_SLUG);
+        }
+
+        function closeChartModal() {
+            if (!chartModalState.root) {
+                return;
+            }
+            chartModalState.root.classList.remove("is-open");
+            chartModalState.root.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = "";
+            if (chartModalState.frame) {
+                chartModalState.frame.classList.remove("is-visible");
+            }
+            if (chartModalState.loading) {
+                chartModalState.loading.classList.remove("is-visible");
+            }
+            if (chartModalState.message) {
+                chartModalState.message.classList.remove("is-visible");
+            }
+        }
+
+        function showChartLoading() {
+            if (chartModalState.loading) {
+                chartModalState.loading.classList.add("is-visible");
+            }
+        }
+
+        function hideChartLoading() {
+            if (chartModalState.loading) {
+                chartModalState.loading.classList.remove("is-visible");
+            }
+        }
+
+        function preloadChartUrl(chartUrl) {
+            const normalizedUrl = String(chartUrl || "").trim();
+            if (!normalizedUrl || !chartModalState.frame) {
+                return;
+            }
+            if (chartModalState.currentUrl === normalizedUrl) {
+                return;
+            }
+            chartModalState.warmUrl = normalizedUrl;
+            chartModalState.frame.src = normalizedUrl;
+            chartModalState.currentUrl = normalizedUrl;
+        }
+
+        function openChartModal(chartTitle, frequencyLabel, chartUrl, unavailableReason) {
+            if (!chartModalState.root) {
+                return;
+            }
+            chartModalState.root.classList.add("is-open");
+            chartModalState.root.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+            if (chartModalState.title) {
+                chartModalState.title.textContent = chartTitle || "缠论图";
+            }
+            if (chartModalState.subtitle) {
+                chartModalState.subtitle.textContent = `展示方式：${frequencyLabel || "主页图形"}`;
+            }
+            if (chartUrl) {
+                if (chartModalState.message) {
+                    chartModalState.message.classList.remove("is-visible");
+                }
+                if (chartModalState.openNewTab) {
+                    chartModalState.openNewTab.style.display = "inline-flex";
+                    chartModalState.openNewTab.href = chartUrl;
+                }
+                if (chartModalState.frame) {
+                    chartModalState.frame.classList.add("is-visible");
+                }
+                if (chartModalState.currentUrl !== chartUrl) {
+                    showChartLoading();
+                    preloadChartUrl(chartUrl);
+                } else {
+                    hideChartLoading();
+                }
+                return;
+            }
+            hideChartLoading();
+            if (chartModalState.frame) {
+                chartModalState.frame.classList.remove("is-visible");
+            }
+            if (chartModalState.messageText) {
+                chartModalState.messageText.textContent = unavailableReason || "当前未获取到可用图表地址。";
+            }
+            if (chartModalState.message) {
+                chartModalState.message.classList.add("is-visible");
+            }
+            if (chartModalState.openNewTab) {
+                chartModalState.openNewTab.style.display = "none";
+                chartModalState.openNewTab.removeAttribute("href");
+            }
+        }
+
+        function initChartModal() {
+            chartModalState.root = document.getElementById("chart-modal");
+            chartModalState.frame = document.getElementById("chart-modal-frame");
+            chartModalState.loading = document.getElementById("chart-modal-loading");
+            chartModalState.message = document.getElementById("chart-modal-message");
+            chartModalState.messageText = document.getElementById("chart-modal-message-text");
+            chartModalState.title = document.getElementById("chart-modal-title");
+            chartModalState.subtitle = document.getElementById("chart-modal-subtitle");
+            chartModalState.openNewTab = document.getElementById("chart-modal-open-new-tab");
+            if (!chartModalState.root) {
+                return;
+            }
+            document.querySelectorAll("[data-chart-trigger]").forEach((trigger) => {
+                const warm = () => preloadChartUrl(String(trigger.dataset.chartUrl || "").trim());
+                trigger.addEventListener("mouseenter", warm, { passive: true });
+                trigger.addEventListener("focus", warm, { passive: true });
+                trigger.addEventListener("touchstart", warm, { passive: true });
+                trigger.addEventListener("click", () => {
+                    openChartModal(
+                        trigger.dataset.chartTitle || "缠论图",
+                        trigger.dataset.chartFrequency || "主页图形",
+                        trigger.dataset.chartUrl || "",
+                        trigger.dataset.chartUnavailableReason || "当前未获取到可用图表地址。"
+                    );
+                });
+            });
+            chartModalState.root.querySelectorAll("[data-chart-modal-close]").forEach((button) => {
+                button.addEventListener("click", closeChartModal);
+            });
+            if (chartModalState.frame) {
+                chartModalState.frame.addEventListener("load", () => {
+                    hideChartLoading();
+                    chartModalState.message?.classList.remove("is-visible");
+                    chartModalState.frame?.classList.add("is-visible");
+                });
+            }
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && chartModalState.root.classList.contains("is-open")) {
+                    closeChartModal();
+                }
+            });
+            const firstWarmTrigger = document.querySelector("[data-chart-trigger][data-chart-url]");
+            if (firstWarmTrigger) {
+                const idleWarm = () => preloadChartUrl(String(firstWarmTrigger.dataset.chartUrl || "").trim());
+                if (typeof window.requestIdleCallback === "function") {
+                    window.requestIdleCallback(idleWarm, { timeout: 1200 });
+                } else {
+                    window.setTimeout(idleWarm, 300);
+                }
+            }
+        }
+
+        function collectPriceItems() {
+            return Array.from(document.querySelectorAll(".price-cell"))
+                .map((cell) => ({
+                    row_id: cell.dataset.rowId,
+                    market: cell.dataset.market,
+                    code: cell.dataset.code,
+                    symbol: cell.dataset.symbol,
+                }))
+                .filter((item) => item.row_id && item.market && item.code);
+        }
+
+        function collectThreeBuyItems() {
+            return Array.from(document.querySelectorAll(".three-buy-cell"))
+                .map((cell) => ({
+                    row_id: cell.dataset.rowId,
+                    market: cell.dataset.market,
+                    code: cell.dataset.code,
+                    symbol: cell.dataset.symbol,
+                }))
+                .filter((item) => item.row_id && item.market && item.code);
+        }
+
+        function parseRateValue(rateText) {
+            const normalized = String(rateText || "").replace("%", "").trim();
+            const rateNumber = Number.parseFloat(normalized);
+            if (Number.isNaN(rateNumber)) {
+                return "";
+            }
+            return String(rateNumber);
+        }
+
+        function parseThreeBuyDateValue(timeText) {
+            const normalized = String(timeText || "").trim();
+            if (!normalized || normalized === "--") {
+                return "";
+            }
+            const timestamp = Date.parse(`${normalized}T00:00:00`);
+            if (Number.isNaN(timestamp)) {
+                return "";
+            }
+            return String(timestamp);
+        }
+
+        function getNextRateSortState(currentState) {
+            if (currentState === "none") {
+                return "desc";
+            }
+            if (currentState === "desc") {
+                return "asc";
+            }
+            return "none";
+        }
+
+        function updateRateSortIndicator() {
+            const rateSortButton = document.getElementById("rate-sort-button");
+            const indicator = document.getElementById("rate-sort-indicator");
+            const stateLabelMap = {
+                none: "原顺序",
+                desc: "高到低",
+                asc: "低到高",
+            };
+            if (rateSortButton) {
+                rateSortButton.dataset.sortState = currentRateSortState;
+            }
+            if (indicator) {
+                indicator.textContent = stateLabelMap[currentRateSortState] || "原顺序";
+            }
+        }
+
+        function updateThreeBuySortIndicator() {
+            const threeBuySortButton = document.getElementById("three-buy-sort-button");
+            const indicator = document.getElementById("three-buy-sort-indicator");
+            const stateLabelMap = {
+                none: "原顺序",
+                desc: "新到旧",
+                asc: "旧到新",
+            };
+            if (threeBuySortButton) {
+                threeBuySortButton.dataset.sortState = currentThreeBuySortState;
+            }
+            if (indicator) {
+                indicator.textContent = stateLabelMap[currentThreeBuySortState] || "原顺序";
+            }
+        }
+
+        function applyRateSort() {
+            const tbody = document.querySelector(".table-shell tbody");
+            if (!tbody) {
+                return;
+            }
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            const invalidValue = currentRateSortState === "asc" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+            rows.sort((rowA, rowB) => {
+                const originalA = Number.parseInt(rowA.dataset.originalIndex || "0", 10);
+                const originalB = Number.parseInt(rowB.dataset.originalIndex || "0", 10);
+                if (currentRateSortState === "none") {
+                    return originalA - originalB;
+                }
+                const hasRateA = rowA.dataset.rateValue !== "";
+                const hasRateB = rowB.dataset.rateValue !== "";
+                if (hasRateA !== hasRateB) {
+                    return hasRateA ? -1 : 1;
+                }
+                if (!hasRateA && !hasRateB) {
+                    return originalA - originalB;
+                }
+                const rateA = Number.parseFloat(rowA.dataset.rateValue || String(invalidValue));
+                const rateB = Number.parseFloat(rowB.dataset.rateValue || String(invalidValue));
+                if (rateA === rateB) {
+                    return originalA - originalB;
+                }
+                return currentRateSortState === "desc" ? rateB - rateA : rateA - rateB;
+            });
+            rows.forEach((row) => tbody.appendChild(row));
+            updateRateSortIndicator();
+        }
+
+        function applyThreeBuySort() {
+            const tbody = document.querySelector(".table-shell tbody");
+            if (!tbody) {
+                return;
+            }
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            const invalidValue = currentThreeBuySortState === "asc" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+            rows.sort((rowA, rowB) => {
+                const originalA = Number.parseInt(rowA.dataset.originalIndex || "0", 10);
+                const originalB = Number.parseInt(rowB.dataset.originalIndex || "0", 10);
+                if (currentThreeBuySortState === "none") {
+                    return originalA - originalB;
+                }
+                const hasValueA = rowA.dataset.threeBuyValue !== "";
+                const hasValueB = rowB.dataset.threeBuyValue !== "";
+                if (hasValueA !== hasValueB) {
+                    return hasValueA ? -1 : 1;
+                }
+                if (!hasValueA && !hasValueB) {
+                    return originalA - originalB;
+                }
+                const valueA = Number.parseFloat(rowA.dataset.threeBuyValue || String(invalidValue));
+                const valueB = Number.parseFloat(rowB.dataset.threeBuyValue || String(invalidValue));
+                if (valueA === valueB) {
+                    return originalA - originalB;
+                }
+                return currentThreeBuySortState === "desc" ? valueB - valueA : valueA - valueB;
+            });
+            rows.forEach((row) => tbody.appendChild(row));
+            updateThreeBuySortIndicator();
+        }
+
+        function applyPriceDirectionState(cell, rateText, unsupported = false) {
+            if (!cell) {
+                return;
+            }
+            cell.classList.remove("status-up", "status-down");
+            if (unsupported) {
+                return;
+            }
+            const rateNumber = Number.parseFloat(String(rateText || "").replace("%", ""));
+            if (Number.isNaN(rateNumber)) {
+                return;
+            }
+            if (rateNumber > 0) {
+                cell.classList.add("status-up");
+            } else if (rateNumber < 0) {
+                cell.classList.add("status-down");
+            }
+        }
+
+        function updatePriceCell(rowId, priceText, rateText, unsupported = false, updatedAtText = "") {
+            const cell = document.querySelector(`.price-cell[data-row-id="${rowId}"]`);
+            if (!cell) {
+                return;
+            }
+            const row = cell.closest("tr");
+            const main = cell.querySelector(".price-main");
+            const sub = cell.querySelector(".price-sub");
+            cell.classList.toggle("status-unsupported", unsupported);
+            cell.classList.toggle("status-pending", false);
+            applyPriceDirectionState(cell, rateText, unsupported);
+            cell.title = updatedAtText ? `数据库最新同步价格：${updatedAtText}` : "数据库最新同步价格：等待后台同步";
+            if (row) {
+                row.dataset.rateValue = unsupported ? "" : parseRateValue(rateText);
+            }
+            if (main) {
+                main.textContent = unsupported ? "价格不可用" : (priceText || "--");
+            }
+            if (sub) {
+                sub.textContent = unsupported ? "--" : (rateText || "--");
+            }
+        }
+
+        function setThreeBuyLoadingState(isLoading, message = "") {
+            const button = document.getElementById("recent-three-buy-button");
+            const status = document.getElementById("recent-three-buy-status");
+            if (button) {
+                button.disabled = isLoading;
+                button.textContent = isLoading ? "扫描中..." : "查找 3买时间";
+            }
+            if (status) {
+                status.textContent = message;
+            }
+        }
+
+        function updateThreeBuyCell(rowId, timeText, labelText = "最近 3买") {
+            const cell = document.querySelector(`.three-buy-cell[data-row-id="${rowId}"]`);
+            if (!cell) {
+                return;
+            }
+            const row = cell.closest("tr");
+            const main = cell.querySelector(".three-buy-main");
+            const sub = cell.querySelector(".three-buy-sub");
+            if (row) {
+                row.dataset.threeBuyValue = parseThreeBuyDateValue(timeText);
+            }
+            if (main) {
+                main.textContent = timeText || "--";
+            }
+            if (sub) {
+                sub.textContent = labelText || "最近 3买";
+            }
+        }
+
+        function buildThreeBuyMissLabel(status) {
+            if (status === "error") {
+                return "扫描异常";
+            }
+            if (status === "unsupported") {
+                return "暂不支持";
+            }
+            return "未找到 3买";
+        }
+
+        async function refreshRecentThreeBuyTimes() {
+            const items = collectThreeBuyItems();
+            if (!items.length) {
+                setThreeBuyLoadingState(false, "当前 Sheet 没有可扫描股票");
+                return;
+            }
+            setThreeBuyLoadingState(true, `正在扫描 ${items.length} 只股票的日线 3买...`);
+            try {
+                const response = await fetch(RECENT_THREE_BUY_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ items }),
+                });
+                if (!response.ok) {
+                    setThreeBuyLoadingState(false, "3买扫描失败，请稍后重试");
+                    return;
+                }
+                const payload = await response.json();
+                (payload.hits || []).forEach((item) => {
+                    updateThreeBuyCell(
+                        item.row_id,
+                        item.recent_three_buy_time_text || "--",
+                        item.label || "最近 3买"
+                    );
+                });
+                (payload.misses || []).forEach((item) => {
+                    updateThreeBuyCell(
+                        item.row_id,
+                        item.recent_three_buy_time_text || "--",
+                        buildThreeBuyMissLabel(item.status)
+                    );
+                });
+                setThreeBuyLoadingState(
+                    false,
+                    `已扫描 ${items.length} 只股票，命中 ${(payload.hits || []).length} 只`
+                );
+                if (currentThreeBuySortState !== "none") {
+                    applyThreeBuySort();
+                }
+            } catch (error) {
+                console.warn("Serenity AI Stocks recent three buy scan failed", error);
+                setThreeBuyLoadingState(false, "3买扫描失败，请稍后重试");
+            }
+        }
+
+        async function refreshPrices() {
+            const items = collectPriceItems();
+            if (!items.length) {
+                return;
+            }
+            try {
+                const response = await fetch(PRICE_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ items }),
+                });
+                if (!response.ok) {
+                    return;
+                }
+                const payload = await response.json();
+                (payload.quotes || []).forEach((quote) => {
+                    updatePriceCell(
+                        quote.row_id,
+                        quote.price_text,
+                        quote.rate_text,
+                        false,
+                        quote.updated_at_text || ""
+                    );
+                });
+                (payload.unsupported || []).forEach((item) => {
+                    updatePriceCell(item.row_id, "", "", true, "");
+                });
+                if (currentRateSortState !== "none") {
+                    applyRateSort();
+                }
+            } catch (error) {
+                console.warn("Serenity AI Stocks price refresh failed", error);
+            }
+        }
+
+        async function refreshSyncStatus() {
+            try {
+                const response = await fetch(STATUS_API_URL);
+                if (!response.ok) {
+                    return;
+                }
+                const status = await response.json();
+                const statusLabel = document.getElementById("sync-status-label");
+                const lastRun = document.getElementById("sync-last-run");
+                const successSummary = document.getElementById("sync-success-summary");
+                const errorText = document.getElementById("sync-error-text");
+                if (statusLabel) {
+                    statusLabel.textContent = status.status_label || "未知";
+                }
+                if (lastRun) {
+                    lastRun.textContent = status.last_run_at_text || "等待后台同步";
+                }
+                if (successSummary) {
+                    successSummary.textContent = `${status.last_success_count || 0} / ${status.last_total_candidates || 0}`;
+                }
+                if (errorText) {
+                    errorText.textContent = status.last_error || "";
+                }
+            } catch (error) {
+                console.warn("Serenity AI Stocks sync status refresh failed", error);
+            }
+        }
+
+        const rateSortButton = document.getElementById("rate-sort-button");
+        if (rateSortButton) {
+            rateSortButton.addEventListener("click", () => {
+                currentRateSortState = getNextRateSortState(currentRateSortState);
+                applyRateSort();
+            });
+        }
+        const threeBuySortButton = document.getElementById("three-buy-sort-button");
+        if (threeBuySortButton) {
+            threeBuySortButton.addEventListener("click", () => {
+                currentThreeBuySortState = getNextRateSortState(currentThreeBuySortState);
+                applyThreeBuySort();
+            });
+        }
+        const recentThreeBuyButton = document.getElementById("recent-three-buy-button");
+        if (recentThreeBuyButton) {
+            recentThreeBuyButton.addEventListener("click", refreshRecentThreeBuyTimes);
+        }
+        updateRateSortIndicator();
+        updateThreeBuySortIndicator();
+        initChartModal();
+
+        if (!restoreSavedSheetSelection()) {
+            persistSelectedSheetSlug();
+            refreshSyncStatus();
+            refreshPrices();
+            setInterval(refreshSyncStatus, REFRESH_INTERVAL_MS);
+            setInterval(refreshPrices, REFRESH_INTERVAL_MS);
+        }
+    </script>
+</body>
+</html>

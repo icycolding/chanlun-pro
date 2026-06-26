@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import datetime as dt
+import json
+import re
 from typing import Any, Iterable, Sequence
 from urllib.parse import urlencode
 
@@ -242,6 +244,7 @@ def _find_selection_metrics(entity_type: str, identifier: str) -> dict[str, Any]
                     "pricing_view": stock.get("pricing_view") or {},
                     "market_cap_research": stock.get("market_cap_research") or {},
                     "segment_market_view": stock.get("segment_market_view") or {},
+                    "sector_context_view": stock.get("sector_context_view") or {},
                 }
             if normalized_type == "match":
                 for match in list(stock.get("main_matches") or []) + list(stock.get("candidate_matches") or []):
@@ -253,6 +256,7 @@ def _find_selection_metrics(entity_type: str, identifier: str) -> dict[str, Any]
                             "pricing_view": match.get("pricing_view") or {},
                             "market_cap_research": match.get("market_cap_research") or {},
                             "segment_market_view": match.get("segment_market_view") or {},
+                            "sector_context_view": match.get("sector_context_view") or {},
                         }
     return {}
 
@@ -263,6 +267,7 @@ def _default_selection_metrics() -> dict[str, dict[str, str]]:
         _market_cap_research,
         _pricing_view,
         _scarcity_view,
+        _sector_context_view,
         _segment_market_view,
         _selection_reason,
     )
@@ -274,6 +279,7 @@ def _default_selection_metrics() -> dict[str, dict[str, str]]:
         "pricing_view": _pricing_view(),
         "market_cap_research": _market_cap_research(),
         "segment_market_view": _segment_market_view(),
+        "sector_context_view": _sector_context_view(),
     }
 
 
@@ -286,6 +292,178 @@ def _merge_selection_metrics(metrics: dict[str, Any] | None) -> dict[str, dict[s
             merged[key] = {**default_value, **current_value}
         else:
             merged[key] = dict(default_value)
+    return merged
+
+
+def _derive_sector_name(segment_market_text: str = "") -> str:
+    text = _normalize_text(segment_market_text)
+    if not text or "待研究补齐" in text or "待补充" in text:
+        return ""
+    text = re.sub(r"^若以[^，。,；]*[，,]\s*", "", text)
+    text = text.replace("对应", "", 1).strip()
+    for marker in ["可按", "市场当前可按", "市场可按", "已被", "本身不是最大收入池"]:
+        if marker in text:
+            text = text.split(marker, 1)[0].strip()
+    return text.strip("。；，, ")
+
+
+def _build_sector_context_from_metrics(
+    metrics: dict[str, Any] | None,
+    *,
+    display_name: str = "",
+    company_name: str = "",
+) -> dict[str, str]:
+    from .a_share_matches_catalog import _sector_context_view
+
+    source_metrics = metrics or {}
+    base = source_metrics.get("sector_context_view") or {}
+    segment = source_metrics.get("segment_market_view") or {}
+    selection_reason = source_metrics.get("selection_reason") or {}
+
+    sector_name = _normalize_text(base.get("sector_name"))
+    if not sector_name or sector_name == "板块待补充":
+        sector_name = _derive_sector_name(segment.get("market_size_text", ""))
+
+    sector_role = _normalize_text(base.get("sector_role"))
+    if not sector_role or sector_role == "板块定位待 AI 研究补齐":
+        sector_role = f"{_normalize_text(display_name) or _normalize_text(company_name) or '该公司'}所处细分环节样本"
+
+    selection_fit_basis = _normalize_text(selection_reason.get("fit_basis"))
+    if selection_fit_basis.startswith("仍需补充"):
+        selection_fit_basis = ""
+
+    growth_outlook = _normalize_text(base.get("growth_outlook"))
+    if not growth_outlook or growth_outlook == "增长前景待 AI 研究补齐":
+        growth_outlook = selection_fit_basis
+
+    selection_summary = _normalize_text(selection_reason.get("summary"))
+    if selection_summary.startswith("仍需补充"):
+        selection_summary = ""
+
+    company_position_text = _normalize_text(base.get("company_position_text"))
+    if not company_position_text or company_position_text == "行业地位待 AI 研究补齐":
+        company_position_text = selection_summary
+
+    company_share_text = _normalize_text(base.get("company_share_text")) or _normalize_text(segment.get("company_share_text"))
+    market_size_text = _normalize_text(base.get("market_size_text")) or _normalize_text(segment.get("market_size_text"))
+    share_level = _normalize_text(base.get("share_level")) or _normalize_text(segment.get("share_level"))
+    evidence_note = _normalize_text(base.get("evidence_note")) or "优先结合现有主题研究、市场空间视图与 AI 摘要继续补齐。"
+
+    return _sector_context_view(
+        sector_name=sector_name,
+        sector_role=sector_role,
+        market_size_text=market_size_text,
+        growth_outlook=growth_outlook,
+        company_position_text=company_position_text,
+        company_share_text=company_share_text,
+        share_level=share_level,
+        evidence_note=evidence_note,
+    )
+
+
+def _extract_json_object(text: str) -> dict[str, Any]:
+    normalized_text = _normalize_text(text)
+    if not normalized_text:
+        return {}
+    try:
+        parsed = json.loads(normalized_text)
+        return parsed if isinstance(parsed, dict) else {}
+    except json.JSONDecodeError:
+        pass
+
+    match = re.search(r"\{[\s\S]*\}", normalized_text)
+    if not match:
+        return {}
+    try:
+        parsed = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _build_ai_sector_context(
+    *,
+    base_context: dict[str, str],
+    latest_news: Sequence[dict[str, str]],
+    financial_summary: str,
+    display_name: str = "",
+    company_name: str = "",
+) -> dict[str, str]:
+    missing_core_fields = [
+        _normalize_text(base_context.get("sector_name")) in {"", "板块待补充"},
+        _normalize_text(base_context.get("growth_outlook")) in {"", "增长前景待 AI 研究补齐"},
+        _normalize_text(base_context.get("company_position_text")) in {"", "行业地位待 AI 研究补齐"},
+    ]
+    if sum(1 for is_missing in missing_core_fields if is_missing) < 2:
+        return {}
+
+    news_titles = [str(item.get("title") or "").strip() for item in latest_news or [] if str(item.get("title") or "").strip()]
+    if not news_titles and ("暂无财务数据" in _normalize_text(financial_summary) or not _normalize_text(financial_summary)):
+        return {}
+
+    prompt = (
+        "请基于以下信息，输出一段严格 JSON，字段必须包含："
+        "sector_name, sector_role, market_size_text, growth_outlook, company_position_text, "
+        "company_share_text, share_level, evidence_note。\n"
+        "要求：\n"
+        "1. 使用中文；\n"
+        "2. 尽量给细分板块，而不是泛行业；\n"
+        "3. 市场空间使用量级或区间表达，不要伪精确；\n"
+        "4. 行业地位和份额表达要带不确定性，不要编造确定数字；\n"
+        "5. 只输出 JSON，不要解释。\n"
+        f"股票显示名：{display_name or company_name or '未知标的'}\n"
+        f"公司名：{company_name or display_name or '未知公司'}\n"
+        f"现有基础信息：{json.dumps(base_context, ensure_ascii=False)}\n"
+        f"财务摘要：{financial_summary or '暂无'}\n"
+        f"新闻标题：{json.dumps(news_titles[:5], ensure_ascii=False)}"
+    )
+    try:
+        result = AIAnalyse("a").req_openrouter_ai_model(prompt)
+    except Exception:
+        return {}
+
+    ai_text = ""
+    if isinstance(result, dict) and result.get("ok"):
+        ai_text = _normalize_text(result.get("msg"))
+    elif isinstance(result, dict):
+        ai_text = _normalize_text(result.get("msg"))
+    else:
+        ai_text = _normalize_text(result)
+
+    parsed = _extract_json_object(ai_text)
+    if not parsed:
+        return {}
+
+    allowed_keys = {
+        "sector_name",
+        "sector_role",
+        "market_size_text",
+        "growth_outlook",
+        "company_position_text",
+        "company_share_text",
+        "share_level",
+        "evidence_note",
+    }
+    return {
+        key: _normalize_text(parsed.get(key))
+        for key in allowed_keys
+        if _normalize_text(parsed.get(key))
+    }
+
+
+def _merge_sector_context(
+    base_context: dict[str, str] | None,
+    ai_context: dict[str, str] | None,
+) -> dict[str, str]:
+    from .a_share_matches_catalog import _sector_context_view
+
+    defaults = _sector_context_view()
+    merged = dict(defaults)
+    for source in [base_context or {}, ai_context or {}]:
+        for key, value in source.items():
+            normalized_value = _normalize_text(value)
+            if normalized_value:
+                merged[key] = normalized_value
     return merged
 
 
@@ -510,6 +688,12 @@ def _build_summary_item(item: dict[str, Any]) -> dict[str, Any]:
     )
     financial_summary, financial_summary_short = _build_financial_summary(financial_rows)
     financial_source = "workspace" if financial_rows else "unavailable"
+    selection_metrics = _merge_selection_metrics(_find_selection_metrics(entity_type, identifier))
+    sector_context = _build_sector_context_from_metrics(
+        selection_metrics,
+        display_name=display_name,
+        company_name=company_name,
+    )
 
     return {
         "entity_type": entity_type,
@@ -524,6 +708,12 @@ def _build_summary_item(item: dict[str, Any]) -> dict[str, Any]:
         "financial_source": financial_source,
         "news_source": "hidden",
         "latest_news": [],
+        "sector_context_view": sector_context,
+        "sector_name": sector_context.get("sector_name", ""),
+        "growth_outlook_short": sector_context.get("growth_outlook", ""),
+        "company_position_short": sector_context.get("company_position_text", ""),
+        "market_size_short": sector_context.get("market_size_text", ""),
+        "company_share_short": sector_context.get("company_share_text", ""),
         "analysis_source_label": "Workspace" if financial_source == "workspace" else "",
         "detail_url": build_stock_analysis_detail_url(
             entity_type=entity_type,
@@ -594,7 +784,21 @@ def build_stock_analysis_detail_payload(
         "market_cap_live_text": live_quote.get("market_cap_text") or "实时总市值待行情源补齐",
         "live_quote": live_quote,
     }
-    payload.update(_merge_selection_metrics(_find_selection_metrics(entity_type, identifier)))
+    selection_metrics = _merge_selection_metrics(_find_selection_metrics(entity_type, identifier))
+    base_sector_context = _build_sector_context_from_metrics(
+        selection_metrics,
+        display_name=display_name,
+        company_name=company_name,
+    )
+    ai_sector_context = _build_ai_sector_context(
+        base_context=base_sector_context,
+        latest_news=latest_news,
+        financial_summary=summary.get("financial_summary", ""),
+        display_name=display_name,
+        company_name=company_name,
+    )
+    selection_metrics["sector_context_view"] = _merge_sector_context(base_sector_context, ai_sector_context)
+    payload.update(selection_metrics)
     if _normalize_text(entity_type) == "project":
         payload["tweet_detail_url"] = build_tweet_detail_url(
             _normalize_text(identifier),

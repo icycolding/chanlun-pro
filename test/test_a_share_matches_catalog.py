@@ -64,13 +64,14 @@ def test_a_share_match_catalog_has_expected_structure():
     catalog = get_a_share_match_catalog()
 
     assert catalog["theme_count"] == len(catalog["themes"])
-    assert catalog["theme_count"] == 13
-    assert catalog["project_stock_count"] == 27
+    assert catalog["theme_count"] == 14
+    assert catalog["project_stock_count"] == 32
     assert catalog["theme_related_stock_count"] > 0
 
     theme_slugs = set()
     theme_titles = {theme["title"] for theme in catalog["themes"]}
     assert "AI稀有金属 / 关键矿物 / 上游资源" in theme_titles
+    assert "创新药 / BD出海 / CXO服务" in theme_titles
     assert "机器人 / 具身智能 / 核心部件" in theme_titles
     assert "量子计算 / 精密制造 / 上游设备" in theme_titles
 
@@ -122,6 +123,10 @@ def test_a_share_match_catalog_has_expected_structure():
             assert stock["market_cap_research"]["upside_text"]
             assert stock["segment_market_view"]["market_size_text"]
             assert stock["segment_market_view"]["company_share_text"]
+            assert stock["sector_context_view"]["sector_name"]
+            assert stock["sector_context_view"]["growth_outlook"]
+            assert stock["sector_context_view"]["company_position_text"]
+            assert stock["sector_context_view"]["company_share_text"]
             assert stock["stage_snapshot"]["name"]
             assert stock["market_cap_snapshot"]["current_anchor"]
             assert "chart_url" in stock
@@ -153,6 +158,10 @@ def test_a_share_match_catalog_has_expected_structure():
                     assert match["market_cap_research"]["upside_text"]
                     assert match["segment_market_view"]["market_size_text"]
                     assert match["segment_market_view"]["company_share_text"]
+                    assert match["sector_context_view"]["sector_name"]
+                    assert match["sector_context_view"]["growth_outlook"]
+                    assert match["sector_context_view"]["company_position_text"]
+                    assert match["sector_context_view"]["company_share_text"]
                     assert match["supply_chain_position"]
                     assert match["mapping_path"]
                     assert match["judgement"]
@@ -248,6 +257,9 @@ def test_a_share_matches_template_renders_new_serenity_fit_structure():
     assert "实时市值" in html
     assert "环节市场规模" in html
     assert "公司份额" in html
+    assert "所属板块" in html
+    assert "增长前景" in html
+    assert "行业地位" in html
     assert "财务分析" in html
     assert "查看个股分析" in html
     assert "机器人 / 具身智能 / 核心部件" in html
@@ -542,6 +554,25 @@ def test_remaining_themes_selection_metrics_include_serenity_deep_research_field
     assert "高性能钕铁硼" in jinli["selection_reason"]["summary"]
     assert "人形机器人" in jinli["selection_reason"]["fit_basis"]
 
+    innovative_drug_theme = next(theme for theme in catalog["themes"] if theme["title"] == "创新药 / BD出海 / CXO服务")
+    innovative_drug_symbols = {stock["symbol"] for stock in innovative_drug_theme["project_stocks"]}
+    assert {"ONC", "9926", "2269"} <= innovative_drug_symbols
+    innovative_drug_matches = {
+        match["code"]: match
+        for stock in innovative_drug_theme["project_stocks"]
+        for match in stock["main_matches"] + stock["candidate_matches"]
+    }
+    assert {"688235", "688506", "603259"} <= set(innovative_drug_matches)
+    beiGene = innovative_drug_matches["688235"]
+    assert "全球化" in beiGene["selection_reason"]["summary"] or "商业化" in beiGene["selection_reason"]["summary"]
+    assert "BTK" in beiGene["selection_reason"]["fit_basis"] or "全球" in beiGene["selection_reason"]["fit_basis"]
+    belo = innovative_drug_matches["688506"]
+    assert "ADC" in belo["selection_reason"]["summary"]
+    assert "BMS" in belo["selection_reason"]["fit_basis"]
+    wuxi = innovative_drug_matches["603259"]
+    assert "CRDMO" in wuxi["selection_reason"]["summary"]
+    assert "TIDES" in wuxi["selection_reason"]["fit_basis"] or "在手订单" in wuxi["selection_reason"]["fit_basis"]
+
     robotics_theme = next(theme for theme in catalog["themes"] if theme["title"] == "机器人 / 具身智能 / 核心部件")
     robotics_matches = {
         match["code"]: match
@@ -583,6 +614,7 @@ def test_remaining_themes_have_authenticated_project_and_match_sources():
         ("电力 / 公用事业 / 电网设备", "XLU", "600406"),
         ("关键矿物 / 稀土 / 战略材料", "VNP", "600111"),
         ("AI稀有金属 / 关键矿物 / 上游资源", "AXTI", "002428"),
+        ("创新药 / BD出海 / CXO服务", "ONC", "688235"),
         ("机器人 / 具身智能 / 核心部件", "VPG", "688160"),
         ("量子计算 / 精密制造 / 上游设备", "INFQ", "688027"),
     ]
