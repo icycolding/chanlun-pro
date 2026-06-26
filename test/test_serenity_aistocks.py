@@ -220,7 +220,9 @@ def test_serenity_aistocks_index_template_renders_sheet_cards(monkeypatch):
     assert "active" in html
     assert "/serenity/aistocks/" in html
     assert ".sidebar {\n            position: static;" in html
-    assert "overflow-y: auto" not in html
+    assert ".sheet-nav {\n            display: flex;" in html
+    assert "max-height: calc(100vh - 220px);" in html
+    assert "overflow-y: auto;" in html
 
 
 def test_serenity_aistocks_index_template_includes_price_cells_and_restore_hooks(monkeypatch):
@@ -318,6 +320,7 @@ def test_serenity_aistocks_index_template_renders_cached_recent_three_buy(monkey
 
     assert "2026-06-08" in html
     assert "最近 3买" in html
+    assert 'data-three-buy-value="20260608"' in html
 
 
 def test_serenity_aistocks_index_template_includes_rate_sort_controls(monkeypatch):

@@ -51,6 +51,9 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            max-height: calc(100vh - 220px);
+            overflow-y: auto;
+            padding-right: 4px;
         }
         .sheet-link {
             display: block;
@@ -560,10 +563,11 @@
                                 {% for row in selected_sheet.rows %}
                                 {% set quote = row.quote_target or {} %}
                                 {% set rate_value = row.rate_text.replace('%', '').strip() if row.price_status == 'ok' else '' %}
+                                {% set three_buy_sort_value = row.recent_three_buy_time_text.replace('-', '') if row.recent_three_buy_time_text and row.recent_three_buy_time_text != '--' else '' %}
                                 <tr
                                     data-original-index="{{ loop.index0 }}"
                                     data-rate-value="{{ rate_value }}"
-                                    data-three-buy-value=""
+                                    data-three-buy-value="{{ three_buy_sort_value }}"
                                 >
                                     {% for column in selected_sheet.columns[:-1] %}
                                     <td>
