@@ -309,17 +309,10 @@ def _pricing_view(label: str = "待验证", detail: str = "") -> dict[str, str]:
     }
 
 
-def _market_cap_research(
-    current_text: str = "",
-    upside_text: str = "",
-    downside_text: str = "",
-    rationale: str = "",
-) -> dict[str, str]:
+def _market_cap_research(current_text: str = "", upside_text: str = "") -> dict[str, str]:
     return {
         "current_text": str(current_text or "研究市值待补充"),
         "upside_text": str(upside_text or "上行情形待补充"),
-        "downside_text": str(downside_text or "下行情形待补充"),
-        "rationale": str(rationale or "估值锚点待结合产业链位置、客户验证与盈利兑现继续补齐。"),
     }
 
 

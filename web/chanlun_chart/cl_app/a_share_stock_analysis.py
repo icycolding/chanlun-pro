@@ -21,8 +21,6 @@ from .a_share_matches_quotes import (
     normalize_hk_code,
 )
 from .a_share_matches_tweets import build_tweet_detail_url
-from .serenity_analysis_inputs import build_analysis_inputs_view
-from .serenity_aistocks_serenity_fit import get_serenity_aistock_fit_entry
 from .smart_news_search import search_stock_news as search_news_by_stock
 
 
@@ -136,36 +134,16 @@ def _build_live_quote_snapshot(
     exchange: str = "",
     market: str = "",
     company_name: str = "",
-    numeric_code: str = "",
 ) -> dict[str, str]:
     normalized_type = _normalize_text(entity_type)
     normalized_identifier = _normalize_text(identifier)
     normalized_market = _normalize_text(market).upper()
-    normalized_numeric_code = _normalize_text(numeric_code)
     live_quote = _build_empty_live_quote(normalized_market)
     if not normalized_type or not normalized_identifier:
         return live_quote
 
     try:
-        if normalized_type == "serenity_aistock" and normalized_market in {"A", "CN", "CHINA"}:
-            ex = get_exchange(Market.A)
-            code = normalize_a_share_code(normalized_numeric_code or normalized_identifier)
-            snapshots = fetch_tick_snapshots(ex, [code])
-            snapshot = snapshots.get(code) or next(iter(snapshots.values()), None)
-            market_label = "A"
-        elif normalized_type == "serenity_aistock" and normalized_market in {"HK", "HONG KONG"}:
-            ex = get_exchange(Market.HK)
-            code = normalize_hk_code(normalized_numeric_code or normalized_identifier)
-            snapshots = fetch_tick_snapshots(ex, [code])
-            snapshot = snapshots.get(code) or next(iter(snapshots.values()), None)
-            market_label = "HK"
-        elif normalized_type == "serenity_aistock" and normalized_market in {"US", "USA"}:
-            ex = get_exchange(Market.US)
-            code = (normalized_numeric_code or normalized_identifier).upper()
-            snapshots = fetch_tick_snapshots(ex, [code])
-            snapshot = snapshots.get(code) or next(iter(snapshots.values()), None)
-            market_label = "US"
-        elif normalized_type == "match" or normalized_market in {"A", "CN", "CHINA"}:
+        if normalized_type == "match" or normalized_market in {"A", "CN", "CHINA"}:
             ex = get_exchange(Market.A)
             code = normalize_a_share_code(normalized_identifier)
             snapshots = fetch_tick_snapshots(ex, [code])
@@ -249,22 +227,8 @@ def _build_financial_summary(records: Sequence[Any]) -> tuple[str, str]:
 
 def _find_selection_metrics(entity_type: str, identifier: str) -> dict[str, Any]:
     normalized_type = _normalize_text(entity_type)
-    raw_identifier = _normalize_text(identifier)
-    normalized_identifier = raw_identifier.upper()
-    if not normalized_type or not raw_identifier:
-        return {}
-
-    if normalized_type == "serenity_aistock":
-        entry = get_serenity_aistock_fit_entry(raw_identifier)
-        if entry:
-            return {
-                "selection_reason": entry.get("selection_reason") or {},
-                "market_cap_research": entry.get("market_cap_research") or {},
-                "segment_market_view": entry.get("segment_market_view") or {},
-                "sector_context_view": entry.get("sector_context_view") or {},
-                "industry_chain_view": entry.get("industry_chain_view") or {},
-                "evidence_sources": entry.get("evidence_sources") or [],
-            }
+    normalized_identifier = _normalize_text(identifier).upper()
+    if not normalized_type or not normalized_identifier:
         return {}
 
     from .a_share_matches_catalog import get_a_share_match_catalog
@@ -316,28 +280,18 @@ def _default_selection_metrics() -> dict[str, dict[str, str]]:
         "market_cap_research": _market_cap_research(),
         "segment_market_view": _segment_market_view(),
         "sector_context_view": _sector_context_view(),
-        "industry_chain_view": {
-            "upstream": "待补充",
-            "midstream": "待补充",
-            "downstream": "待补充",
-            "company_link_position": "公司环节待补充",
-            "choke_point_note": "真正 choke point 待补充",
-        },
-        "evidence_sources": [],
     }
 
 
-def _merge_selection_metrics(metrics: dict[str, Any] | None) -> dict[str, Any]:
-    merged: dict[str, Any] = {}
+def _merge_selection_metrics(metrics: dict[str, Any] | None) -> dict[str, dict[str, str]]:
+    merged: dict[str, dict[str, str]] = {}
     source_metrics = metrics or {}
     for key, default_value in _default_selection_metrics().items():
         current_value = source_metrics.get(key)
         if isinstance(current_value, dict):
             merged[key] = {**default_value, **current_value}
-        elif isinstance(current_value, list) and isinstance(default_value, list):
-            merged[key] = list(current_value)
         else:
-            merged[key] = dict(default_value) if isinstance(default_value, dict) else list(default_value)
+            merged[key] = dict(default_value)
     return merged
 
 
@@ -629,23 +583,18 @@ def _build_financial_code_candidates(
     normalized_market = _normalize_text(market).upper()
     normalized_numeric_code = _normalize_text(numeric_code).upper()
 
-    base_candidates = (
-        [normalized_numeric_code, normalized_identifier]
-        if entity_type == "serenity_aistock"
-        else [normalized_identifier, normalized_numeric_code]
-    )
-    for raw in base_candidates:
+    for raw in [normalized_identifier, normalized_numeric_code]:
         if raw and raw not in candidates:
             candidates.append(raw)
 
     if entity_type == "match" or normalized_market in {"A", "CN", "CHINA"} or normalized_exchange in {"SSE", "SZSE", "BSE", "STAR", "CHINEXT"}:
-        for raw in base_candidates:
+        for raw in [normalized_identifier, normalized_numeric_code]:
             normalized = normalize_a_share_code(raw)
             if normalized and normalized not in candidates:
                 candidates.append(normalized)
 
     if normalized_market in {"HK", "HONG KONG"} or normalized_exchange in {"HKG", "HKEX", "SEHK"}:
-        for raw in base_candidates:
+        for raw in [normalized_identifier, normalized_numeric_code]:
             normalized = normalize_hk_code(raw)
             if normalized and normalized not in candidates:
                 candidates.append(normalized)
@@ -773,7 +722,6 @@ def _build_summary_item(item: dict[str, Any]) -> dict[str, Any]:
             company_name=company_name,
             exchange=exchange,
             market=market,
-            numeric_code=numeric_code,
         ),
     }
 
@@ -825,7 +773,6 @@ def build_stock_analysis_detail_payload(
         exchange=exchange,
         market=market,
         company_name=company_name,
-        numeric_code=_normalize_text(numeric_code),
     )
 
     payload = {
@@ -837,21 +784,6 @@ def build_stock_analysis_detail_payload(
         "market_cap_live_text": live_quote.get("market_cap_text") or "实时总市值待行情源补齐",
         "live_quote": live_quote,
     }
-    analysis_inputs = build_analysis_inputs_view(
-        entity_type=entity_type,
-        identifier=identifier,
-        display_name=display_name,
-        company_name=company_name,
-        exchange=exchange,
-        market=market,
-        numeric_code=_normalize_text(numeric_code),
-        live_quote=live_quote,
-        latest_news=latest_news,
-    )
-    payload["analysis_inputs"] = {"sources": list(analysis_inputs.get("sources") or [])}
-    payload["data_freshness_view"] = dict(analysis_inputs.get("data_freshness_view") or {})
-    payload["community_discussion_summary"] = dict(analysis_inputs.get("community_discussion_summary") or {})
-    payload["community_discussion_items"] = list(analysis_inputs.get("community_discussion_items") or [])
     selection_metrics = _merge_selection_metrics(_find_selection_metrics(entity_type, identifier))
     base_sector_context = _build_sector_context_from_metrics(
         selection_metrics,

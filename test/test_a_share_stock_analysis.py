@@ -16,7 +16,6 @@ from cl_app.a_share_stock_analysis import (
     build_stock_analysis_summaries,
 )
 import cl_app.a_share_stock_analysis as stock_analysis_module
-from cl_app.serenity_aistocks import get_serenity_aistocks_sheet
 from cl_app.a_share_stock_analysis_workspace import sync_workspace_stock_analysis_payload
 
 
@@ -50,7 +49,7 @@ def _render_stock_analysis_template(analysis):
     return template.render(analysis=analysis)
 
 
-def test_build_stock_analysis_detail_url_supports_project_match_and_serenity_aistock():
+def test_build_stock_analysis_detail_url_supports_project_and_match():
     project_url = build_stock_analysis_detail_url(
         entity_type="project",
         identifier="SIVE",
@@ -66,23 +65,12 @@ def test_build_stock_analysis_detail_url_supports_project_match_and_serenity_ais
         company_name="源杰科技",
         market="A",
     )
-    serenity_row = get_serenity_aistocks_sheet("光模块及关键材料")["rows"][0]
-    serenity_url = build_stock_analysis_detail_url(
-        entity_type="serenity_aistock",
-        identifier=serenity_row["row_id"],
-        display_name=serenity_row["cells"].get("名称", ""),
-        company_name=serenity_row["cells"].get("名称", ""),
-        market=(serenity_row["quote_target"] or {}).get("market", ""),
-        numeric_code=(serenity_row["quote_target"] or {}).get("code", ""),
-    )
 
     assert project_url.startswith("/a_share_matches/stock-analysis/project/SIVE?")
     assert "company_name=Sivers+Semiconductors+AB" in project_url
     assert "display_name=Sivers+Semiconductors" in project_url
     assert match_url.startswith("/a_share_matches/stock-analysis/match/688498?")
     assert "display_name=688498+%E6%BA%90%E6%9D%B0%E7%A7%91%E6%8A%80" in match_url
-    assert serenity_url.startswith(f"/a_share_matches/stock-analysis/serenity_aistock/{serenity_row['row_id']}?")
-    assert "numeric_code=sz002428" in serenity_url
 
 
 def test_build_stock_analysis_summaries_limits_news_and_prefers_workspace_data(monkeypatch):
@@ -394,250 +382,6 @@ def test_build_stock_analysis_detail_payload_surfaces_live_market_cap_from_quote
     assert payload["live_quote"]["change_text"] == "+2.30%"
 
 
-def test_build_stock_analysis_detail_payload_exposes_analysis_inputs_and_community_gaps(monkeypatch):
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._query_financial_rows",
-        lambda *args, **kwargs: [],
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._search_local_news",
-        lambda *args, **kwargs: ([], "local"),
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._build_ai_financial_analysis",
-        lambda *args, **kwargs: "暂无财务数据，无法生成 AI 解读。",
-    )
-    monkeypatch.setattr(
-        stock_analysis_module,
-        "_build_live_quote_snapshot",
-        lambda **kwargs: {
-            "price_text": "123.45",
-            "change_text": "+2.30%",
-            "market_cap_text": "321.00亿",
-            "swing_text": "5.60%",
-            "range_text": "120.00 - 126.00",
-            "market_text": "A",
-        },
-        raising=False,
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis.build_analysis_inputs_view",
-        lambda **kwargs: {
-            "sources": [
-                {
-                    "source_name": "实时行情",
-                    "source_key": "live_quote",
-                    "status": "available",
-                    "latest_at": "2026-06-27 10:00:00",
-                    "coverage_note": "已接入最新价、涨跌幅和实时总市值。",
-                    "record_count": 1,
-                    "source_hint": "exchange.ticks",
-                },
-                {
-                    "source_name": "雪球评论",
-                    "source_key": "xueqiu_comments",
-                    "status": "unavailable",
-                    "latest_at": "",
-                    "coverage_note": "当前未接入雪球帖子或评论。",
-                    "record_count": 0,
-                    "source_hint": "pending",
-                },
-            ],
-            "data_freshness_view": {
-                "live_quote": "2026-06-27 10:00:00",
-                "serenity_archive": "2026-06-14T00:02:20Z",
-                "community_discussions": "",
-            },
-            "community_discussion_summary": {
-                "hot_topics": [],
-                "bullish_points": [],
-                "bearish_points": [],
-                "noise_warning": "当前没有可用的中文社区讨论输入。",
-                "platform_breakdown": [
-                    {"platform": "xueqiu", "posts": 0, "comments": 0, "status": "unavailable"},
-                ],
-            },
-            "community_discussion_items": [],
-        },
-    )
-
-    payload = build_stock_analysis_detail_payload(
-        entity_type="match",
-        identifier="688498",
-        display_name="688498 源杰科技",
-        company_name="源杰科技",
-        market="A",
-    )
-
-    assert payload["analysis_inputs"]["sources"][0]["status"] == "available"
-    assert payload["analysis_inputs"]["sources"][1]["source_key"] == "xueqiu_comments"
-    assert payload["analysis_inputs"]["sources"][1]["status"] == "unavailable"
-    assert payload["data_freshness_view"]["live_quote"] == "2026-06-27 10:00:00"
-    assert payload["community_discussion_summary"]["noise_warning"] == "当前没有可用的中文社区讨论输入。"
-    assert payload["community_discussion_items"] == []
-
-
-def test_build_stock_analysis_detail_payload_supports_serenity_aistock(monkeypatch):
-    serenity_row = next(
-        item for item in get_serenity_aistocks_sheet("光模块及关键材料")["rows"]
-        if item["cells"].get("名称") == "云南锗业"
-    )
-
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._query_financial_rows",
-        lambda *args, **kwargs: [],
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._search_local_news",
-        lambda **kwargs: ([], "unavailable"),
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._build_ai_financial_analysis",
-        lambda *args, **kwargs: "暂无财务数据，无法生成 AI 解读。",
-    )
-    monkeypatch.setattr(
-        stock_analysis_module,
-        "_build_live_quote_snapshot",
-        lambda **kwargs: {
-            "price_text": "19.880",
-            "change_text": "+1.02%",
-            "market_cap_text": "88.00亿",
-            "swing_text": "3.50%",
-            "range_text": "19.10 - 20.10",
-            "market_text": "A",
-        },
-        raising=False,
-    )
-
-    payload = build_stock_analysis_detail_payload(
-        entity_type="serenity_aistock",
-        identifier=serenity_row["row_id"],
-        display_name=serenity_row["cells"].get("名称", ""),
-        company_name=serenity_row["cells"].get("名称", ""),
-        market=(serenity_row["quote_target"] or {}).get("market", ""),
-        numeric_code=(serenity_row["quote_target"] or {}).get("code", ""),
-        chart_url=serenity_row["chart_url"],
-    )
-
-    assert payload["selection_reason"]["summary"]
-    assert payload["selection_reason"]["fit_basis"]
-    assert "磷化铟" in " ".join(
-        [
-            payload["selection_reason"]["summary"],
-            payload["selection_reason"]["fit_basis"],
-            payload["sector_context_view"]["sector_name"],
-        ]
-    )
-    assert payload["market_cap_live_text"] == "88.00亿"
-    assert payload["detail_url"].startswith("/a_share_matches/stock-analysis/serenity_aistock/")
-
-
-def test_build_stock_analysis_detail_payload_uses_per_stock_serenity_research(monkeypatch):
-    serenity_row = next(
-        item for item in get_serenity_aistocks_sheet("光模块及关键材料")["rows"]
-        if item["cells"].get("名称") == "有研新材"
-    )
-
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._query_financial_rows",
-        lambda *args, **kwargs: [],
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._search_local_news",
-        lambda **kwargs: ([], "unavailable"),
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._build_ai_financial_analysis",
-        lambda *args, **kwargs: "暂无财务数据，无法生成 AI 解读。",
-    )
-    monkeypatch.setattr(
-        stock_analysis_module,
-        "_build_live_quote_snapshot",
-        lambda **kwargs: {
-            "price_text": "17.220",
-            "change_text": "+0.88%",
-            "market_cap_text": "166.00亿",
-            "swing_text": "2.80%",
-            "range_text": "16.90 - 17.40",
-            "market_text": "A",
-        },
-        raising=False,
-    )
-
-    payload = build_stock_analysis_detail_payload(
-        entity_type="serenity_aistock",
-        identifier=serenity_row["row_id"],
-        display_name=serenity_row["cells"].get("名称", ""),
-        company_name=serenity_row["cells"].get("名称", ""),
-        market=(serenity_row["quote_target"] or {}).get("market", ""),
-        numeric_code=(serenity_row["quote_target"] or {}).get("code", ""),
-        chart_url=serenity_row["chart_url"],
-    )
-
-    assert "国内唯一、全球第二家" in payload["selection_reason"]["summary"]
-    assert "靶材" in payload["selection_reason"]["fit_basis"]
-    assert "半导体靶材" in payload["sector_context_view"]["sector_name"]
-    assert payload["industry_chain_view"]["upstream"]
-    assert payload["industry_chain_view"]["company_link_position"]
-    assert payload["industry_chain_view"]["choke_point_note"]
-    assert payload["market_cap_research"]["current_text"]
-    assert payload["market_cap_research"]["rationale"]
-    assert payload["evidence_sources"]
-    assert payload["evidence_sources"][0]["url"].startswith("http")
-    assert payload["market_cap_live_text"] == "166.00亿"
-
-
-def test_build_stock_analysis_detail_payload_supports_last_batch_serenity_research(monkeypatch):
-    serenity_row = next(
-        item for item in get_serenity_aistocks_sheet("光模块及关键材料")["rows"]
-        if item["cells"].get("名称") == "源杰科技"
-    )
-
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._query_financial_rows",
-        lambda *args, **kwargs: [],
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._search_local_news",
-        lambda **kwargs: ([], "unavailable"),
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_stock_analysis._build_ai_financial_analysis",
-        lambda *args, **kwargs: "暂无财务数据，无法生成 AI 解读。",
-    )
-    monkeypatch.setattr(
-        stock_analysis_module,
-        "_build_live_quote_snapshot",
-        lambda **kwargs: {
-            "price_text": "128.500",
-            "change_text": "+2.10%",
-            "market_cap_text": "1805.26亿",
-            "swing_text": "4.80%",
-            "range_text": "124.00 - 129.20",
-            "market_text": "A",
-        },
-        raising=False,
-    )
-
-    payload = build_stock_analysis_detail_payload(
-        entity_type="serenity_aistock",
-        identifier=serenity_row["row_id"],
-        display_name=serenity_row["cells"].get("名称", ""),
-        company_name=serenity_row["cells"].get("名称", ""),
-        market=(serenity_row["quote_target"] or {}).get("market", ""),
-        numeric_code=(serenity_row["quote_target"] or {}).get("code", ""),
-        chart_url=serenity_row["chart_url"],
-    )
-
-    assert payload["industry_chain_view"]["upstream"] != "待补充"
-    assert payload["industry_chain_view"]["choke_point_note"] != "真正 choke point 待补充"
-    assert payload["market_cap_research"]["current_text"] != "研究市值待补充"
-    assert payload["market_cap_research"]["rationale"] != "研究逻辑待补充"
-    assert len(payload["evidence_sources"]) >= 2
-    assert all(source["url"].startswith("http") for source in payload["evidence_sources"])
-    assert payload["market_cap_live_text"] == "1805.26亿"
-
-
 def test_a_share_match_stock_analysis_template_renders_selection_metrics_panel():
     html = _render_stock_analysis_template(
         {
@@ -664,62 +408,8 @@ def test_a_share_match_stock_analysis_template_renders_selection_metrics_panel()
             "market_cap_research": {
                 "current_text": "当前按 60-90 亿美元理解。",
                 "upside_text": "上行情形按 120-150 亿美元理解。",
-                "downside_text": "下行情形按 35-50 亿美元理解。",
-                "rationale": "核心看上游光源卡位、客户验证深度与 1.6T/CPO 放量节奏。",
             },
             "market_cap_live_text": "实时总市值待行情源补齐",
-            "analysis_inputs": {
-                "sources": [
-                    {
-                        "source_name": "实时行情",
-                        "source_key": "live_quote",
-                        "status": "available",
-                        "latest_at": "2026-06-27 10:00:00",
-                        "coverage_note": "已接入最新价、涨跌幅和实时总市值。",
-                        "record_count": 1,
-                        "source_hint": "exchange.ticks",
-                    },
-                    {
-                        "source_name": "东方财富股吧评论",
-                        "source_key": "eastmoney_guba_comments",
-                        "status": "partial",
-                        "latest_at": "",
-                        "coverage_note": "当前仅覆盖帖子，评论待补齐。",
-                        "record_count": 0,
-                        "source_hint": "pending",
-                    },
-                ]
-            },
-            "data_freshness_view": {
-                "live_quote": "2026-06-27 10:00:00",
-                "serenity_archive": "2026-06-14T00:02:20Z",
-                "community_discussions": "",
-            },
-            "community_discussion_summary": {
-                "hot_topics": [],
-                "bullish_points": [],
-                "bearish_points": [],
-                "noise_warning": "当前中文社区讨论覆盖仍不完整。",
-                "platform_breakdown": [
-                    {"platform": "eastmoney", "posts": 12, "comments": 0, "status": "partial"},
-                ],
-            },
-            "community_discussion_items": [],
-            "industry_chain_view": {
-                "upstream": "InP 衬底、外延、关键光学材料",
-                "midstream": "激光器芯片、光引擎、光模块",
-                "downstream": "AI 集群互连、CPO 与交换机",
-                "company_link_position": "公司位于上游关键光源与激光器芯片环节。",
-                "choke_point_note": "真正 choke point 在外置光源与高功率 EML/DFB 的验证和供给层。",
-            },
-            "evidence_sources": [
-                {
-                    "title": "公司年报",
-                    "summary": "披露核心产品与客户验证进展。",
-                    "url": "https://example.com/report",
-                    "source_type": "年报",
-                }
-            ],
             "segment_market_view": {
                 "market_size_text": "对应环节市场规模约数十亿美元。",
                 "company_share_text": "公司份额约低个位数。",
@@ -751,15 +441,6 @@ def test_a_share_match_stock_analysis_template_renders_selection_metrics_panel()
     assert "所属板块" in html
     assert "增长前景" in html
     assert "行业地位" in html
-    assert "产业链条" in html
-    assert "公司所在环节" in html
-    assert "真正 choke point" in html
-    assert "估值逻辑" in html
-    assert "证据来源" in html
-    assert "分析输入" in html
-    assert "实时行情" in html
-    assert "东方财富股吧评论" in html
-    assert "当前中文社区讨论覆盖仍不完整。" in html
 
 
 def test_a_share_match_stock_analysis_template_renders_live_quote_refresh_controls():

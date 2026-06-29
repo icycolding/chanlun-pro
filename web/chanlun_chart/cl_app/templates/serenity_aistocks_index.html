@@ -231,9 +231,6 @@
         .sortable-three-buy-header {
             min-width: 170px;
         }
-        .serenity-fit-header {
-            min-width: 180px;
-        }
         .sort-button {
             display: inline-flex;
             align-items: center;
@@ -272,9 +269,6 @@
         .three-buy-cell {
             min-width: 132px;
         }
-        .serenity-fit-cell {
-            min-width: 180px;
-        }
         .three-buy-main {
             font-weight: 700;
         }
@@ -283,44 +277,6 @@
             margin-top: 4px;
             color: #64748b;
             font-size: 12px;
-        }
-        .serenity-fit-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 28px;
-            padding: 0 10px;
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-        .serenity-fit-badge.fit {
-            background: rgba(22, 163, 74, 0.12);
-            color: #15803d;
-        }
-        .serenity-fit-badge.partial_fit {
-            background: rgba(245, 158, 11, 0.14);
-            color: #b45309;
-        }
-        .serenity-fit-badge.not_fit {
-            background: rgba(220, 38, 38, 0.12);
-            color: #b91c1c;
-        }
-        .serenity-fit-badge.watch {
-            background: rgba(71, 85, 105, 0.12);
-            color: #475569;
-        }
-        .serenity-fit-detail-link {
-            display: inline-block;
-            margin-top: 8px;
-            color: #2563eb;
-            font-size: 12px;
-            font-weight: 600;
-            text-decoration: none;
-        }
-        .serenity-fit-detail-link:hover {
-            color: #1d4ed8;
-            text-decoration: underline;
         }
         .price-main {
             font-weight: 700;
@@ -579,7 +535,6 @@
                                     {% for column in selected_sheet.columns[:-1] %}
                                     <th>{{ column }}</th>
                                     {% endfor %}
-                                    <th class="serenity-fit-header">Serenity 标准</th>
                                     <th class="sortable-three-buy-header">
                                         <button
                                             type="button"
@@ -633,13 +588,6 @@
                                         {% endif %}
                                     </td>
                                     {% endfor %}
-                                    <td
-                                        class="serenity-fit-cell"
-                                        title="{{ row.serenity_fit_reason_short }}"
-                                    >
-                                        <span class="serenity-fit-badge {{ row.serenity_fit_status }}">{{ row.serenity_fit_label }}</span>
-                                        <a class="serenity-fit-detail-link" href="{{ row.serenity_fit_detail_url }}">查看详情</a>
-                                    </td>
                                     <td
                                         class="three-buy-cell"
                                         data-row-id="{{ row.row_id }}"

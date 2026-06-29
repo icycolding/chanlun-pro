@@ -80,7 +80,6 @@ from .a_share_stock_analysis import (
     build_stock_analysis_summaries,
 )
 from .a_share_stock_analysis_workspace import sync_workspace_stock_analysis_payload
-from .community_sync import sync_community_discussions_for_stock
 from .serenity_aistocks import (
     register_serenity_aistocks_routes,
     sync_serenity_aistocks_latest_prices,
@@ -746,21 +745,6 @@ def create_app(test_config=None):
             }
         )
 
-    @app.route("/a_share_matches/community-sync", methods=["POST"])
-    @login_required
-    def a_share_matches_community_sync():
-        payload = request.get_json(silent=True) or {}
-        symbol = str(payload.get("symbol") or "").strip()
-        company_name = str(payload.get("company_name") or "").strip()
-        limit = int(payload.get("limit") or 20)
-        return jsonify(
-            sync_community_discussions_for_stock(
-                symbol=symbol,
-                company_name=company_name,
-                limit=max(limit, 1),
-            )
-        )
-
     @app.route("/api/workspace/stock-analysis/sync", methods=["POST"])
     @login_required
     def workspace_stock_analysis_sync():
@@ -815,11 +799,6 @@ def create_app(test_config=None):
             market_cap_view=detail_payload["market_cap_view"],
             timeline_sections=detail_payload["timeline_sections"],
             data_version=detail_payload["data_version"],
-            source_scope=detail_payload["source_scope"],
-            archive_updated_at=detail_payload["archive_updated_at"],
-            latest_archive_at=detail_payload["latest_archive_at"],
-            source_status=detail_payload["source_status"],
-            coverage_note=detail_payload["coverage_note"],
             tweets=detail_payload["tweets"],
         )
 

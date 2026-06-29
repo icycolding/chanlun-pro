@@ -7,7 +7,6 @@ from typing import Any, Dict, Iterable, List, Sequence
 from urllib.parse import urlencode
 
 from .a_share_matches_tweet_notes import get_project_tweet_note
-from .serenity_analysis_inputs import get_serenity_archive_metadata
 
 _PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[3]
 _TWEETS_JSON_PATH = (
@@ -276,7 +275,6 @@ def build_tweet_detail_payload(
     tweets = find_related_tweets_for_stock(symbol, company_name, exchange, market, display_name)
     latest_mention_at = tweets[0]["created_at_local"] if tweets else ""
     note = get_project_tweet_note(symbol)
-    archive_metadata = get_serenity_archive_metadata()
     return {
         "symbol": str(symbol or "").strip(),
         "company_name": _normalize_space(company_name),
@@ -294,10 +292,4 @@ def build_tweet_detail_payload(
         "timeline_sections": list(note.get("timeline_sections") or []),
         "tweets": tweets,
         "data_version": get_tweets_data_version(),
-        "source_scope": archive_metadata.get("source_scope") or "serenity_x_archive_only",
-        "archive_updated_at": archive_metadata.get("archive_updated_at") or "",
-        "latest_archive_at": archive_metadata.get("latest_archive_at") or "",
-        "source_status": archive_metadata.get("status") or "unavailable",
-        "coverage_note": archive_metadata.get("coverage_note")
-        or "当前仅覆盖 Serenity 的 X/Twitter 档案，不代表全网讨论，也不含实时行情。",
     }

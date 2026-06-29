@@ -215,11 +215,6 @@
 >
   {% set live_quote = analysis.live_quote or {} %}
   {% set sector_context = analysis.get("sector_context_view", {}) %}
-  {% set industry_chain = analysis.get("industry_chain_view", {}) %}
-  {% set evidence_sources = analysis.get("evidence_sources", []) %}
-  {% set analysis_inputs = analysis.get("analysis_inputs", {}) %}
-  {% set analysis_input_sources = analysis_inputs.get("sources", []) %}
-  {% set community_summary = analysis.get("community_discussion_summary", {}) %}
   <main class="page">
     <section class="panel">
       <div class="eyebrow">个股分析详情</div>
@@ -275,32 +270,6 @@
     </section>
 
     <section class="panel">
-      <h2 class="section-title">分析输入</h2>
-      <div class="selection-metric-grid">
-        {% if analysis_input_sources %}
-        {% for item in analysis_input_sources %}
-        <div class="selection-metric-card">
-          <span class="selection-metric-label">{{ item.source_name or "输入源" }}</span>
-          <span class="selection-metric-value">{{ item.status or "unavailable" }}</span>
-          <p class="selection-metric-detail">最新时间：{{ item.latest_at or "暂无" }}</p>
-          <p class="selection-metric-detail">覆盖说明：{{ item.coverage_note or "暂无说明" }}</p>
-        </div>
-        {% endfor %}
-        {% else %}
-        <div class="selection-metric-card">
-          <span class="selection-metric-label">输入源</span>
-          <span class="selection-metric-value">unavailable</span>
-          <p class="selection-metric-detail">当前暂无输入源说明。</p>
-        </div>
-        {% endif %}
-      </div>
-      <div class="selection-reason-block" style="margin-top:14px;">
-        <span class="selection-reason-title">社区讨论摘要</span>
-        <p class="selection-reason-text">{{ community_summary.get("noise_warning", "") or "当前已接入可用的中文社区讨论输入。" }}</p>
-      </div>
-    </section>
-
-    <section class="panel">
       <h2 class="section-title">财务分析</h2>
       <p class="summary">{{ analysis.financial_summary }}</p>
     </section>
@@ -308,32 +277,6 @@
     <section class="panel">
       <h2 class="section-title">AI 财务解读</h2>
       <p class="summary">{{ analysis.financial_ai_analysis }}</p>
-    </section>
-
-    <section class="panel">
-      <h2 class="section-title">产业链条</h2>
-      <div class="selection-metric-grid">
-        <div class="selection-metric-card">
-          <span class="selection-metric-label">上游</span>
-          <span class="selection-metric-value">{{ industry_chain.get("upstream", "待补充") }}</span>
-        </div>
-        <div class="selection-metric-card">
-          <span class="selection-metric-label">中游</span>
-          <span class="selection-metric-value">{{ industry_chain.get("midstream", "待补充") }}</span>
-        </div>
-        <div class="selection-metric-card">
-          <span class="selection-metric-label">下游</span>
-          <span class="selection-metric-value">{{ industry_chain.get("downstream", "待补充") }}</span>
-        </div>
-        <div class="selection-metric-card">
-          <span class="selection-metric-label">公司所在环节</span>
-          <span class="selection-metric-value">{{ industry_chain.get("company_link_position", "公司环节待补充") }}</span>
-        </div>
-        <div class="selection-metric-card">
-          <span class="selection-metric-label">真正 choke point</span>
-          <span class="selection-metric-value">{{ industry_chain.get("choke_point_note", "真正 choke point 待补充") }}</span>
-        </div>
-      </div>
     </section>
 
     <section class="panel">
@@ -395,8 +338,6 @@
           <span class="selection-metric-label">研究市值</span>
           <span class="selection-metric-value">{{ analysis.market_cap_research.current_text }}</span>
           <p class="selection-metric-detail">{{ analysis.market_cap_research.upside_text }}</p>
-          <p class="selection-metric-detail">{{ analysis.market_cap_research.downside_text }}</p>
-          <p class="selection-metric-detail">估值逻辑：{{ analysis.market_cap_research.rationale }}</p>
         </div>
         <div class="selection-metric-card">
           <span class="selection-metric-label">实时市值</span>
@@ -412,29 +353,6 @@
           <p class="selection-metric-detail">份额等级：{{ analysis.segment_market_view.share_level }}</p>
         </div>
       </div>
-    </section>
-
-    <section class="panel">
-      <h2 class="section-title">证据来源</h2>
-      <ul class="news-list">
-        {% if evidence_sources %}
-        {% for item in evidence_sources %}
-        <li>
-          <div class="news-title">
-            {% if item.url %}
-            <a class="btn-secondary btn" style="min-height:auto;padding:0 10px;margin-right:8px;" href="{{ item.url }}">{{ item.title or "未命名来源" }}</a>
-            {% else %}
-            {{ item.title or "未命名来源" }}
-            {% endif %}
-          </div>
-          <div class="news-meta">{{ item.source_type or '--' }}</div>
-          <div class="selection-metric-detail">{{ item.summary or "暂无摘要" }}</div>
-        </li>
-        {% endfor %}
-        {% else %}
-        <li>暂无证据来源</li>
-        {% endif %}
-      </ul>
     </section>
 
     <section class="panel">

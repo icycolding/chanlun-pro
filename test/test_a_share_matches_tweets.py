@@ -174,42 +174,6 @@ def test_build_tweet_detail_payload_includes_version_and_bilingual_fields(monkey
     assert payload["tweets"][0]["quoted_text_zh"] == "ZH: Quoted text for $SIVE."
 
 
-def test_build_tweet_detail_payload_exposes_archive_source_metadata(monkeypatch):
-    dataset = [
-        _make_tweet("21", "Fresh thesis on $SIVE."),
-    ]
-    monkeypatch.setattr(
-        "cl_app.a_share_matches_tweets.load_serenity_tweets",
-        lambda: dataset,
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_matches_tweets.get_tweets_data_version",
-        lambda: "999",
-    )
-    monkeypatch.setattr(
-        "cl_app.a_share_matches_tweets.get_serenity_archive_metadata",
-        lambda: {
-            "source_scope": "serenity_x_archive_only",
-            "archive_updated_at": "2026-06-14T00:02:20Z",
-            "latest_archive_at": "2026-06-08T07:31:50+00:00",
-            "status": "stale",
-            "coverage_note": "当前仅覆盖 Serenity 的 X/Twitter 档案，不代表全网讨论，也不含实时行情。",
-        },
-    )
-    payload = build_tweet_detail_payload(
-        symbol="SIVE",
-        company_name="Sivers Semiconductors AB",
-        exchange="OMXSTO",
-        market="Sweden/US",
-        display_name="Sivers Semiconductors",
-    )
-    assert payload["source_scope"] == "serenity_x_archive_only"
-    assert payload["archive_updated_at"] == "2026-06-14T00:02:20Z"
-    assert payload["latest_archive_at"] == "2026-06-08T07:31:50+00:00"
-    assert payload["source_status"] == "stale"
-    assert "不含实时行情" in payload["coverage_note"]
-
-
 def test_get_project_tweet_note_returns_static_timeline():
     note = get_project_tweet_note("SIVE")
     assert note["overview_title"]
