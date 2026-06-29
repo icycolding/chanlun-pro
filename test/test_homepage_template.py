@@ -66,7 +66,7 @@ def test_homepage_template_includes_serenity_aistocks_button():
     html = _render_homepage_template()
 
     assert "Serenity AI Stocks" in html
-    assert 'href="http://127.0.0.1:9900/serenity/aistocks"' in html
+    assert 'href="/serenity/aistocks"' in html
 
 
 def test_homepage_template_guards_url_param_storage_when_utils_is_unavailable():

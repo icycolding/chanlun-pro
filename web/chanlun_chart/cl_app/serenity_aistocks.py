@@ -24,6 +24,8 @@ from .a_share_matches_quotes import (
     normalize_a_share_code,
     normalize_hk_code,
 )
+from .a_share_stock_analysis import build_stock_analysis_detail_url
+from .serenity_aistocks_serenity_fit import build_serenity_aistock_fit_view
 from .tv_chart_request_mode import apply_lite_chart_config_override
 
 
@@ -32,6 +34,9 @@ _AISTOCKS_XLSX_PATH = _PROJECT_ROOT / "serenity-aleabitoreddit-main" / "aistocks
 _DEFAULT_PRICE_TEXT = "--"
 _UNSUPPORTED_PRICE_TEXT = "价格不可用"
 _DEFAULT_RECENT_THREE_BUY_TIME_TEXT = "--"
+_KNOWN_A_SHARE_SYMBOL_CORRECTIONS = {
+    "国瓷材料": "sz300285",
+}
 
 
 def _normalize_text(value: Any) -> str:
@@ -125,6 +130,24 @@ def _candidate_value(row: dict[str, Any], keywords: tuple[str, ...]) -> str:
 
 def _normalize_excel_symbol(value: str) -> str:
     return _normalize_text(value).replace(" ", "").replace("\u3000", "")
+
+
+def _apply_known_symbol_corrections(cells: dict[str, Any]) -> dict[str, Any]:
+    corrected_cells = dict(cells)
+    name = _candidate_value(corrected_cells, ("名称", "name", "公司"))
+    symbol = _candidate_value(
+        corrected_cells, ("代码", "ticker", "symbol", "股票代码", "证券代码")
+    )
+    corrected_symbol = _KNOWN_A_SHARE_SYMBOL_CORRECTIONS.get(name)
+    if not corrected_symbol or _normalize_excel_symbol(symbol) == corrected_symbol:
+        return corrected_cells
+
+    for key, value in list(corrected_cells.items()):
+        normalized_key = _normalize_text(key).lower()
+        if any(keyword in normalized_key for keyword in ("代码", "ticker", "symbol", "股票代码", "证券代码")):
+            corrected_cells[key] = corrected_symbol
+            break
+    return corrected_cells
 
 
 def _infer_market_from_symbol_or_text(symbol: str, market_hint: str = "", exchange_hint: str = "") -> str:
@@ -250,6 +273,32 @@ def _build_recent_three_buy_view() -> dict[str, str]:
         "recent_three_buy_status": "pending",
         "recent_three_buy_updated_at_text": "",
     }
+
+
+def _build_serenity_aistock_detail_url(
+    row_id: str,
+    cells: dict[str, Any] | None = None,
+    quote_target: dict[str, Any] | None = None,
+) -> str:
+    resolved_cells = cells or {}
+    resolved_quote_target = quote_target or {}
+    display_name = _candidate_value(resolved_cells, ("名称", "name", "公司")) or _normalize_text(
+        resolved_quote_target.get("name")
+    )
+    market_key = _normalize_text(resolved_quote_target.get("market")).lower()
+    market_label = {
+        "a": "A",
+        "hk": "HK",
+        "us": "US",
+    }.get(market_key, market_key.upper())
+    return build_stock_analysis_detail_url(
+        entity_type="serenity_aistock",
+        identifier=row_id,
+        display_name=display_name,
+        company_name=display_name,
+        market=market_label,
+        numeric_code=_normalize_text(resolved_quote_target.get("code")),
+    )
 
 
 def _build_db_price_map(items: list[dict[str, Any]] | None) -> dict[tuple[str, str], dict[str, Any]]:
@@ -384,14 +433,22 @@ def _build_sheet_rows(sheet_name: str) -> tuple[list[str], list[dict[str, Any]]]
             header: padded_values[index] if index < len(padded_values) else ""
             for index, header in enumerate(headers)
         }
+        cells = _apply_known_symbol_corrections(cells)
         if not any(_normalize_text(value) for value in cells.values()):
             continue
         quote_target = _infer_row_quote_target(cells, headers)
         chart_view = _build_row_chart_view(quote_target, cells)
         recent_three_buy_view = _build_recent_three_buy_view()
+        row_id = f"{_slugify_sheet_name(sheet_name)}-{row_index}"
+        serenity_fit_view = build_serenity_aistock_fit_view(
+            row_id=row_id,
+            sheet_slug=_slugify_sheet_name(sheet_name),
+            cells=cells,
+            quote_target=quote_target,
+        )
         data_rows.append(
             {
-                "row_id": f"{_slugify_sheet_name(sheet_name)}-{row_index}",
+                "row_id": row_id,
                 "cells": cells,
                 "quote_target": quote_target,
                 "price_text": _DEFAULT_PRICE_TEXT,
@@ -406,6 +463,13 @@ def _build_sheet_rows(sheet_name: str) -> tuple[list[str], list[dict[str, Any]]]
                 "recent_three_buy_label": recent_three_buy_view["recent_three_buy_label"],
                 "recent_three_buy_status": recent_three_buy_view["recent_three_buy_status"],
                 "recent_three_buy_updated_at_text": recent_three_buy_view["recent_three_buy_updated_at_text"],
+                "serenity_fit_status": serenity_fit_view.get("fit_status", "watch"),
+                "serenity_fit_label": serenity_fit_view.get("fit_label", "待观察"),
+                "serenity_fit_reason_short": serenity_fit_view.get("fit_reason_short", ""),
+                "serenity_fit_reason_detail": serenity_fit_view.get("fit_reason_detail", ""),
+                "serenity_fit_detail_url": _build_serenity_aistock_detail_url(
+                    row_id=row_id, cells=cells, quote_target=quote_target
+                ),
             }
         )
 
