@@ -12,6 +12,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 sys.path.insert(0, str(PROJECT_ROOT / "web" / "chanlun_chart"))
 
 import cl_app.serenity_aistocks as serenity_aistocks
+from cl_app.serenity_aistocks_serenity_fit import get_serenity_aistock_fit_entry
 from cl_app.serenity_aistocks import (
     _infer_row_quote_target,
     fetch_serenity_aistocks_recent_three_buy_times,
@@ -166,6 +167,160 @@ def test_sheet_detail_hydrates_recent_three_buy_from_database(monkeypatch):
     assert first_row["recent_three_buy_updated_at_text"] == "2026-06-26 10:00:00"
 
 
+def test_sheet_detail_corrects_known_symbol_for_guoci_materials(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+
+    sheet = get_serenity_aistocks_sheet("科技线短缺材料总表")
+    row = next(item for item in sheet["rows"] if item["cells"].get("名称") == "国瓷材料")
+
+    assert row["cells"]["代码"] == "sz300285"
+    assert row["quote_target"]["normalized_code"] == "SZ.300285"
+
+
+def test_sheet_detail_includes_serenity_fit_view_and_detail_url(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+
+    sheet = get_serenity_aistocks_sheet("光模块及关键材料")
+    row = next(item for item in sheet["rows"] if item["cells"].get("名称") == "云南锗业")
+
+    assert row["serenity_fit_status"] in {"fit", "partial_fit", "not_fit", "watch"}
+    assert row["serenity_fit_label"] in {"符合", "部分符合", "不符合", "待观察"}
+    assert row["serenity_fit_reason_short"]
+    assert row["serenity_fit_detail_url"].startswith("/a_share_matches/stock-analysis/serenity_aistock/")
+
+
+def test_sheet_detail_uses_per_stock_serenity_research_for_optics_sheet(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+
+    sheet = get_serenity_aistocks_sheet("光模块及关键材料")
+    yunnan = next(item for item in sheet["rows"] if item["cells"].get("名称") == "云南锗业")
+    youyan = next(item for item in sheet["rows"] if item["cells"].get("名称") == "有研新材")
+    huagong = next(item for item in sheet["rows"] if item["cells"].get("名称") == "华工科技")
+
+    assert yunnan["serenity_fit_status"] == "partial_fit"
+    assert "锗产品产销量全国第一" in yunnan["serenity_fit_reason_short"]
+    assert youyan["serenity_fit_status"] == "fit"
+    assert "国内唯一、全球第二家" in youyan["serenity_fit_reason_short"]
+    assert huagong["serenity_fit_status"] == "not_fit"
+    assert "高景气交付层" in huagong["serenity_fit_reason_short"]
+    assert yunnan["serenity_fit_detail_url"].startswith("/a_share_matches/stock-analysis/serenity_aistock/")
+
+
+def test_sheet_detail_exposes_industry_chain_market_cap_and_evidence_for_optics_sheet(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+
+    sheet = get_serenity_aistocks_sheet("光模块及关键材料")
+    fujing = next(item for item in sheet["rows"] if item["cells"].get("名称") == "福晶科技")
+    fit_entry = get_serenity_aistock_fit_entry(fujing["row_id"])
+
+    assert fujing["serenity_fit_reason_short"]
+    assert fujing["serenity_fit_detail_url"].startswith("/a_share_matches/stock-analysis/serenity_aistock/")
+    assert fit_entry["industry_chain_view"]["upstream"]
+    assert fit_entry["industry_chain_view"]["company_link_position"]
+    assert fit_entry["market_cap_research"]["current_text"]
+    assert fit_entry["market_cap_research"]["rationale"]
+    assert fit_entry["evidence_sources"]
+    assert fit_entry["evidence_sources"][0]["url"].startswith("http")
+
+
+def test_sheet_detail_exposes_structured_research_for_target_optics_names(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+
+    sheet = get_serenity_aistocks_sheet("光模块及关键材料")
+    target_names = ["海特高新", "天通股份", "福晶科技", "东山精密"]
+
+    for name in target_names:
+        row = next(item for item in sheet["rows"] if item["cells"].get("名称") == name)
+        fit_entry = get_serenity_aistock_fit_entry(row["row_id"])
+
+        assert fit_entry["industry_chain_view"]["upstream"]
+        assert fit_entry["industry_chain_view"]["midstream"]
+        assert fit_entry["industry_chain_view"]["downstream"]
+        assert fit_entry["industry_chain_view"]["company_link_position"]
+        assert fit_entry["industry_chain_view"]["choke_point_note"]
+        assert fit_entry["market_cap_research"]["current_text"]
+        assert fit_entry["market_cap_research"]["upside_text"]
+        assert fit_entry["market_cap_research"]["downside_text"]
+        assert fit_entry["market_cap_research"]["rationale"]
+        assert len(fit_entry["evidence_sources"]) >= 2
+        assert all(source["title"] for source in fit_entry["evidence_sources"])
+        assert all(source["summary"] for source in fit_entry["evidence_sources"])
+        assert all(source["url"].startswith("http") for source in fit_entry["evidence_sources"])
+        assert all(source["source_type"] for source in fit_entry["evidence_sources"])
+
+
+def test_sheet_detail_exposes_structured_research_for_four_target_a_shares():
+    target_rows = ["gmkjgjcl-1", "gmkjgjcl-2", "gmkjgjcl-3", "gmkjgjcl-4"]
+
+    for row_id in target_rows:
+        fit_entry = get_serenity_aistock_fit_entry(row_id)
+
+        assert fit_entry["industry_chain_view"]["upstream"]
+        assert fit_entry["industry_chain_view"]["midstream"]
+        assert fit_entry["industry_chain_view"]["downstream"]
+        assert fit_entry["industry_chain_view"]["company_link_position"]
+        assert fit_entry["industry_chain_view"]["choke_point_note"]
+        assert fit_entry["market_cap_research"]["current_text"]
+        assert fit_entry["market_cap_research"]["upside_text"]
+        assert fit_entry["market_cap_research"]["downside_text"]
+        assert fit_entry["market_cap_research"]["rationale"]
+        assert len(fit_entry["evidence_sources"]) >= 3
+        assert all(source["title"] for source in fit_entry["evidence_sources"])
+        assert all(source["summary"] for source in fit_entry["evidence_sources"])
+        assert all(source["url"].startswith("http") for source in fit_entry["evidence_sources"])
+        assert all(source["source_type"] for source in fit_entry["evidence_sources"])
+
+
+def test_sheet_detail_exposes_structured_research_for_last_seven_optics_names(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+
+    sheet = get_serenity_aistocks_sheet("光模块及关键材料")
+    target_names = ["源杰科技", "长光华芯", "华工科技", "光迅科技", "仕佳光子", "长光博创", "腾景科技"]
+
+    for name in target_names:
+        row = next(item for item in sheet["rows"] if item["cells"].get("名称") == name)
+        fit_entry = get_serenity_aistock_fit_entry(row["row_id"])
+
+        assert fit_entry["industry_chain_view"]["upstream"]
+        assert fit_entry["industry_chain_view"]["midstream"]
+        assert fit_entry["industry_chain_view"]["downstream"]
+        assert fit_entry["industry_chain_view"]["company_link_position"]
+        assert fit_entry["industry_chain_view"]["choke_point_note"]
+        assert fit_entry["market_cap_research"]["current_text"]
+        assert fit_entry["market_cap_research"]["upside_text"]
+        assert fit_entry["market_cap_research"]["downside_text"]
+        assert fit_entry["market_cap_research"]["rationale"]
+        assert len(fit_entry["evidence_sources"]) >= 2
+        assert all(source["title"] for source in fit_entry["evidence_sources"])
+        assert all(source["summary"] for source in fit_entry["evidence_sources"])
+        assert all(source["url"].startswith("http") for source in fit_entry["evidence_sources"])
+        assert all(source["source_type"] for source in fit_entry["evidence_sources"])
+
+
 def test_infer_row_quote_target_handles_us_a_hk_and_unknown():
     a_target = _infer_row_quote_target({"代码": "sh600183", "名称": "生益科技"}, ["代码", "名称"])
     us_target = _infer_row_quote_target({"代码": "NVDA", "名称": "英伟达"}, ["代码", "名称"])
@@ -216,6 +371,7 @@ def test_serenity_aistocks_index_template_renders_sheet_cards(monkeypatch):
     assert "科技线短缺材料总表" in html
     assert "芯片半导体" in html
     assert "后台同步" in html
+    assert "Serenity 标准" in html
     assert "价格" in html
     assert "active" in html
     assert "/serenity/aistocks/" in html
@@ -277,6 +433,8 @@ def test_serenity_aistocks_index_template_includes_price_cells_and_restore_hooks
     assert "/serenity/aistocks/recent-three-buy-times" in html
     assert "recent-three-buy-time" in html
     assert "扫描异常" in html
+    assert "查看详情" in html
+    assert "/a_share_matches/stock-analysis/serenity_aistock/" in html
     assert "const REFRESH_INTERVAL_MS = 180000;" in html
 
 
