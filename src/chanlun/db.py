@@ -347,6 +347,10 @@ class TableBySerenityAIStocksRecentThreeBuy(Base):
     symbol = Column(String(50), comment="原始展示代码")
     recent_three_buy_time = Column(DateTime, comment="最近三买时间")
     recent_three_buy_time_text = Column(String(50), comment="最近三买展示文本")
+    recent_three_buy_scan_history_text = Column(Text, comment="逐日扫描三买历史文本")
+    recent_three_buy_scan_history_json = Column(Text, comment="逐日扫描三买历史JSON")
+    recent_three_buy_scan_start_date_text = Column(String(50), comment="逐日扫描起始日期")
+    recent_three_buy_scan_end_date_text = Column(String(50), comment="逐日扫描结束日期")
     label = Column(String(50), comment="最近三买标签")
     status = Column(String(20), comment="状态 ok not_found unsupported error", default="ok")
     source = Column(String(100), comment="数据来源")
@@ -356,6 +360,58 @@ class TableBySerenityAIStocksRecentThreeBuy(Base):
 
     __table_args__ = (
         UniqueConstraint("market", "code", name="table_serenity_aistocks_recent_three_buy_market_code_unique"),
+        {"mysql_collate": "utf8mb4_general_ci"},
+    )
+
+
+class TableBySerenityAIStocksRecentBeichi(Base):
+    __tablename__ = "cl_serenity_aistocks_recent_beichi"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    market = Column(String(20), nullable=False, comment="市场")
+    code = Column(String(20), nullable=False, comment="规范化后的代码")
+    symbol = Column(String(50), comment="原始展示代码")
+    recent_beichi_time = Column(DateTime, comment="最近背驰时间")
+    recent_beichi_time_text = Column(String(50), comment="最近背驰展示文本")
+    current_beichi_status_text = Column(String(50), comment="当前是否背驰")
+    current_beichi_types_text = Column(Text, comment="当前背驰类型文本")
+    recent_beichi_types_text = Column(Text, comment="最近背驰类型文本")
+    recent_beichi_scan_history_text = Column(Text, comment="逐日扫描背驰历史文本")
+    recent_beichi_scan_history_json = Column(Text, comment="逐日扫描背驰历史JSON")
+    recent_beichi_scan_start_date_text = Column(String(50), comment="逐日扫描起始日期")
+    recent_beichi_scan_end_date_text = Column(String(50), comment="逐日扫描结束日期")
+    label = Column(String(50), comment="最近背驰标签")
+    status = Column(String(20), comment="状态 ok not_found unsupported error", default="ok")
+    source = Column(String(100), comment="数据来源")
+    scanned_at = Column(DateTime, comment="扫描时间")
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)
+
+    __table_args__ = (
+        UniqueConstraint("market", "code", name="table_serenity_aistocks_recent_beichi_market_code_unique"),
+        {"mysql_collate": "utf8mb4_general_ci"},
+    )
+
+
+class TableBySerenityAIStocksCustomEntry(Base):
+    __tablename__ = "cl_serenity_aistocks_custom_entry"
+    id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
+    theme_name = Column(String(100), nullable=False, comment="主题名称")
+    theme_slug = Column(String(100), nullable=False, comment="主题标识")
+    market = Column(String(20), nullable=False, comment="市场")
+    code = Column(String(20), nullable=False, comment="规范化后的代码")
+    symbol = Column(String(50), comment="原始展示代码")
+    stock_name = Column(String(100), comment="股票名称")
+    notes = Column(Text, comment="核心概念 / 备注")
+    created_at = Column(DateTime, comment="创建时间", default=datetime.datetime.now)
+    updated_at = Column(DateTime, comment="更新时间", default=datetime.datetime.now, onupdate=datetime.datetime.now)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "theme_slug",
+            "market",
+            "code",
+            name="uq_serenity_aistocks_custom_theme_market_code",
+        ),
         {"mysql_collate": "utf8mb4_general_ci"},
     )
 
@@ -627,8 +683,67 @@ class DB(object):
                 print(f"DB create_all skipped in readonly mode: {e}")
             else:
                 raise
+        self._ensure_serenity_aistocks_recent_three_buy_columns()
+        self._ensure_serenity_aistocks_recent_beichi_columns()
 
         self.__cache_tables = {}
+
+    def _ensure_table_columns(self, table_name: str, columns: Dict[str, str]) -> None:
+        try:
+            inspector = inspect(self.engine)
+            if not inspector.has_table(table_name):
+                return
+            existing_columns = {
+                column["name"] for column in inspector.get_columns(table_name)
+            }
+            missing_columns = {
+                name: ddl for name, ddl in columns.items() if name not in existing_columns
+            }
+            if not missing_columns:
+                return
+            with self.engine.begin() as connection:
+                for column_name, ddl in missing_columns.items():
+                    connection.exec_driver_sql(
+                        f"ALTER TABLE {table_name} ADD COLUMN {column_name} {ddl}"
+                    )
+        except OperationalError as e:
+            if "readonly" in str(e).lower() or "read-only" in str(e).lower():
+                print(f"DB alter table skipped in readonly mode: {e}")
+                return
+            raise
+
+    def _ensure_serenity_aistocks_recent_three_buy_columns(self) -> None:
+        if config.DB_TYPE == "mysql":
+            string_ddl = "VARCHAR(50)"
+        else:
+            string_ddl = "TEXT"
+        self._ensure_table_columns(
+            "cl_serenity_aistocks_recent_three_buy",
+            {
+                "recent_three_buy_scan_history_text": "TEXT",
+                "recent_three_buy_scan_history_json": "TEXT",
+                "recent_three_buy_scan_start_date_text": string_ddl,
+                "recent_three_buy_scan_end_date_text": string_ddl,
+            },
+        )
+
+    def _ensure_serenity_aistocks_recent_beichi_columns(self) -> None:
+        if config.DB_TYPE == "mysql":
+            string_ddl = "VARCHAR(50)"
+        else:
+            string_ddl = "TEXT"
+        self._ensure_table_columns(
+            "cl_serenity_aistocks_recent_beichi",
+            {
+                "current_beichi_status_text": string_ddl,
+                "current_beichi_types_text": "TEXT",
+                "recent_beichi_types_text": "TEXT",
+                "recent_beichi_scan_history_text": "TEXT",
+                "recent_beichi_scan_history_json": "TEXT",
+                "recent_beichi_scan_start_date_text": string_ddl,
+                "recent_beichi_scan_end_date_text": string_ddl,
+            },
+        )
 
     def klines_tables(self, market: str, stock_code: str):
         stock_code = (
@@ -1744,6 +1859,18 @@ class DB(object):
                     "symbol": row.get("symbol"),
                     "recent_three_buy_time": row.get("recent_three_buy_time"),
                     "recent_three_buy_time_text": row.get("recent_three_buy_time_text"),
+                    "recent_three_buy_scan_history_text": row.get(
+                        "recent_three_buy_scan_history_text"
+                    ),
+                    "recent_three_buy_scan_history_json": row.get(
+                        "recent_three_buy_scan_history_json"
+                    ),
+                    "recent_three_buy_scan_start_date_text": row.get(
+                        "recent_three_buy_scan_start_date_text"
+                    ),
+                    "recent_three_buy_scan_end_date_text": row.get(
+                        "recent_three_buy_scan_end_date_text"
+                    ),
                     "label": row.get("label"),
                     "status": row.get("status", "ok"),
                     "source": row.get("source"),
@@ -1791,6 +1918,14 @@ class DB(object):
                     "symbol": row.symbol or row.code,
                     "recent_three_buy_time": row.recent_three_buy_time,
                     "recent_three_buy_time_text": row.recent_three_buy_time_text or "--",
+                    "recent_three_buy_scan_history_text": row.recent_three_buy_scan_history_text
+                    or "",
+                    "recent_three_buy_scan_history_json": row.recent_three_buy_scan_history_json
+                    or "[]",
+                    "recent_three_buy_scan_start_date_text": row.recent_three_buy_scan_start_date_text
+                    or "",
+                    "recent_three_buy_scan_end_date_text": row.recent_three_buy_scan_end_date_text
+                    or "",
                     "label": row.label or "未扫描",
                     "status": row.status or "ok",
                     "source": row.source or "",
@@ -1802,6 +1937,206 @@ class DB(object):
                 }
                 for row in rows
             ]
+
+    def serenity_aistocks_recent_beichi_replace(self, rows: List[dict]) -> bool:
+        with self.Session() as session:
+            now = datetime.datetime.now()
+            for row in rows or []:
+                market, code = _normalize_serenity_aistocks_market_code(
+                    row.get("market"), row.get("code")
+                )
+                if not market or not code:
+                    continue
+
+                existing = (
+                    session.query(TableBySerenityAIStocksRecentBeichi)
+                    .filter(
+                        TableBySerenityAIStocksRecentBeichi.market == market,
+                        TableBySerenityAIStocksRecentBeichi.code == code,
+                    )
+                    .first()
+                )
+
+                payload = {
+                    "market": market,
+                    "code": code,
+                    "symbol": row.get("symbol"),
+                    "recent_beichi_time": row.get("recent_beichi_time"),
+                    "recent_beichi_time_text": row.get("recent_beichi_time_text"),
+                    "current_beichi_status_text": row.get("current_beichi_status_text"),
+                    "current_beichi_types_text": row.get("current_beichi_types_text"),
+                    "recent_beichi_types_text": row.get("recent_beichi_types_text"),
+                    "recent_beichi_scan_history_text": row.get(
+                        "recent_beichi_scan_history_text"
+                    ),
+                    "recent_beichi_scan_history_json": row.get(
+                        "recent_beichi_scan_history_json"
+                    ),
+                    "recent_beichi_scan_start_date_text": row.get(
+                        "recent_beichi_scan_start_date_text"
+                    ),
+                    "recent_beichi_scan_end_date_text": row.get(
+                        "recent_beichi_scan_end_date_text"
+                    ),
+                    "label": row.get("label"),
+                    "status": row.get("status", "ok"),
+                    "source": row.get("source"),
+                    "scanned_at": row.get("scanned_at"),
+                    "updated_at": row.get("updated_at") or now,
+                }
+
+                if existing:
+                    for key, value in payload.items():
+                        if value is not None and hasattr(existing, key):
+                            setattr(existing, key, value)
+                else:
+                    session.add(TableBySerenityAIStocksRecentBeichi(**payload))
+            session.commit()
+        return True
+
+    def serenity_aistocks_recent_beichi_query(self, items: List[dict]) -> List[dict]:
+        normalized_keys: list[tuple[str, str]] = []
+        for item in items or []:
+            market, code = _normalize_serenity_aistocks_market_code(
+                item.get("market"), item.get("code")
+            )
+            if market and code and (market, code) not in normalized_keys:
+                normalized_keys.append((market, code))
+
+        if not normalized_keys:
+            return []
+
+        with self.Session() as session:
+            rows = (
+                session.query(TableBySerenityAIStocksRecentBeichi)
+                .filter(
+                    tuple_(
+                        TableBySerenityAIStocksRecentBeichi.market,
+                        TableBySerenityAIStocksRecentBeichi.code,
+                    ).in_(normalized_keys)
+                )
+                .all()
+            )
+
+            return [
+                {
+                    "market": row.market,
+                    "code": row.code,
+                    "symbol": row.symbol or row.code,
+                    "recent_beichi_time": row.recent_beichi_time,
+                    "recent_beichi_time_text": row.recent_beichi_time_text or "--",
+                    "current_beichi_status_text": row.current_beichi_status_text
+                    or "当前无背驰",
+                    "current_beichi_types_text": row.current_beichi_types_text or "",
+                    "recent_beichi_types_text": row.recent_beichi_types_text or "",
+                    "recent_beichi_scan_history_text": row.recent_beichi_scan_history_text
+                    or "",
+                    "recent_beichi_scan_history_json": row.recent_beichi_scan_history_json
+                    or "[]",
+                    "recent_beichi_scan_start_date_text": row.recent_beichi_scan_start_date_text
+                    or "",
+                    "recent_beichi_scan_end_date_text": row.recent_beichi_scan_end_date_text
+                    or "",
+                    "label": row.label or "未扫描",
+                    "status": row.status or "ok",
+                    "source": row.source or "",
+                    "scanned_at": row.scanned_at,
+                    "updated_at": row.updated_at,
+                    "updated_at_text": fun.datetime_to_str(row.updated_at)
+                    if row.updated_at is not None
+                    else "",
+                }
+                for row in rows
+            ]
+
+    def serenity_aistocks_custom_entries_query(self) -> List[dict]:
+        with self.Session() as session:
+            rows = (
+                session.query(TableBySerenityAIStocksCustomEntry)
+                .order_by(
+                    TableBySerenityAIStocksCustomEntry.theme_name.asc(),
+                    TableBySerenityAIStocksCustomEntry.created_at.asc(),
+                    TableBySerenityAIStocksCustomEntry.id.asc(),
+                )
+                .all()
+            )
+
+            return [
+                {
+                    "id": row.id,
+                    "theme_name": row.theme_name,
+                    "theme_slug": row.theme_slug,
+                    "market": row.market,
+                    "code": row.code,
+                    "symbol": row.symbol or row.code,
+                    "stock_name": row.stock_name or "",
+                    "notes": row.notes or "",
+                    "created_at": row.created_at,
+                    "updated_at": row.updated_at,
+                }
+                for row in rows
+            ]
+
+    def serenity_aistocks_custom_entry_add(self, row: Dict[str, Any]) -> bool:
+        market, code = _normalize_serenity_aistocks_market_code(
+            row.get("market"), row.get("code")
+        )
+        theme_slug = str(row.get("theme_slug") or "").strip()
+        theme_name = str(row.get("theme_name") or "").strip()
+        if not theme_slug or not theme_name or not market or not code:
+            return False
+
+        with self.Session() as session:
+            existing = (
+                session.query(TableBySerenityAIStocksCustomEntry)
+                .filter(
+                    TableBySerenityAIStocksCustomEntry.theme_slug == theme_slug,
+                    TableBySerenityAIStocksCustomEntry.market == market,
+                    TableBySerenityAIStocksCustomEntry.code == code,
+                )
+                .first()
+            )
+            if existing:
+                return False
+
+            session.add(
+                TableBySerenityAIStocksCustomEntry(
+                    theme_name=theme_name,
+                    theme_slug=theme_slug,
+                    market=market,
+                    code=code,
+                    symbol=row.get("symbol"),
+                    stock_name=row.get("stock_name"),
+                    notes=row.get("notes"),
+                    created_at=row.get("created_at") or datetime.datetime.now(),
+                    updated_at=row.get("updated_at") or datetime.datetime.now(),
+                )
+            )
+            session.commit()
+        return True
+
+    def serenity_aistocks_custom_entry_delete(
+        self, theme_slug: str, market: str, code: str
+    ) -> bool:
+        normalized_market, normalized_code = _normalize_serenity_aistocks_market_code(
+            market, code
+        )
+        normalized_theme_slug = str(theme_slug or "").strip()
+        if not normalized_theme_slug or not normalized_market or not normalized_code:
+            return False
+
+        with self.Session() as session:
+            deleted_count = (
+                session.query(TableBySerenityAIStocksCustomEntry)
+                .filter(
+                    TableBySerenityAIStocksCustomEntry.theme_slug == normalized_theme_slug,
+                    TableBySerenityAIStocksCustomEntry.market == normalized_market,
+                    TableBySerenityAIStocksCustomEntry.code == normalized_code,
+                )
+                .delete(synchronize_session=False)
+            )
+            session.commit()
+        return deleted_count > 0
 
     def community_discussions_replace_or_upsert(self, rows: List[dict]) -> bool:
         with self.Session() as session:

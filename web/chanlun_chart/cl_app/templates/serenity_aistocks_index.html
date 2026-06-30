@@ -41,17 +41,11 @@
             margin: 0 0 12px;
             font-size: 20px;
         }
-        .section-desc {
-            margin: 0 0 14px;
-            color: #64748b;
-            font-size: 14px;
-            line-height: 1.6;
-        }
         .sheet-nav {
             display: flex;
             flex-direction: column;
-            gap: 12px;
-            max-height: calc(100vh - 220px);
+            gap: 10px;
+            max-height: calc(100vh - 140px);
             overflow-y: auto;
             padding-right: 4px;
         }
@@ -59,7 +53,7 @@
             display: block;
             text-decoration: none;
             color: inherit;
-            padding: 16px;
+            padding: 14px 16px;
             border: 1px solid transparent;
             transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
@@ -80,13 +74,14 @@
         }
         .sheet-link-title {
             margin: 0;
-            font-size: 17px;
+            font-size: 15px;
+            line-height: 1.45;
         }
         .sheet-badge {
             background: #dbeafe;
             color: #1d4ed8;
             border-radius: 999px;
-            padding: 4px 8px;
+            padding: 5px 9px;
             font-size: 12px;
             font-weight: 700;
             white-space: nowrap;
@@ -95,25 +90,6 @@
             background: #2563eb;
             color: #fff;
         }
-        .sheet-meta {
-            color: #475569;
-            font-size: 13px;
-            margin: 8px 0 0;
-        }
-        .sample-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 12px;
-        }
-        .sample-chip {
-            background: #e2e8f0;
-            color: #0f172a;
-            border-radius: 999px;
-            padding: 4px 10px;
-            font-size: 12px;
-            font-weight: 600;
-        }
         .content {
             min-width: 0;
         }
@@ -121,40 +97,16 @@
             padding: 22px 24px;
             margin-bottom: 18px;
         }
-        .content-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-        }
-        .content-header h2 {
-            margin: 0 0 8px;
-            font-size: 30px;
-        }
-        .content-header p {
-            margin: 0;
-            color: #64748b;
-            line-height: 1.6;
-        }
-        .sheet-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(120px, 1fr));
-            gap: 12px;
-            margin-top: 18px;
-        }
-        .summary-card,
         .sync-metric {
             background: #f8fafc;
             border-radius: 12px;
             padding: 12px;
         }
-        .summary-label,
         .sync-metric-label {
             color: #64748b;
             font-size: 12px;
             margin-bottom: 6px;
         }
-        .summary-value,
         .sync-metric-value {
             font-size: 16px;
             font-weight: 700;
@@ -181,13 +133,272 @@
             overflow: hidden;
         }
         .table-toolbar {
+            display: grid;
+            gap: 14px;
+            padding: 18px 18px 0;
+        }
+        .toolbar-top {
             display: flex;
-            justify-content: flex-end;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .toolbar-search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex: 1 1 420px;
+        }
+        .toolbar-sync-inline {
+            display: flex;
             align-items: center;
             gap: 12px;
-            padding: 16px 18px 0;
+            flex-wrap: wrap;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: linear-gradient(180deg, #f8fafc, #ffffff);
+            border: 1px solid #e2e8f0;
+            min-width: 320px;
         }
-        .three-buy-button {
+        .toolbar-sync-metric {
+            min-width: 78px;
+        }
+        .toolbar-sync-label {
+            color: #94a3b8;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        .toolbar-sync-value {
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .toolbar-sync-error {
+            width: 100%;
+            color: #b91c1c;
+            font-size: 12px;
+        }
+        .toolbar-grid {
+            display: grid;
+            grid-template-columns: minmax(360px, 1.25fr) minmax(320px, 1fr);
+            gap: 14px;
+        }
+        .toolbar-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #ffffff, #f8fafc);
+            padding: 16px;
+        }
+        .toolbar-card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .toolbar-card-title {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .toolbar-card-desc {
+            margin: 4px 0 0;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .toolbar-card-tag {
+            border-radius: 999px;
+            padding: 5px 10px;
+            background: #e2e8f0;
+            color: #334155;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .toolbar-custom-form {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .toolbar-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 160px;
+            flex: 1 1 160px;
+        }
+        .stock-filter-label {
+            color: #475569;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .stock-filter-input {
+            width: min(320px, 72vw);
+            border: 1px solid #cbd5e1;
+            border-radius: 999px;
+            background: #fff;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #0f172a;
+        }
+        .stock-filter-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .custom-stock-input {
+            width: min(180px, 46vw);
+            border: 1px solid #cbd5e1;
+            border-radius: 999px;
+            background: #fff;
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #0f172a;
+        }
+        .custom-stock-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+        }
+        .custom-stock-search-shell {
+            position: relative;
+            width: 100%;
+        }
+        .custom-stock-selected-chip {
+            display: none;
+            margin-top: 8px;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+            max-width: 100%;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+        .custom-stock-selected-chip.is-visible {
+            display: inline-flex;
+        }
+        .custom-stock-selected-chip button {
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            padding: 0;
+        }
+        .custom-stock-suggestions {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 0;
+            right: 0;
+            z-index: 20;
+            display: none;
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid #dbeafe;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
+        }
+        .custom-stock-suggestions.is-visible {
+            display: block;
+        }
+        .custom-stock-suggestion-item {
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid #eff6ff;
+            background: transparent;
+            padding: 12px 14px;
+            text-align: left;
+            cursor: pointer;
+        }
+        .custom-stock-suggestion-item:last-child {
+            border-bottom: 0;
+        }
+        .custom-stock-suggestion-item.is-active,
+        .custom-stock-suggestion-item:hover {
+            background: #f8fbff;
+        }
+        .custom-stock-suggestion-title {
+            color: #0f172a;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .custom-stock-suggestion-meta {
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 12px;
+        }
+        .custom-stock-suggestion-empty {
+            padding: 12px 14px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .custom-stock-submit {
+            border: 0;
+            border-radius: 999px;
+            background: #2563eb;
+            color: #fff;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .custom-stock-submit[disabled] {
+            opacity: 0.65;
+            cursor: wait;
+        }
+        .custom-stock-feedback {
+            color: #64748b;
+            font-size: 12px;
+        }
+        .custom-stock-feedback.is-error {
+            color: #b91c1c;
+        }
+        .stock-filter-summary {
+            color: #64748b;
+            font-size: 12px;
+        }
+        .toolbar-actions {
+            display: block;
+        }
+        .scan-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .scan-action {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 14px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+        }
+        .scan-action-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .scan-action-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        .three-buy-button,
+        .beichi-button {
             border: 0;
             border-radius: 999px;
             background: #0f172a;
@@ -197,13 +408,16 @@
             font-weight: 700;
             cursor: pointer;
         }
-        .three-buy-button[disabled] {
+        .three-buy-button[disabled],
+        .beichi-button[disabled] {
             opacity: 0.6;
             cursor: wait;
         }
-        .three-buy-status {
+        .three-buy-status,
+        .beichi-status {
             color: #64748b;
             font-size: 12px;
+            line-height: 1.5;
         }
         .table-scroll {
             overflow-x: auto;
@@ -212,7 +426,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1080px;
+            min-width: 1240px;
         }
         thead {
             background: #e2e8f0;
@@ -228,11 +442,12 @@
             background: #f8fafc;
         }
         .sortable-price-header,
-        .sortable-three-buy-header {
-            min-width: 170px;
+        .sortable-three-buy-header,
+        .sortable-beichi-header {
+            min-width: 148px;
         }
         .serenity-fit-header {
-            min-width: 180px;
+            min-width: 156px;
         }
         .sort-button {
             display: inline-flex;
@@ -266,16 +481,70 @@
             color: #1d4ed8;
             text-decoration: underline;
         }
-        .price-cell {
-            min-width: 140px;
+        .custom-stock-delete-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(220, 38, 38, 0.1);
+            color: #b91c1c;
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            vertical-align: middle;
         }
-        .three-buy-cell {
+        .custom-stock-delete-button:hover {
+            background: rgba(220, 38, 38, 0.16);
+        }
+        .name-column {
+            min-width: 180px;
+            width: 180px;
+        }
+        .notes-column {
+            min-width: 320px;
+            width: 320px;
+        }
+        .notes-column-cell {
+            min-width: 320px;
+            max-width: 420px;
+            color: #334155;
+            line-height: 1.7;
+        }
+        .price-cell {
             min-width: 132px;
         }
+        .three-buy-cell {
+            min-width: 140px;
+        }
+        .beichi-cell {
+            min-width: 176px;
+        }
         .serenity-fit-cell {
-            min-width: 180px;
+            min-width: 156px;
+        }
+        .three-buy-cell.is-clickable,
+        .beichi-cell.is-clickable {
+            cursor: pointer;
+            transition: background 0.15s ease, box-shadow 0.15s ease;
+        }
+        .three-buy-cell.is-clickable:hover,
+        .beichi-cell.is-clickable:hover {
+            background: #f8fafc;
+            box-shadow: inset 0 0 0 1px #dbeafe;
+        }
+        .three-buy-cell.is-clickable:focus-visible,
+        .beichi-cell.is-clickable:focus-visible {
+            outline: 2px solid #2563eb;
+            outline-offset: -2px;
         }
         .three-buy-main {
+            font-weight: 700;
+        }
+        .beichi-main {
+            display: block;
             font-weight: 700;
         }
         .three-buy-sub {
@@ -283,6 +552,26 @@
             margin-top: 4px;
             color: #64748b;
             font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .beichi-sub {
+            display: block;
+            margin-top: 4px;
+            max-width: 190px;
+            overflow: hidden;
+            color: #64748b;
+            font-size: 12px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .tech-hint {
+            display: block;
+            margin-top: 6px;
+            color: #94a3b8;
+            font-size: 11px;
+            white-space: nowrap;
         }
         .serenity-fit-badge {
             display: inline-flex;
@@ -457,8 +746,144 @@
             text-decoration: none;
             font-weight: 600;
         }
+        .tech-detail-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 45;
+            display: none;
+        }
+        .tech-detail-modal.is-open {
+            display: block;
+        }
+        .tech-detail-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.56);
+        }
+        .tech-detail-dialog {
+            position: relative;
+            width: min(760px, calc(100vw - 32px));
+            margin: 48px auto;
+            border-radius: 20px;
+            background: #fff;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+            overflow: hidden;
+        }
+        .tech-detail-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .tech-detail-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .tech-detail-subtitle {
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .tech-detail-range {
+            margin-top: 8px;
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .tech-detail-close {
+            border: 0;
+            background: transparent;
+            color: #475569;
+            cursor: pointer;
+            font-size: 28px;
+            line-height: 1;
+        }
+        .tech-detail-body {
+            padding: 20px;
+            background: #f8fafc;
+            max-height: min(72vh, 820px);
+            overflow: auto;
+        }
+        .tech-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .tech-detail-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+        .tech-detail-label {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .tech-detail-value {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .tech-detail-history-card {
+            margin-top: 12px;
+            background: #fff;
+            border-radius: 14px;
+            padding: 14px 16px;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+        .tech-detail-table-wrap {
+            overflow-x: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fff;
+        }
+        .tech-detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .tech-detail-table th,
+        .tech-detail-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 13px;
+            line-height: 1.5;
+            white-space: nowrap;
+        }
+        .tech-detail-table th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 700;
+        }
+        .tech-detail-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+        .tech-detail-table td:last-child {
+            color: #0f172a;
+            font-weight: 600;
+        }
+        .tech-detail-empty {
+            padding: 18px 12px;
+            color: #94a3b8;
+            font-size: 13px;
+            text-align: center;
+        }
         @media (max-width: 1080px) {
             .layout {
+                grid-template-columns: 1fr;
+            }
+            .toolbar-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -466,22 +891,38 @@
             .page {
                 padding: 16px 14px 30px;
             }
-            .content-header,
             .sheet-link-header {
                 flex-direction: column;
             }
-            .sheet-summary-grid,
             .compact-sync-grid {
                 grid-template-columns: repeat(2, minmax(120px, 1fr));
             }
+            .toolbar-top,
+            .toolbar-search,
+            .toolbar-sync-inline,
+            .toolbar-custom-form,
+            .scan-actions {
+                grid-template-columns: 1fr;
+            }
+            .toolbar-sync-inline,
+            .scan-actions {
+                display: grid;
+            }
             .chart-modal-dialog {
                 width: min(100vw - 16px, 1200px);
+                margin: 8px auto;
+            }
+            .tech-detail-dialog {
+                width: min(100vw - 16px, 760px);
                 margin: 8px auto;
             }
             .chart-modal-body,
             .chart-modal-frame {
                 min-height: 78vh;
                 height: 78vh;
+            }
+            .tech-detail-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -492,7 +933,6 @@
             <aside class="sidebar">
                 <section class="sidebar-panel">
                     <h2 class="section-title">Sheet 总览</h2>
-                    <p class="section-desc">点击左侧任一 Sheet，会在右侧直接切换股票表格，并保留当前 URL 作为可分享入口。</p>
                     <div class="sheet-nav">
                         {% for sheet in workbook.sheets %}
                         <a
@@ -504,80 +944,128 @@
                                 <h3 class="sheet-link-title">{{ sheet.sheet_name }}</h3>
                                 <span class="sheet-badge">{{ sheet.row_count }} 行</span>
                             </div>
-                            <div class="sheet-meta">原始列数：{{ sheet.columns | length - 1 }}</div>
-                            <div class="sheet-meta">可尝试抓价：{{ sheet.has_price_candidates }}</div>
-                            {% if sheet.sample_symbols %}
-                            <div class="sample-list">
-                                {% for symbol in sheet.sample_symbols %}
-                                <span class="sample-chip">{{ symbol }}</span>
-                                {% endfor %}
-                            </div>
-                            {% endif %}
                         </a>
                         {% endfor %}
                     </div>
-                </section>
-
-                <section class="compact-sync-status" id="sync-status-panel">
-                    <h3>后台同步</h3>
-                    <div class="compact-sync-grid">
-                        <div class="sync-metric">
-                            <div class="sync-metric-label">运行状态</div>
-                            <div class="sync-metric-value" id="sync-status-label">{{ sync_status.status_label }}</div>
-                        </div>
-                        <div class="sync-metric">
-                            <div class="sync-metric-label">上次同步</div>
-                            <div class="sync-metric-value" id="sync-last-run">{{ sync_status.last_run_at_text or "等待后台同步" }}</div>
-                        </div>
-                        <div class="sync-metric">
-                            <div class="sync-metric-label">成功数 / 总数</div>
-                            <div class="sync-metric-value" id="sync-success-summary">{{ sync_status.last_success_count }} / {{ sync_status.last_total_candidates }}</div>
-                        </div>
-                    </div>
-                    <div class="sync-error" id="sync-error-text">{% if sync_status.last_error %}{{ sync_status.last_error }}{% endif %}</div>
                 </section>
             </aside>
 
             <section class="content">
                 {% if selected_sheet %}
-                <section class="content-panel">
-                    <div class="content-header">
-                        <div>
-                            <h2>{{ selected_sheet.sheet_name }}</h2>
-                            <p>保留 Excel 原始列，并在最后新增价格列；首屏优先展示数据库最新同步价格，随后定时从数据库刷新。</p>
-                        </div>
-                    </div>
-                    <div class="sheet-summary-grid">
-                        <div class="summary-card">
-                            <div class="summary-label">当前 Sheet</div>
-                            <div class="summary-value">{{ selected_sheet.sheet_name }}</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">原始列数</div>
-                            <div class="summary-value">{{ selected_sheet.columns | length - 1 }}</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">数据行数</div>
-                            <div class="summary-value">{{ selected_sheet.row_count }}</div>
-                        </div>
-                        <div class="summary-card">
-                            <div class="summary-label">可抓价数量</div>
-                            <div class="summary-value">{{ selected_sheet_summary.has_price_candidates if selected_sheet_summary else 0 }}</div>
-                        </div>
-                    </div>
-                </section>
-
                 <section class="table-shell">
                     <div class="table-toolbar">
-                        <button type="button" class="three-buy-button" id="recent-three-buy-button">查找 3买时间</button>
-                        <div class="three-buy-status" id="recent-three-buy-status">显示日线最近一个 3B/L3B 时间</div>
+                        <div class="toolbar-top">
+                            <div class="toolbar-search">
+                                <label class="stock-filter-label" for="stock-filter-input">搜索股票</label>
+                                <input
+                                    type="search"
+                                    id="stock-filter-input"
+                                    class="stock-filter-input"
+                                    placeholder="名称 / 代码 / 拼音首字母"
+                                    autocomplete="off"
+                                >
+                                <div class="stock-filter-summary" id="stock-filter-summary">显示全部 {{ selected_sheet.row_count }} 只</div>
+                            </div>
+                            <div class="toolbar-sync-inline" id="sync-status-panel">
+                                <div class="toolbar-sync-metric">
+                                    <div class="toolbar-sync-label">同步状态</div>
+                                    <div class="toolbar-sync-value" id="sync-status-label">{{ sync_status.status_label }}</div>
+                                </div>
+                                <div class="toolbar-sync-metric">
+                                    <div class="toolbar-sync-label">上次同步</div>
+                                    <div class="toolbar-sync-value" id="sync-last-run">{{ sync_status.last_run_at_text or "等待后台同步" }}</div>
+                                </div>
+                                <div class="toolbar-sync-metric">
+                                    <div class="toolbar-sync-label">成功数 / 总数</div>
+                                    <div class="toolbar-sync-value" id="sync-success-summary">{{ sync_status.last_success_count }} / {{ sync_status.last_total_candidates }}</div>
+                                </div>
+                                <div class="toolbar-sync-error" id="sync-error-text">{% if sync_status.last_error %}{{ sync_status.last_error }}{% endif %}</div>
+                            </div>
+                        </div>
+                        <div class="toolbar-grid">
+                            <section class="toolbar-card toolbar-card-add">
+                                <div class="toolbar-card-head">
+                                    <div>
+                                        <h3 class="toolbar-card-title">新增股票</h3>
+                                        <p class="toolbar-card-desc">输入 A 股代码并指定主题，支持直接创建新主题。</p>
+                                    </div>
+                                    <span class="toolbar-card-tag">A 股</span>
+                                </div>
+                                <form class="toolbar-custom-form" id="custom-stock-form">
+                                    <div class="toolbar-field">
+                                        <label class="stock-filter-label" for="custom-stock-code-input">股票代码</label>
+                                        <div class="custom-stock-search-shell">
+                                            <input
+                                                type="search"
+                                                id="custom-stock-code-input"
+                                                class="custom-stock-input"
+                                                placeholder="输入代码 / 名称 / 拼音首字母"
+                                                autocomplete="off"
+                                            >
+                                            <input type="hidden" id="custom-stock-selected-symbol" value="">
+                                            <input type="hidden" id="custom-stock-selected-name" value="">
+                                            <div class="custom-stock-suggestions" id="custom-stock-suggestions"></div>
+                                        </div>
+                                        <div class="custom-stock-selected-chip" id="custom-stock-selected-chip">
+                                            <span id="custom-stock-selected-chip-text"></span>
+                                            <button type="button" data-clear-selected-custom-stock aria-label="清除已选股票">×</button>
+                                        </div>
+                                    </div>
+                                    <div class="toolbar-field">
+                                        <label class="stock-filter-label" for="custom-stock-theme-input">主题名</label>
+                                        <input
+                                            type="search"
+                                            id="custom-stock-theme-input"
+                                            class="custom-stock-input"
+                                            placeholder="可选择已有主题或新建"
+                                            list="custom-stock-theme-options"
+                                            autocomplete="off"
+                                        >
+                                    </div>
+                                    <datalist id="custom-stock-theme-options">
+                                        {% for sheet in workbook.sheets %}
+                                        <option value="{{ sheet.sheet_name }}"></option>
+                                        {% endfor %}
+                                    </datalist>
+                                    <button type="submit" class="custom-stock-submit" id="custom-stock-submit-button" disabled>新增股票</button>
+                                </form>
+                                <div class="custom-stock-feedback" id="custom-stock-feedback">请输入关键词并从候选列表中选择股票</div>
+                            </section>
+                            <section class="toolbar-card toolbar-card-scan">
+                                <div class="toolbar-card-head">
+                                    <div>
+                                        <h3 class="toolbar-card-title">技术扫描</h3>
+                                        <p class="toolbar-card-desc">手动刷新当前主题内股票的日线 3买与背驰状态。</p>
+                                    </div>
+                                    <span class="toolbar-card-tag">日线</span>
+                                </div>
+                                <div class="toolbar-actions">
+                                    <div class="scan-actions">
+                                        <section class="scan-action">
+                                            <div class="scan-action-header">
+                                                <div class="scan-action-title">最近 3买</div>
+                                                <button type="button" class="three-buy-button" id="recent-three-buy-button">查找 3买</button>
+                                            </div>
+                                            <div class="three-buy-status" id="recent-three-buy-status">扫描当前主题内股票的最近一个 3B/L3B 时间</div>
+                                        </section>
+                                        <section class="scan-action">
+                                            <div class="scan-action-header">
+                                                <div class="scan-action-title">背驰</div>
+                                                <button type="button" class="beichi-button" id="recent-beichi-button">查找背驰</button>
+                                            </div>
+                                            <div class="beichi-status" id="recent-beichi-status">扫描当前主题内股票的当前背驰状态与最近背驰时间</div>
+                                        </section>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
                     </div>
                     <div class="table-scroll">
                         <table>
                             <thead>
                                 <tr>
                                     {% for column in selected_sheet.columns[:-1] %}
-                                    <th>{{ column }}</th>
+                                    <th{% if column == "名称" %} class="name-column"{% elif column == "核心概念 / 备注" %} class="notes-column"{% endif %}>{{ column }}</th>
                                     {% endfor %}
                                     <th class="serenity-fit-header">Serenity 标准</th>
                                     <th class="sortable-three-buy-header">
@@ -589,6 +1077,17 @@
                                         >
                                             <span>最近 3买</span>
                                             <span class="sort-indicator" id="three-buy-sort-indicator">原顺序</span>
+                                        </button>
+                                    </th>
+                                    <th class="sortable-beichi-header">
+                                        <button
+                                            type="button"
+                                            id="beichi-sort-button"
+                                            class="sort-button"
+                                            data-sort-state="none"
+                                        >
+                                            <span>背驰</span>
+                                            <span class="sort-indicator" id="beichi-sort-indicator">原顺序</span>
                                         </button>
                                     </th>
                                     <th class="sortable-price-header">
@@ -609,18 +1108,23 @@
                                 {% set quote = row.quote_target or {} %}
                                 {% set rate_value = row.rate_text.replace('%', '').strip() if row.price_status == 'ok' else '' %}
                                 {% set three_buy_sort_value = row.recent_three_buy_time_text.replace('-', '') if row.recent_three_buy_time_text and row.recent_three_buy_time_text != '--' else '' %}
+                                {% set beichi_sort_value = row.recent_beichi_time_text.replace('-', '') if row.recent_beichi_time_text and row.recent_beichi_time_text != '--' else '' %}
                                 <tr
                                     data-original-index="{{ loop.index0 }}"
                                     data-rate-value="{{ rate_value }}"
                                     data-three-buy-value="{{ three_buy_sort_value }}"
+                                    data-beichi-value="{{ beichi_sort_value }}"
+                                    data-stock-filter-key="{{ row.stock_filter_key }}"
                                 >
                                     {% for column in selected_sheet.columns[:-1] %}
-                                    <td>
+                                    <td{% if column == "核心概念 / 备注" %} class="notes-column-cell"{% endif %}>
                                         {% if column == "名称" %}
                                         <button
                                             type="button"
                                             class="stock-chart-trigger"
                                             data-chart-trigger
+                                            data-stock-search-query="{{ row.cells.get(column, '') or (row.quote_target or {}).get('name', '') }}"
+                                            data-stock-search-exchange="{{ (row.quote_target or {}).get('market', '') or 'a' }}"
                                             data-chart-title="{{ row.chart_title }}"
                                             data-chart-frequency="{{ row.chart_frequency_label }}"
                                             data-chart-url="{{ row.chart_url }}"
@@ -628,6 +1132,18 @@
                                         >
                                             {{ row.cells.get(column, "") or (row.quote_target or {}).get("symbol", "") }}
                                         </button>
+                                        {% if row.is_custom_entry %}
+                                        <button
+                                            type="button"
+                                            class="custom-stock-delete-button"
+                                            data-custom-stock-delete
+                                            data-theme-slug="{{ row.custom_theme_slug }}"
+                                            data-market="{{ row.custom_market }}"
+                                            data-code="{{ row.custom_code }}"
+                                        >
+                                            删除
+                                        </button>
+                                        {% endif %}
                                         {% else %}
                                         {{ row.cells.get(column, "") }}
                                         {% endif %}
@@ -641,14 +1157,44 @@
                                         <a class="serenity-fit-detail-link" href="{{ row.serenity_fit_detail_url }}">查看详情</a>
                                     </td>
                                     <td
-                                        class="three-buy-cell"
+                                        class="three-buy-cell is-clickable"
                                         data-row-id="{{ row.row_id }}"
                                         data-market="{{ quote.get('market', '') }}"
                                         data-code="{{ quote.get('code', '') }}"
                                         data-symbol="{{ quote.get('symbol', '') }}"
+                                        data-tech-kind="three-buy"
+                                        data-tech-title="{{ row.cells.get('名称', '') or (row.quote_target or {}).get('symbol', '') }} · 最近 3买"
+                                        data-tech-main="{{ row.recent_three_buy_time_text }}"
+                                        data-tech-sub="{{ row.recent_three_buy_label }}"
+                                        data-tech-history="{{ row.recent_three_buy_scan_history_text }}"
+                                        data-tech-history-json="{{ row.recent_three_buy_scan_history_json }}"
+                                        data-tech-range="{{ row.recent_three_buy_scan_start_date_text }} ~ {{ row.recent_three_buy_scan_end_date_text }}"
+                                        role="button"
+                                        tabindex="0"
                                     >
                                         <span class="three-buy-main recent-three-buy-time">{{ row.recent_three_buy_time_text }}</span>
                                         <span class="three-buy-sub">{{ row.recent_three_buy_label }}</span>
+                                        <span class="tech-hint">点击查看详情</span>
+                                    </td>
+                                    <td
+                                        class="beichi-cell is-clickable"
+                                        data-row-id="{{ row.row_id }}"
+                                        data-market="{{ quote.get('market', '') }}"
+                                        data-code="{{ quote.get('code', '') }}"
+                                        data-symbol="{{ quote.get('symbol', '') }}"
+                                        data-tech-kind="beichi"
+                                        data-tech-title="{{ row.cells.get('名称', '') or (row.quote_target or {}).get('symbol', '') }} · 背驰"
+                                        data-tech-main="{{ row.current_beichi_status_text }} | {{ row.recent_beichi_time_text }}"
+                                        data-tech-sub="{{ row.current_beichi_types_text or row.recent_beichi_types_text }}"
+                                        data-tech-history="{{ row.recent_beichi_scan_history_text }}"
+                                        data-tech-history-json="{{ row.recent_beichi_scan_history_json }}"
+                                        data-tech-range="{{ row.recent_beichi_scan_start_date_text }} ~ {{ row.recent_beichi_scan_end_date_text }}"
+                                        role="button"
+                                        tabindex="0"
+                                    >
+                                        <span class="beichi-main">{{ row.current_beichi_status_text }} | {{ row.recent_beichi_time_text }}</span>
+                                        <span class="beichi-sub">{{ row.current_beichi_types_text or row.recent_beichi_types_text }}</span>
+                                        <span class="tech-hint">点击查看详情</span>
                                     </td>
                                     <td
                                         class="price-cell status-{{ row.price_status }}"
@@ -730,17 +1276,74 @@
         </section>
     </div>
 
+    <div class="tech-detail-modal" id="tech-detail-modal" aria-hidden="true">
+        <div class="tech-detail-backdrop" data-tech-detail-close></div>
+        <section class="tech-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="tech-detail-title">
+            <div class="tech-detail-head">
+                <div>
+                    <div class="tech-detail-title" id="tech-detail-title">技术详情</div>
+                    <div class="tech-detail-subtitle" id="tech-detail-subtitle">查看三买或背驰的完整说明</div>
+                </div>
+                <button type="button" class="tech-detail-close" data-tech-detail-close aria-label="关闭">×</button>
+            </div>
+            <div class="tech-detail-body">
+                <div class="tech-detail-range" id="tech-detail-range">扫描区间：--</div>
+                <div class="tech-detail-grid">
+                    <div class="tech-detail-card">
+                        <div class="tech-detail-label">核心摘要</div>
+                        <div class="tech-detail-value" id="tech-detail-main">--</div>
+                    </div>
+                    <div class="tech-detail-card">
+                        <div class="tech-detail-label">附加说明</div>
+                        <div class="tech-detail-value" id="tech-detail-sub">--</div>
+                    </div>
+                </div>
+                <div class="tech-detail-history-card">
+                    <div class="tech-detail-label">历史记录</div>
+                    <div class="tech-detail-table-wrap">
+                        <table class="tech-detail-table">
+                            <thead>
+                                <tr>
+                                    <th id="tech-detail-history-date-label">扫描日期</th>
+                                    <th id="tech-detail-history-signal-label">信号日期</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tech-detail-history-body">
+                                <tr>
+                                    <td class="tech-detail-empty" colspan="2">暂无历史记录</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script id="sheet-slugs-json" type="application/json">{{ (sheet_slugs or [])|tojson|safe }}</script>
+    <script id="active-scan-tasks-json" type="application/json">{{ (active_scan_tasks or {})|tojson|safe }}</script>
     <script>
         const PRICE_API_URL = "/serenity/aistocks/prices";
         const STATUS_API_URL = "/serenity/aistocks/status";
         const RECENT_THREE_BUY_API_URL = "/serenity/aistocks/recent-three-buy-times";
+        const RECENT_BEICHI_API_URL = "/serenity/aistocks/recent-beichi-times";
+        const STOCK_SEARCH_API_URL = "/serenity/aistocks/stock-search";
+        const CUSTOM_STOCKS_API_URL = "/serenity/aistocks/custom-stocks";
         const REFRESH_INTERVAL_MS = 180000;
         const OVERVIEW_PATH = "/serenity/aistocks";
         const STORAGE_KEY = "lastSerenityAIStocksSheetSlug";
         const CURRENT_SHEET_SLUG = "{{ selected_sheet_slug or '' }}";
-        const SHEET_SLUGS = [{% for slug in sheet_slugs %}"{{ slug }}"{% if not loop.last %}, {% endif %}{% endfor %}];
+        const SHEET_SLUGS = JSON.parse(document.getElementById("sheet-slugs-json")?.textContent || "[]");
+        const ACTIVE_SCAN_TASKS = JSON.parse(document.getElementById("active-scan-tasks-json")?.textContent || "{}");
         let currentRateSortState = "none";
         let currentThreeBuySortState = "none";
+        let currentBeichiSortState = "none";
+        const customStockState = {
+            activeIndex: -1,
+            suggestions: [],
+            lastKeyword: "",
+            debounceTimer: null,
+        };
         const chartModalState = {
             root: null,
             frame: null,
@@ -752,6 +1355,17 @@
             openNewTab: null,
             currentUrl: "",
             warmUrl: "",
+        };
+        const techDetailModalState = {
+            root: null,
+            title: null,
+            subtitle: null,
+            range: null,
+            main: null,
+            sub: null,
+            historyDateLabel: null,
+            historySignalLabel: null,
+            historyBody: null,
         };
 
         function isOverviewPath() {
@@ -821,6 +1435,67 @@
             chartModalState.currentUrl = normalizedUrl;
         }
 
+        function buildEmbeddedChartUrl(market, symbol) {
+            const normalizedMarket = String(market || "").trim().toLowerCase();
+            let normalizedSymbol = String(symbol || "").trim();
+            if (!normalizedMarket || !normalizedSymbol) {
+                return "";
+            }
+            if (normalizedMarket === "a") {
+                normalizedSymbol = normalizedSymbol.includes(".")
+                    ? normalizedSymbol.split(".").pop()
+                    : normalizedSymbol.replace(/^(sh|sz|bj)/i, "");
+            } else if (normalizedMarket === "hk" && normalizedSymbol.includes(".")) {
+                normalizedSymbol = normalizedSymbol.split(".").pop();
+            }
+            return `/?market=${encodeURIComponent(normalizedMarket)}&code=${encodeURIComponent(normalizedSymbol)}&embedded=1&lite_chart=1&default_interval=1D&load_last_chart=0`;
+        }
+
+        async function searchAndOpenChartModal(trigger) {
+            const searchQuery = String(trigger.dataset.stockSearchQuery || "").trim();
+            const searchExchange = String(trigger.dataset.stockSearchExchange || "a").trim().toLowerCase();
+            const chartTitle = trigger.dataset.chartTitle || "缠论图";
+            const chartFrequency = trigger.dataset.chartFrequency || "主页图形";
+            const fallbackChartUrl = String(trigger.dataset.chartUrl || "").trim();
+            const unavailableReason = trigger.dataset.chartUnavailableReason || "当前未获取到可用图表地址。";
+            if (!searchQuery) {
+                openChartModal(chartTitle, chartFrequency, fallbackChartUrl, unavailableReason);
+                return;
+            }
+            openChartModal(chartTitle, chartFrequency, "", "正在搜索股票，请稍候...");
+            showChartLoading();
+            try {
+                const params = new URLSearchParams({
+                    query: searchQuery,
+                    type: "stock",
+                    exchange: searchExchange || "a",
+                    limit: "10",
+                });
+                const response = await fetch(`${STOCK_SEARCH_API_URL}?${params.toString()}`, {
+                    headers: { Accept: "application/json" },
+                });
+                if (!response.ok) {
+                    throw new Error(`stock search failed: ${response.status}`);
+                }
+                const results = await response.json();
+                const candidates = Array.isArray(results?.results) ? results.results : [];
+                const exactMatch = candidates.find((item) => String(item.description || "").trim() === searchQuery);
+                const matched = exactMatch || candidates[0];
+                const matchedExchange = String(matched?.exchange || searchExchange || "a").trim().toLowerCase();
+                const matchedSymbol = String(matched?.symbol || "").trim();
+                const searchedChartUrl = buildEmbeddedChartUrl(matchedExchange, matchedSymbol);
+                openChartModal(
+                    chartTitle,
+                    chartFrequency,
+                    searchedChartUrl || fallbackChartUrl,
+                    searchedChartUrl || fallbackChartUrl ? unavailableReason : "未搜索到可用股票图表。"
+                );
+            } catch (error) {
+                console.warn("Serenity AI Stocks stock search failed", error);
+                openChartModal(chartTitle, chartFrequency, fallbackChartUrl, unavailableReason);
+            }
+        }
+
         function openChartModal(chartTitle, frequencyLabel, chartUrl, unavailableReason) {
             if (!chartModalState.root) {
                 return;
@@ -886,13 +1561,8 @@
                 trigger.addEventListener("mouseenter", warm, { passive: true });
                 trigger.addEventListener("focus", warm, { passive: true });
                 trigger.addEventListener("touchstart", warm, { passive: true });
-                trigger.addEventListener("click", () => {
-                    openChartModal(
-                        trigger.dataset.chartTitle || "缠论图",
-                        trigger.dataset.chartFrequency || "主页图形",
-                        trigger.dataset.chartUrl || "",
-                        trigger.dataset.chartUnavailableReason || "当前未获取到可用图表地址。"
-                    );
+                trigger.addEventListener("click", async () => {
+                    await searchAndOpenChartModal(trigger);
                 });
             });
             chartModalState.root.querySelectorAll("[data-chart-modal-close]").forEach((button) => {
@@ -921,6 +1591,182 @@
             }
         }
 
+        function parseTechHistoryRows(historyJson, historyText, kind) {
+            const rows = [];
+            const normalizedKind = String(kind || "").trim();
+            if (historyJson) {
+                try {
+                    const parsed = JSON.parse(historyJson);
+                    if (Array.isArray(parsed)) {
+                        parsed.forEach((item) => {
+                            const scanDate = String(item?.scan_date || "").trim();
+                            const signalDate = normalizedKind === "beichi"
+                                ? String(item?.beichi_date || "").trim()
+                                : String(item?.three_buy_date || "").trim();
+                            rows.push({
+                                scanDate: scanDate || "--",
+                                signalDate: signalDate || "--",
+                            });
+                        });
+                    }
+                } catch (error) {
+                    console.warn("Failed to parse tech history json", error);
+                }
+            }
+            if (rows.length) {
+                return rows;
+            }
+            return String(historyText || "")
+                .split("|")
+                .map((entry) => entry.trim())
+                .filter(Boolean)
+                .map((entry) => {
+                    const [scanDate, signalValue] = entry.split("=>");
+                    let signalDate = String(signalValue || "").trim();
+                    if (normalizedKind === "beichi" && signalDate.includes("@")) {
+                        signalDate = signalDate.split("@").pop() || signalDate;
+                    }
+                    return {
+                        scanDate: String(scanDate || "").trim() || "--",
+                        signalDate: signalDate || "--",
+                    };
+                });
+        }
+
+        function renderTechHistoryTable(payload) {
+            if (!techDetailModalState.historyBody || !techDetailModalState.historyDateLabel || !techDetailModalState.historySignalLabel) {
+                return;
+            }
+            const signalLabel = payload.kind === "beichi" ? "背驰日期" : "3买日期";
+            techDetailModalState.historyDateLabel.textContent = "扫描日期";
+            techDetailModalState.historySignalLabel.textContent = signalLabel;
+            const rows = parseTechHistoryRows(payload.historyJson, payload.history, payload.kind);
+            techDetailModalState.historyBody.replaceChildren();
+            if (!rows.length) {
+                const tr = document.createElement("tr");
+                const td = document.createElement("td");
+                td.className = "tech-detail-empty";
+                td.colSpan = 2;
+                td.textContent = "暂无历史记录";
+                tr.appendChild(td);
+                techDetailModalState.historyBody.appendChild(tr);
+                return;
+            }
+            rows.forEach((row) => {
+                const tr = document.createElement("tr");
+                const scanDateCell = document.createElement("td");
+                const signalDateCell = document.createElement("td");
+                scanDateCell.textContent = row.scanDate || "--";
+                signalDateCell.textContent = row.signalDate || "--";
+                tr.appendChild(scanDateCell);
+                tr.appendChild(signalDateCell);
+                techDetailModalState.historyBody.appendChild(tr);
+            });
+        }
+
+        function closeTechDetailModal() {
+            if (!techDetailModalState.root) {
+                return;
+            }
+            techDetailModalState.root.classList.remove("is-open");
+            techDetailModalState.root.setAttribute("aria-hidden", "true");
+            document.body.style.overflow = "";
+        }
+
+        function openTechDetailModal(payload) {
+            if (!techDetailModalState.root) {
+                return;
+            }
+            techDetailModalState.root.classList.add("is-open");
+            techDetailModalState.root.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+            if (techDetailModalState.title) {
+                techDetailModalState.title.textContent = payload.title || "技术详情";
+            }
+            if (techDetailModalState.subtitle) {
+                techDetailModalState.subtitle.textContent = payload.kind === "beichi" ? "背驰完整说明" : "最近 3买完整说明";
+            }
+            if (techDetailModalState.range) {
+                techDetailModalState.range.textContent = `扫描区间：${payload.range || "--"}`;
+            }
+            if (techDetailModalState.main) {
+                techDetailModalState.main.textContent = payload.main || "--";
+            }
+            if (techDetailModalState.sub) {
+                techDetailModalState.sub.textContent = payload.sub || "--";
+            }
+            renderTechHistoryTable(payload);
+        }
+
+        function buildTechDetailPayloadFromCell(cell) {
+            return {
+                kind: cell.dataset.techKind || "",
+                title: cell.dataset.techTitle || "技术详情",
+                main: cell.dataset.techMain || "--",
+                sub: cell.dataset.techSub || "--",
+                history: cell.dataset.techHistory || "--",
+                historyJson: cell.dataset.techHistoryJson || "",
+                range: cell.dataset.techRange || "--",
+            };
+        }
+
+        function updateTechCellDataset(cell, payload) {
+            if (!cell) {
+                return;
+            }
+            if (payload.title !== undefined) {
+                cell.dataset.techTitle = payload.title || "";
+            }
+            if (payload.main !== undefined) {
+                cell.dataset.techMain = payload.main || "";
+            }
+            if (payload.sub !== undefined) {
+                cell.dataset.techSub = payload.sub || "";
+            }
+            if (payload.history !== undefined) {
+                cell.dataset.techHistory = payload.history || "";
+            }
+            if (payload.historyJson !== undefined) {
+                cell.dataset.techHistoryJson = payload.historyJson || "";
+            }
+            if (payload.range !== undefined) {
+                cell.dataset.techRange = payload.range || "";
+            }
+        }
+
+        function initTechDetailModal() {
+            techDetailModalState.root = document.getElementById("tech-detail-modal");
+            techDetailModalState.title = document.getElementById("tech-detail-title");
+            techDetailModalState.subtitle = document.getElementById("tech-detail-subtitle");
+            techDetailModalState.range = document.getElementById("tech-detail-range");
+            techDetailModalState.main = document.getElementById("tech-detail-main");
+            techDetailModalState.sub = document.getElementById("tech-detail-sub");
+            techDetailModalState.historyDateLabel = document.getElementById("tech-detail-history-date-label");
+            techDetailModalState.historySignalLabel = document.getElementById("tech-detail-history-signal-label");
+            techDetailModalState.historyBody = document.getElementById("tech-detail-history-body");
+            if (!techDetailModalState.root) {
+                return;
+            }
+            techDetailModalState.root.querySelectorAll("[data-tech-detail-close]").forEach((button) => {
+                button.addEventListener("click", closeTechDetailModal);
+            });
+            document.querySelectorAll(".three-buy-cell.is-clickable, .beichi-cell.is-clickable").forEach((cell) => {
+                const open = () => openTechDetailModal(buildTechDetailPayloadFromCell(cell));
+                cell.addEventListener("click", open);
+                cell.addEventListener("keydown", (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        open();
+                    }
+                });
+            });
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && techDetailModalState.root.classList.contains("is-open")) {
+                    closeTechDetailModal();
+                }
+            });
+        }
+
         function collectPriceItems() {
             return Array.from(document.querySelectorAll(".price-cell"))
                 .map((cell) => ({
@@ -934,6 +1780,17 @@
 
         function collectThreeBuyItems() {
             return Array.from(document.querySelectorAll(".three-buy-cell"))
+                .map((cell) => ({
+                    row_id: cell.dataset.rowId,
+                    market: cell.dataset.market,
+                    code: cell.dataset.code,
+                    symbol: cell.dataset.symbol,
+                }))
+                .filter((item) => item.row_id && item.market && item.code);
+        }
+
+        function collectBeichiItems() {
+            return Array.from(document.querySelectorAll(".beichi-cell"))
                 .map((cell) => ({
                     row_id: cell.dataset.rowId,
                     market: cell.dataset.market,
@@ -1006,6 +1863,349 @@
             }
         }
 
+        function updateBeichiSortIndicator() {
+            const beichiSortButton = document.getElementById("beichi-sort-button");
+            const indicator = document.getElementById("beichi-sort-indicator");
+            const stateLabelMap = {
+                none: "原顺序",
+                desc: "新到旧",
+                asc: "旧到新",
+            };
+            if (beichiSortButton) {
+                beichiSortButton.dataset.sortState = currentBeichiSortState;
+            }
+            if (indicator) {
+                indicator.textContent = stateLabelMap[currentBeichiSortState] || "原顺序";
+            }
+        }
+
+        function updateStockFilterSummary(visibleCount, totalCount, keyword = "") {
+            const summary = document.getElementById("stock-filter-summary");
+            if (!summary) {
+                return;
+            }
+            const normalizedKeyword = String(keyword || "").trim();
+            if (!normalizedKeyword) {
+                summary.textContent = `显示全部 ${totalCount} 只`;
+                return;
+            }
+            summary.textContent = `匹配 ${visibleCount} / ${totalCount} 只`;
+        }
+
+        function setCustomStockFeedback(message = "", isError = false) {
+            const feedback = document.getElementById("custom-stock-feedback");
+            if (!feedback) {
+                return;
+            }
+            feedback.textContent = message || "";
+            feedback.classList.toggle("is-error", Boolean(isError));
+        }
+
+        function getCustomStockElements() {
+            return {
+                codeInput: document.getElementById("custom-stock-code-input"),
+                themeInput: document.getElementById("custom-stock-theme-input"),
+                submitButton: document.getElementById("custom-stock-submit-button"),
+                suggestions: document.getElementById("custom-stock-suggestions"),
+                selectedSymbolInput: document.getElementById("custom-stock-selected-symbol"),
+                selectedNameInput: document.getElementById("custom-stock-selected-name"),
+                selectedChip: document.getElementById("custom-stock-selected-chip"),
+                selectedChipText: document.getElementById("custom-stock-selected-chip-text"),
+            };
+        }
+
+        function hideCustomStockSuggestions() {
+            const { suggestions } = getCustomStockElements();
+            if (!suggestions) {
+                return;
+            }
+            suggestions.classList.remove("is-visible");
+        }
+
+        function showCustomStockSuggestions() {
+            const { suggestions } = getCustomStockElements();
+            if (!suggestions || !customStockState.suggestions.length) {
+                return;
+            }
+            suggestions.classList.add("is-visible");
+        }
+
+        function updateCustomStockSubmitState() {
+            const { themeInput, submitButton, selectedSymbolInput } = getCustomStockElements();
+            if (!submitButton) {
+                return;
+            }
+            const selectedSymbol = String(selectedSymbolInput?.value || "").trim();
+            const themeName = String(themeInput?.value || "").trim();
+            submitButton.disabled = !(selectedSymbol && themeName);
+        }
+
+        function clearSelectedCustomStock(options = {}) {
+            const { preserveInput = false } = options;
+            const {
+                codeInput,
+                selectedSymbolInput,
+                selectedNameInput,
+                selectedChip,
+                selectedChipText,
+            } = getCustomStockElements();
+            if (selectedSymbolInput) {
+                selectedSymbolInput.value = "";
+            }
+            if (selectedNameInput) {
+                selectedNameInput.value = "";
+            }
+            if (selectedChipText) {
+                selectedChipText.textContent = "";
+            }
+            if (selectedChip) {
+                selectedChip.classList.remove("is-visible");
+            }
+            if (!preserveInput && codeInput) {
+                codeInput.value = "";
+            }
+            updateCustomStockSubmitState();
+        }
+
+        function setActiveCustomStockSuggestion(index) {
+            customStockState.activeIndex = index;
+            const { suggestions } = getCustomStockElements();
+            if (!suggestions) {
+                return;
+            }
+            Array.from(suggestions.querySelectorAll(".custom-stock-suggestion-item")).forEach((item, itemIndex) => {
+                item.classList.toggle("is-active", itemIndex === index);
+            });
+        }
+
+        function renderCustomStockSuggestions(results) {
+            const { suggestions } = getCustomStockElements();
+            if (!suggestions) {
+                return;
+            }
+            customStockState.suggestions = Array.isArray(results) ? results : [];
+            customStockState.activeIndex = customStockState.suggestions.length ? 0 : -1;
+            if (!customStockState.suggestions.length) {
+                suggestions.innerHTML = '<div class="custom-stock-suggestion-empty">未找到匹配股票，请换个关键词</div>';
+                suggestions.classList.add("is-visible");
+                return;
+            }
+            suggestions.innerHTML = customStockState.suggestions.map((item, index) => `
+                <button
+                    type="button"
+                    class="custom-stock-suggestion-item${index === customStockState.activeIndex ? " is-active" : ""}"
+                    data-custom-stock-option-index="${index}"
+                >
+                    <div class="custom-stock-suggestion-title">${String(item.description || "").trim() || String(item.symbol || "").trim()}</div>
+                    <div class="custom-stock-suggestion-meta">${String(item.symbol || "").trim()} · ${String(item.exchange || "a").trim().toUpperCase()}</div>
+                </button>
+            `).join("");
+            suggestions.classList.add("is-visible");
+            suggestions.querySelectorAll("[data-custom-stock-option-index]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const index = Number.parseInt(button.dataset.customStockOptionIndex || "-1", 10);
+                    if (Number.isInteger(index) && index >= 0) {
+                        selectCustomStockCandidate(customStockState.suggestions[index]);
+                    }
+                });
+            });
+        }
+
+        function selectCustomStockCandidate(item) {
+            if (!item) {
+                return;
+            }
+            const {
+                codeInput,
+                selectedSymbolInput,
+                selectedNameInput,
+                selectedChip,
+                selectedChipText,
+            } = getCustomStockElements();
+            const selectedName = String(item.description || "").trim();
+            const selectedSymbol = String(item.symbol || "").trim();
+            if (codeInput) {
+                codeInput.value = selectedName && selectedSymbol
+                    ? `${selectedName} (${selectedSymbol})`
+                    : selectedName || selectedSymbol;
+            }
+            if (selectedSymbolInput) {
+                selectedSymbolInput.value = selectedSymbol;
+            }
+            if (selectedNameInput) {
+                selectedNameInput.value = selectedName;
+            }
+            if (selectedChipText) {
+                selectedChipText.textContent = selectedName && selectedSymbol
+                    ? `${selectedName} · ${selectedSymbol}`
+                    : selectedName || selectedSymbol;
+            }
+            if (selectedChip) {
+                selectedChip.classList.add("is-visible");
+            }
+            hideCustomStockSuggestions();
+            setCustomStockFeedback("已选中股票，可继续填写主题后提交", false);
+            updateCustomStockSubmitState();
+        }
+
+        async function searchCustomStockCandidates(keyword) {
+            const normalizedKeyword = String(keyword || "").trim();
+            const { suggestions } = getCustomStockElements();
+            if (!suggestions) {
+                return;
+            }
+            customStockState.lastKeyword = normalizedKeyword;
+            if (!normalizedKeyword) {
+                customStockState.suggestions = [];
+                suggestions.innerHTML = "";
+                hideCustomStockSuggestions();
+                return;
+            }
+            suggestions.innerHTML = '<div class="custom-stock-suggestion-empty">正在搜索股票...</div>';
+            suggestions.classList.add("is-visible");
+            try {
+                const params = new URLSearchParams({
+                    query: normalizedKeyword,
+                    type: "stock",
+                    exchange: "a",
+                    limit: "10",
+                });
+                const response = await fetch(`${STOCK_SEARCH_API_URL}?${params.toString()}`, {
+                    headers: { Accept: "application/json" },
+                });
+                if (!response.ok) {
+                    throw new Error(`custom stock search failed: ${response.status}`);
+                }
+                const payload = await response.json();
+                const results = Array.isArray(payload?.results) ? payload.results : [];
+                if (customStockState.lastKeyword !== normalizedKeyword) {
+                    return;
+                }
+                renderCustomStockSuggestions(results);
+            } catch (error) {
+                console.warn("Serenity AI Stocks custom stock search failed", error);
+                suggestions.innerHTML = '<div class="custom-stock-suggestion-empty">搜索失败，请稍后重试</div>';
+                suggestions.classList.add("is-visible");
+            }
+        }
+
+        function debounceCustomStockSearch(keyword) {
+            if (customStockState.debounceTimer) {
+                window.clearTimeout(customStockState.debounceTimer);
+            }
+            customStockState.debounceTimer = window.setTimeout(() => {
+                searchCustomStockCandidates(keyword);
+            }, 300);
+        }
+
+        async function submitCustomStockForm(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            const codeInput = document.getElementById("custom-stock-code-input");
+            const themeInput = document.getElementById("custom-stock-theme-input");
+            const submitButton = document.getElementById("custom-stock-submit-button");
+            const selectedSymbolInput = document.getElementById("custom-stock-selected-symbol");
+            const selectedSymbol = String(selectedSymbolInput?.value || "").trim();
+            const themeName = String(themeInput?.value || "").trim();
+            if (!selectedSymbol || !themeName) {
+                setCustomStockFeedback(
+                    !selectedSymbol ? "请先从候选列表中选择股票" : "主题不能为空",
+                    true
+                );
+                return;
+            }
+
+            if (submitButton) {
+                submitButton.disabled = true;
+            }
+            setCustomStockFeedback("正在新增股票...");
+            try {
+                const response = await fetch(CUSTOM_STOCKS_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code: selectedSymbol, theme_name: themeName }),
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok) {
+                    setCustomStockFeedback(payload?.message || "新增失败，请稍后重试", true);
+                    return;
+                }
+                window.location.href = `${OVERVIEW_PATH}/${payload.sheet_slug}`;
+            } catch (error) {
+                console.warn("Serenity AI Stocks custom stock add failed", error);
+                setCustomStockFeedback("新增失败，请稍后重试", true);
+            } finally {
+                updateCustomStockSubmitState();
+            }
+        }
+
+        async function deleteCustomStock(button) {
+            if (!button) {
+                return;
+            }
+            const themeSlug = String(button.dataset.themeSlug || "").trim();
+            const market = String(button.dataset.market || "").trim();
+            const code = String(button.dataset.code || "").trim();
+            if (!themeSlug || !market || !code) {
+                setCustomStockFeedback("删除参数不完整", true);
+                return;
+            }
+            button.disabled = true;
+            setCustomStockFeedback("正在删除自定义股票...");
+            try {
+                const response = await fetch(CUSTOM_STOCKS_API_URL, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        theme_slug: themeSlug,
+                        market,
+                        code,
+                    }),
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok) {
+                    button.disabled = false;
+                    setCustomStockFeedback(payload?.message || "删除失败，请稍后重试", true);
+                    return;
+                }
+                if (payload.theme_empty) {
+                    window.location.href = OVERVIEW_PATH;
+                    return;
+                }
+                const row = button.closest("tr");
+                if (row) {
+                    row.remove();
+                    applyStockFilter();
+                }
+                setCustomStockFeedback(payload.message || "删除成功", false);
+            } catch (error) {
+                console.warn("Serenity AI Stocks custom stock delete failed", error);
+                button.disabled = false;
+                setCustomStockFeedback("删除失败，请稍后重试", true);
+            }
+        }
+
+        function applyStockFilter() {
+            const input = document.getElementById("stock-filter-input");
+            const tbody = document.querySelector(".table-shell tbody");
+            if (!input || !tbody) {
+                return;
+            }
+            const keyword = String(input.value || "").trim().toLowerCase();
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            let visibleCount = 0;
+            rows.forEach((row) => {
+                const filterKey = String(row.dataset.stockFilterKey || "").toLowerCase();
+                const matched = !keyword || filterKey.includes(keyword);
+                row.style.display = matched ? "" : "none";
+                if (matched) {
+                    visibleCount += 1;
+                }
+            });
+            updateStockFilterSummary(visibleCount, rows.length, keyword);
+        }
+
         function applyRateSort() {
             const tbody = document.querySelector(".table-shell tbody");
             if (!tbody) {
@@ -1036,6 +2236,7 @@
             });
             rows.forEach((row) => tbody.appendChild(row));
             updateRateSortIndicator();
+            applyStockFilter();
         }
 
         function applyThreeBuySort() {
@@ -1068,6 +2269,40 @@
             });
             rows.forEach((row) => tbody.appendChild(row));
             updateThreeBuySortIndicator();
+            applyStockFilter();
+        }
+
+        function applyBeichiSort() {
+            const tbody = document.querySelector(".table-shell tbody");
+            if (!tbody) {
+                return;
+            }
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            const invalidValue = currentBeichiSortState === "asc" ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+            rows.sort((rowA, rowB) => {
+                const originalA = Number.parseInt(rowA.dataset.originalIndex || "0", 10);
+                const originalB = Number.parseInt(rowB.dataset.originalIndex || "0", 10);
+                if (currentBeichiSortState === "none") {
+                    return originalA - originalB;
+                }
+                const hasValueA = rowA.dataset.beichiValue !== "";
+                const hasValueB = rowB.dataset.beichiValue !== "";
+                if (hasValueA !== hasValueB) {
+                    return hasValueA ? -1 : 1;
+                }
+                if (!hasValueA && !hasValueB) {
+                    return originalA - originalB;
+                }
+                const valueA = Number.parseFloat(rowA.dataset.beichiValue || String(invalidValue));
+                const valueB = Number.parseFloat(rowB.dataset.beichiValue || String(invalidValue));
+                if (valueA === valueB) {
+                    return originalA - originalB;
+                }
+                return currentBeichiSortState === "desc" ? valueB - valueA : valueA - valueB;
+            });
+            rows.forEach((row) => tbody.appendChild(row));
+            updateBeichiSortIndicator();
+            applyStockFilter();
         }
 
         function applyPriceDirectionState(cell, rateText, unsupported = false) {
@@ -1124,7 +2359,27 @@
             }
         }
 
-        function updateThreeBuyCell(rowId, timeText, labelText = "最近 3买") {
+        function setBeichiLoadingState(isLoading, message = "") {
+            const button = document.getElementById("recent-beichi-button");
+            const status = document.getElementById("recent-beichi-status");
+            if (button) {
+                button.disabled = isLoading;
+                button.textContent = isLoading ? "扫描中..." : "查找背驰时间";
+            }
+            if (status) {
+                status.textContent = message;
+            }
+        }
+
+        function updateThreeBuyCell(
+            rowId,
+            timeText,
+            labelText = "最近 3买",
+            historyText = "",
+            historyJson = "",
+            scanStartDateText = "",
+            scanEndDateText = ""
+        ) {
             const cell = document.querySelector(`.three-buy-cell[data-row-id="${rowId}"]`);
             if (!cell) {
                 return;
@@ -1141,6 +2396,48 @@
             if (sub) {
                 sub.textContent = labelText || "最近 3买";
             }
+            updateTechCellDataset(cell, {
+                main: timeText || "--",
+                sub: labelText || "最近 3买",
+                history: historyText || "",
+                historyJson: historyJson || "",
+                range: scanStartDateText && scanEndDateText ? `${scanStartDateText} ~ ${scanEndDateText}` : "",
+            });
+        }
+
+        function updateBeichiCell(
+            rowId,
+            statusText,
+            timeText,
+            typesText = "",
+            historyText = "",
+            historyJson = "",
+            scanStartDateText = "",
+            scanEndDateText = ""
+        ) {
+            const cell = document.querySelector(`.beichi-cell[data-row-id="${rowId}"]`);
+            if (!cell) {
+                return;
+            }
+            const row = cell.closest("tr");
+            const main = cell.querySelector(".beichi-main");
+            const sub = cell.querySelector(".beichi-sub");
+            if (row) {
+                row.dataset.beichiValue = parseThreeBuyDateValue(timeText);
+            }
+            if (main) {
+                main.textContent = `${statusText || "当前无背驰"} | ${timeText || "--"}`;
+            }
+            if (sub) {
+                sub.textContent = typesText || "";
+            }
+            updateTechCellDataset(cell, {
+                main: `${statusText || "当前无背驰"} | ${timeText || "--"}`,
+                sub: typesText || "",
+                history: historyText || "",
+                historyJson: historyJson || "",
+                range: scanStartDateText && scanEndDateText ? `${scanStartDateText} ~ ${scanEndDateText}` : "",
+            });
         }
 
         function buildThreeBuyMissLabel(status) {
@@ -1153,48 +2450,251 @@
             return "未找到 3买";
         }
 
+        function buildBeichiMissLabel(status) {
+            if (status === "error") {
+                return "扫描异常";
+            }
+            if (status === "unsupported") {
+                return "暂不支持";
+            }
+            return "当前无背驰";
+        }
+
+        function applyThreeBuyTaskPayload(payload) {
+            (payload.partial_hits || payload.hits || []).forEach((item) => {
+                updateThreeBuyCell(
+                    item.row_id,
+                    item.recent_three_buy_time_text || "--",
+                    item.label || "最近 3买",
+                    item.recent_three_buy_scan_history_text || "",
+                    item.recent_three_buy_scan_history_json || "",
+                    item.recent_three_buy_scan_start_date_text || "",
+                    item.recent_three_buy_scan_end_date_text || ""
+                );
+            });
+            (payload.partial_misses || payload.misses || []).forEach((item) => {
+                updateThreeBuyCell(
+                    item.row_id,
+                    item.recent_three_buy_time_text || "--",
+                    buildThreeBuyMissLabel(item.status),
+                    item.recent_three_buy_scan_history_text || "",
+                    item.recent_three_buy_scan_history_json || "",
+                    item.recent_three_buy_scan_start_date_text || "",
+                    item.recent_three_buy_scan_end_date_text || ""
+                );
+            });
+            if (currentThreeBuySortState !== "none") {
+                applyThreeBuySort();
+            }
+        }
+
+        function applyBeichiTaskPayload(payload) {
+            (payload.partial_hits || payload.hits || []).forEach((item) => {
+                updateBeichiCell(
+                    item.row_id,
+                    item.current_beichi_status_text || "当前无背驰",
+                    item.recent_beichi_time_text || "--",
+                    item.current_beichi_types_text || item.recent_beichi_types_text || "",
+                    item.recent_beichi_scan_history_text || "",
+                    item.recent_beichi_scan_history_json || "",
+                    item.recent_beichi_scan_start_date_text || "",
+                    item.recent_beichi_scan_end_date_text || ""
+                );
+            });
+            (payload.partial_misses || payload.misses || []).forEach((item) => {
+                updateBeichiCell(
+                    item.row_id,
+                    buildBeichiMissLabel(item.status),
+                    item.recent_beichi_time_text || "--",
+                    item.current_beichi_types_text || item.recent_beichi_types_text || "",
+                    item.recent_beichi_scan_history_text || "",
+                    item.recent_beichi_scan_history_json || "",
+                    item.recent_beichi_scan_start_date_text || "",
+                    item.recent_beichi_scan_end_date_text || ""
+                );
+            });
+            if (currentBeichiSortState !== "none") {
+                applyBeichiSort();
+            }
+        }
+
+        async function pollAistocksScanTask(taskUrl, handlers, attempt = 0) {
+            const onProgress = handlers?.onProgress;
+            const onCompleted = handlers?.onCompleted;
+            const onFailed = handlers?.onFailed;
+            const onRetryExhausted = handlers?.onRetryExhausted;
+            try {
+                const response = await fetch(taskUrl, { headers: { Accept: "application/json" } });
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok) {
+                    throw new Error(payload?.message || `scan task failed: ${response.status}`);
+                }
+                if (typeof onProgress === "function") {
+                    onProgress(payload);
+                }
+                if (payload.state === "completed") {
+                    if (typeof onCompleted === "function") {
+                        onCompleted(payload);
+                    }
+                    return;
+                }
+                if (payload.state === "failed") {
+                    if (typeof onFailed === "function") {
+                        onFailed(payload);
+                    }
+                    return;
+                }
+                window.setTimeout(() => {
+                    pollAistocksScanTask(taskUrl, handlers, 0);
+                }, 2000);
+            } catch (error) {
+                if (attempt >= 5) {
+                    if (typeof onRetryExhausted === "function") {
+                        onRetryExhausted(error);
+                    }
+                    return;
+                }
+                window.setTimeout(() => {
+                    pollAistocksScanTask(taskUrl, handlers, attempt + 1);
+                }, 2500);
+            }
+        }
+
+        function pollRecentThreeBuyTask(taskId) {
+            pollAistocksScanTask(`${RECENT_THREE_BUY_API_URL}/task/${taskId}`, {
+                onProgress(payload) {
+                    applyThreeBuyTaskPayload(payload);
+                    setThreeBuyLoadingState(
+                        payload.state !== "completed",
+                        payload.state === "completed"
+                            ? `已扫描 ${payload.total_items || 0} 只股票，命中 ${payload.hit_count || 0} 只`
+                            : `${payload.message || "正在扫描"}，命中 ${payload.hit_count || 0} 只`
+                    );
+                },
+                onCompleted(payload) {
+                    applyThreeBuyTaskPayload(payload.result || payload);
+                    setThreeBuyLoadingState(false, `已扫描 ${payload.total_items || 0} 只股票，命中 ${payload.hit_count || 0} 只`);
+                },
+                onFailed(payload) {
+                    applyThreeBuyTaskPayload(payload);
+                    setThreeBuyLoadingState(false, `任务失败：${payload.error || payload.message || "请稍后重试"}`);
+                },
+                onRetryExhausted() {
+                    setThreeBuyLoadingState(false, "查询3买扫描进度失败，请稍后刷新页面查看");
+                },
+            });
+        }
+
+        function pollRecentBeichiTask(taskId) {
+            pollAistocksScanTask(`${RECENT_BEICHI_API_URL}/task/${taskId}`, {
+                onProgress(payload) {
+                    applyBeichiTaskPayload(payload);
+                    setBeichiLoadingState(
+                        payload.state !== "completed",
+                        payload.state === "completed"
+                            ? `已扫描 ${payload.total_items || 0} 只股票，命中 ${payload.hit_count || 0} 只`
+                            : `${payload.message || "正在扫描"}，命中 ${payload.hit_count || 0} 只`
+                    );
+                },
+                onCompleted(payload) {
+                    applyBeichiTaskPayload(payload.result || payload);
+                    setBeichiLoadingState(false, `已扫描 ${payload.total_items || 0} 只股票，命中 ${payload.hit_count || 0} 只`);
+                },
+                onFailed(payload) {
+                    applyBeichiTaskPayload(payload);
+                    setBeichiLoadingState(false, `任务失败：${payload.error || payload.message || "请稍后重试"}`);
+                },
+                onRetryExhausted() {
+                    setBeichiLoadingState(false, "查询背驰扫描进度失败，请稍后刷新页面查看");
+                },
+            });
+        }
+
+        function resumeRecentThreeBuyTaskIfNeeded() {
+            const task = ACTIVE_SCAN_TASKS?.recent_three_buy;
+            if (!task || !["pending", "running"].includes(String(task.state || ""))) {
+                return false;
+            }
+            const processedItems = Number(task.processed_items || 0);
+            const totalItems = Number(task.total_items || 0);
+            const hitCount = Number(task.hit_count || 0);
+            const progressMessage = task.message
+                || (totalItems ? `已完成 ${processedItems} / ${totalItems} 只` : "检测到未完成任务，正在恢复进度...");
+            setThreeBuyLoadingState(true, `${progressMessage}，命中 ${hitCount} 只`);
+            pollRecentThreeBuyTask(task.task_id);
+            return true;
+        }
+
+        function resumeRecentBeichiTaskIfNeeded() {
+            const task = ACTIVE_SCAN_TASKS?.recent_beichi;
+            if (!task || !["pending", "running"].includes(String(task.state || ""))) {
+                return false;
+            }
+            const processedItems = Number(task.processed_items || 0);
+            const totalItems = Number(task.total_items || 0);
+            const hitCount = Number(task.hit_count || 0);
+            const progressMessage = task.message
+                || (totalItems ? `已完成 ${processedItems} / ${totalItems} 只` : "检测到未完成任务，正在恢复进度...");
+            setBeichiLoadingState(true, `${progressMessage}，命中 ${hitCount} 只`);
+            pollRecentBeichiTask(task.task_id);
+            return true;
+        }
+
+        function resumeActiveScanTasks() {
+            const resumedThreeBuy = resumeRecentThreeBuyTaskIfNeeded();
+            const resumedBeichi = resumeRecentBeichiTaskIfNeeded();
+            return resumedThreeBuy || resumedBeichi;
+        }
+
         async function refreshRecentThreeBuyTimes() {
             const items = collectThreeBuyItems();
             if (!items.length) {
                 setThreeBuyLoadingState(false, "当前 Sheet 没有可扫描股票");
                 return;
             }
-            setThreeBuyLoadingState(true, `正在扫描 ${items.length} 只股票的日线 3买...`);
+            setThreeBuyLoadingState(true, `正在提交 ${items.length} 只股票的 3买扫描任务...`);
             try {
                 const response = await fetch(RECENT_THREE_BUY_API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ items }),
+                    body: JSON.stringify({ items, sheet_slug: CURRENT_SHEET_SLUG, sheet_name: "{{ (selected_sheet.sheet_name if selected_sheet else '')|e }}" }),
                 });
-                if (!response.ok) {
-                    setThreeBuyLoadingState(false, "3买扫描失败，请稍后重试");
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok || !payload?.task_id) {
+                    setThreeBuyLoadingState(false, payload?.message || "3买扫描失败，请稍后重试");
                     return;
                 }
-                const payload = await response.json();
-                (payload.hits || []).forEach((item) => {
-                    updateThreeBuyCell(
-                        item.row_id,
-                        item.recent_three_buy_time_text || "--",
-                        item.label || "最近 3买"
-                    );
-                });
-                (payload.misses || []).forEach((item) => {
-                    updateThreeBuyCell(
-                        item.row_id,
-                        item.recent_three_buy_time_text || "--",
-                        buildThreeBuyMissLabel(item.status)
-                    );
-                });
-                setThreeBuyLoadingState(
-                    false,
-                    `已扫描 ${items.length} 只股票，命中 ${(payload.hits || []).length} 只`
-                );
-                if (currentThreeBuySortState !== "none") {
-                    applyThreeBuySort();
-                }
+                setThreeBuyLoadingState(true, "3买扫描任务已启动，正在获取进度...");
+                pollRecentThreeBuyTask(payload.task_id);
             } catch (error) {
                 console.warn("Serenity AI Stocks recent three buy scan failed", error);
                 setThreeBuyLoadingState(false, "3买扫描失败，请稍后重试");
+            }
+        }
+
+        async function refreshRecentBeichiTimes() {
+            const items = collectBeichiItems();
+            if (!items.length) {
+                setBeichiLoadingState(false, "当前 Sheet 没有可扫描股票");
+                return;
+            }
+            setBeichiLoadingState(true, `正在提交 ${items.length} 只股票的背驰扫描任务...`);
+            try {
+                const response = await fetch(RECENT_BEICHI_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ items, sheet_slug: CURRENT_SHEET_SLUG, sheet_name: "{{ (selected_sheet.sheet_name if selected_sheet else '')|e }}" }),
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok || !payload?.task_id) {
+                    setBeichiLoadingState(false, payload?.message || "背驰扫描失败，请稍后重试");
+                    return;
+                }
+                setBeichiLoadingState(true, "背驰扫描任务已启动，正在获取进度...");
+                pollRecentBeichiTask(payload.task_id);
+            } catch (error) {
+                console.warn("Serenity AI Stocks recent beichi scan failed", error);
+                setBeichiLoadingState(false, "背驰扫描失败，请稍后重试");
             }
         }
 
@@ -1275,16 +2775,96 @@
                 applyThreeBuySort();
             });
         }
+        const beichiSortButton = document.getElementById("beichi-sort-button");
+        if (beichiSortButton) {
+            beichiSortButton.addEventListener("click", () => {
+                currentBeichiSortState = getNextRateSortState(currentBeichiSortState);
+                applyBeichiSort();
+            });
+        }
         const recentThreeBuyButton = document.getElementById("recent-three-buy-button");
         if (recentThreeBuyButton) {
             recentThreeBuyButton.addEventListener("click", refreshRecentThreeBuyTimes);
         }
+        const recentBeichiButton = document.getElementById("recent-beichi-button");
+        if (recentBeichiButton) {
+            recentBeichiButton.addEventListener("click", refreshRecentBeichiTimes);
+        }
+        const stockFilterInput = document.getElementById("stock-filter-input");
+        if (stockFilterInput) {
+            stockFilterInput.addEventListener("input", applyStockFilter);
+        }
+        const customStockForm = document.getElementById("custom-stock-form");
+        if (customStockForm) {
+            customStockForm.addEventListener("submit", submitCustomStockForm);
+        }
+        const customStockCodeInput = document.getElementById("custom-stock-code-input");
+        const customStockThemeInput = document.getElementById("custom-stock-theme-input");
+        const customStockSelectedChip = document.getElementById("custom-stock-selected-chip");
+        if (customStockCodeInput) {
+            customStockCodeInput.addEventListener("input", () => {
+                clearSelectedCustomStock({ preserveInput: true });
+                debounceCustomStockSearch(customStockCodeInput.value || "");
+                setCustomStockFeedback("请输入关键词并从候选列表中选择股票", false);
+            });
+            customStockCodeInput.addEventListener("keydown", (event) => {
+                if (!customStockState.suggestions.length) {
+                    return;
+                }
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    const nextIndex = Math.min(
+                        customStockState.activeIndex + 1,
+                        customStockState.suggestions.length - 1
+                    );
+                    setActiveCustomStockSuggestion(nextIndex);
+                } else if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    const nextIndex = Math.max(customStockState.activeIndex - 1, 0);
+                    setActiveCustomStockSuggestion(nextIndex);
+                } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    const candidate = customStockState.suggestions[customStockState.activeIndex];
+                    if (candidate) {
+                        selectCustomStockCandidate(candidate);
+                    }
+                } else if (event.key === "Escape") {
+                    hideCustomStockSuggestions();
+                }
+            });
+        }
+        if (customStockThemeInput) {
+            customStockThemeInput.addEventListener("input", updateCustomStockSubmitState);
+        }
+        if (customStockSelectedChip) {
+            const clearButton = customStockSelectedChip.querySelector("[data-clear-selected-custom-stock]");
+            clearButton?.addEventListener("click", () => {
+                clearSelectedCustomStock();
+                hideCustomStockSuggestions();
+                setCustomStockFeedback("已清除选中股票，请重新搜索", false);
+            });
+        }
+        document.addEventListener("click", (event) => {
+            const searchShell = document.querySelector(".custom-stock-search-shell");
+            if (!searchShell || searchShell.contains(event.target)) {
+                return;
+            }
+            hideCustomStockSuggestions();
+        });
+        updateCustomStockSubmitState();
+        document.querySelectorAll("[data-custom-stock-delete]").forEach((button) => {
+            button.addEventListener("click", () => deleteCustomStock(button));
+        });
         updateRateSortIndicator();
         updateThreeBuySortIndicator();
+        updateBeichiSortIndicator();
+        applyStockFilter();
         initChartModal();
+        initTechDetailModal();
 
         if (!restoreSavedSheetSelection()) {
             persistSelectedSheetSlug();
+            resumeActiveScanTasks();
             refreshSyncStatus();
             refreshPrices();
             setInterval(refreshSyncStatus, REFRESH_INTERVAL_MS);
