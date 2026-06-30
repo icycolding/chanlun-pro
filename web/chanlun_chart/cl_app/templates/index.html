@@ -982,60 +982,29 @@
       return code;
     }
     
-    // 根据股票代码搜索相关新闻
-    function search_news_by_code(market, code) {
-      // 构建搜索查询，包含股票代码和市场信息
-      var searchQuery = code;
-      // if (market === 'a') {
-      //   searchQuery += ' 股票 A股';
-      // } else if (market === 'hk') {
-      //   searchQuery += ' 港股 香港';
-      // } else if (market === 'us') {
-      //   searchQuery += ' 美股 美国';
-      // } else if (market === 'currency') {
-      //   searchQuery += ' 外汇 汇率';
-      // } else if (market === 'futures') {
-      //   searchQuery += ' 期货';
-      // }
-      searchQuery = {'query': code, 'market': market}
+      const LIGHTWEIGHT_NEWS_SEARCH_API_URL = "/api/news/search_by_symbol";
 
+      // 根据股票代码搜索相关新闻
+    function search_news_by_code(market, code) {
+      var searchQuery = {'query': code, 'market': market};
 
       console.log('搜索相关新闻:', searchQuery);
-      
-      // 发送语义搜索请求
+
       $.ajax({
-        url: '/api/news/semantic_search',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-          query: searchQuery,
-          n_results: 50,
-          filters: {
-            market_relevance: {"$gte": 0.3}  // 只显示市场相关度较高的新闻
-          }
-        }),
+        url: LIGHTWEIGHT_NEWS_SEARCH_API_URL,
+        type: 'GET',
+        data: {
+          query: code,
+          market: market,
+          limit: 50
+        },
         success: function(response) {
            console.log('新闻搜索结果:', response);
            if (response.code === 0 && response.data && response.data.results && response.data.results.length > 0) {
-             // 转换搜索结果格式以匹配render_news_list期望的数据结构
-             var formattedNews = response.data.results.map(function(item) {
-               var metadata = item.metadata || {};
-               return {
-                 news_id: metadata.news_id || item.id,
-                 title: metadata.title || '无标题',
-                 published_at: metadata.published_at || metadata.timestamp,
-                 source: metadata.source || '未知来源',
-                 body: item.document || metadata.body || ''
-               };
-             });
-             
-             // 渲染搜索到的新闻
-             News.render_news_list(formattedNews);
-             // 更新新闻区域标题，显示当前搜索的股票
+             News.render_news_list(response.data.results);
              $('#news_section_title').text('新闻资讯 - ' + code + ' 相关');
            } else {
              console.log('未找到相关新闻，加载默认新闻');
-             // 如果没有找到相关新闻，加载默认新闻
              News.load_news();
              $('#news_section_title').text('新闻资讯');
            }

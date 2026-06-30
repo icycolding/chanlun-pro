@@ -2530,13 +2530,14 @@ def create_app(test_config=None):
                 source=source,
                 category=category
             )
-            
-            # 获取向量数据库实例
-            from .news_vector_db import get_vector_db
-            vector_db = get_vector_db()
-            
+
             # 检查是否需要同步数据到向量数据库
             sync_to_vector = request.args.get('sync_to_vector', 'false').lower() == 'true'
+            vector_db = None
+            if sync_to_vector:
+                from .news_vector_db import get_vector_db
+
+                vector_db = get_vector_db()
             
             # 转换为字典格式
             news_data = []
@@ -2598,6 +2599,64 @@ def create_app(test_config=None):
                 "code": 500,
                 "msg": f"查询新闻数据时发生错误: {str(e)}",
                 "data": None
+            }
+
+    @app.route("/api/news/search_by_symbol", methods=["GET"])
+    @login_required
+    def search_news_by_symbol():
+        """
+        轻量新闻检索接口，仅查询关系型数据库，避免触发向量库初始化。
+        """
+        try:
+            query_text = str(request.args.get("query") or "").strip()
+            market = str(request.args.get("market") or "").strip().lower()
+            limit = max(1, min(50, int(request.args.get("limit", 20))))
+            if not query_text:
+                return {
+                    "code": 400,
+                    "msg": "query 不能为空",
+                    "data": {"results": []},
+                }, 400
+
+            keywords = [query_text]
+            if market:
+                keywords.append(market)
+
+            news_list = db.news_search(
+                query_text=query_text,
+                keywords=keywords,
+                limit=limit,
+            )
+            results = []
+            for news in news_list:
+                results.append(
+                    {
+                        "id": news.id,
+                        "news_id": news.news_id,
+                        "story_id": news.story_id,
+                        "title": news.title,
+                        "body": news.body,
+                        "source": news.source,
+                        "published_at": news.published_at.isoformat() if news.published_at else None,
+                        "language": news.language,
+                        "category": news.category,
+                        "tags": news.tags,
+                        "sentiment_score": news.sentiment_score,
+                        "importance_score": news.importance_score,
+                    }
+                )
+
+            return {
+                "code": 0,
+                "msg": "查询成功",
+                "data": {"results": results},
+            }
+        except Exception as e:
+            __log.error(f"轻量新闻检索时发生错误: {str(e)}")
+            return {
+                "code": 500,
+                "msg": f"轻量新闻检索时发生错误: {str(e)}",
+                "data": {"results": []},
             }
     
     @app.route("/api/news/sync_to_vector", methods=["POST"])
