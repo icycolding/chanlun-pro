@@ -2882,6 +2882,10 @@ def create_app(test_config=None):
     # 注册向量数据库API路由
     register_vector_api_routes(app)
     register_smart_news_api(app)
+
+    # 注册个股「分析观点」路由(东财股吧评论 → Claude 分类总结)
+    from .serenity_opinions import register_serenity_opinions_routes
+    register_serenity_opinions_routes(app)
     
     # 注册 AGI 知识库 API 蓝图
     from .ai_agent.knowledge_api import knowledge_bp

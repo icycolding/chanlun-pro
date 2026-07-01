@@ -241,8 +241,106 @@
         {% if analysis.tweet_detail_url %}
         <a class="btn btn-secondary" href="{{ analysis.tweet_detail_url }}">查看推荐脉络</a>
         {% endif %}
+        <button type="button" class="btn btn-primary" id="analyze-opinion-btn"
+          data-name="{{ analysis.display_name or analysis.company_name or analysis.identifier }}"
+          data-code="{{ analysis.numeric_code or analysis.code or '' }}">分析观点</button>
+        <span id="analyze-opinion-status" class="source-chip" style="display:none"></span>
       </div>
+      <div id="opinion-report" style="display:none;margin-top:14px"></div>
     </section>
+    <script>
+    (function () {
+      var btn = document.getElementById("analyze-opinion-btn");
+      var statusEl = document.getElementById("analyze-opinion-status");
+      var reportEl = document.getElementById("opinion-report");
+      if (!btn) return;
+
+      function setStatus(text, show) {
+        if (!statusEl) return;
+        statusEl.textContent = text || "";
+        statusEl.style.display = show ? "" : "none";
+      }
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>]/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c];
+        });
+      }
+      function li(arr) {
+        if (!arr || !arr.length) return "<li style='opacity:.6'>—</li>";
+        return arr.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("");
+      }
+      function renderReport(r) {
+        if (!r) { reportEl.style.display = "none"; return; }
+        var s = r.sentiment || {};
+        var topics = (r.hot_topics || []).map(function (t) {
+          return "<div style='margin:4px 0'><b>[" + esc(t.stance) + "] " + esc(t.title) +
+            "</b><br><span style='opacity:.85'>" + esc(t.summary) + "</span></div>";
+        }).join("");
+        var quotes = (r.notable_quotes || []).map(function (q) {
+          return "<div style='opacity:.8;font-size:.9em'>“" + esc(q.text) + "” <i>(" + esc(q.stance) + ")</i></div>";
+        }).join("");
+        reportEl.innerHTML =
+          "<h2 class='section-title'>散户观点分析</h2>" +
+          "<div class='meta' style='margin-bottom:8px'>来源：" + esc(r.source || "东方财富股吧") +
+            " · 样本 " + esc(r.post_count || 0) + " 条 · 生成于 " + esc(r.generated_at || "") +
+            " · 置信度 " + esc(r.confidence || "-") + "</div>" +
+          "<div style='margin:6px 0'><b>整体情绪：</b>" + esc(r.overall_mood || "-") +
+            "　(多 " + esc(s.bullish_pct || 0) + "% / 空 " + esc(s.bearish_pct || 0) +
+            "% / 中 " + esc(s.neutral_pct || 0) + "%)</div>" +
+          "<div style='display:flex;gap:24px;flex-wrap:wrap'>" +
+            "<div><b>核心看多</b><ul>" + li(r.bull_points) + "</ul></div>" +
+            "<div><b>核心看空</b><ul>" + li(r.bear_points) + "</ul></div>" +
+            "<div><b>风险</b><ul>" + li(r.risks) + "</ul></div></div>" +
+          (topics ? "<div style='margin-top:8px'><b>热议主题</b>" + topics + "</div>" : "") +
+          (r.consensus ? "<div style='margin-top:8px'><b>共识：</b>" + esc(r.consensus) + "</div>" : "") +
+          (r.disagreements ? "<div><b>分歧：</b>" + esc(r.disagreements) + "</div>" : "") +
+          (quotes ? "<div style='margin-top:8px'><b>代表性评论</b>" + quotes + "</div>" : "");
+        reportEl.style.display = "";
+      }
+
+      function poll(taskId, tries) {
+        if (tries > 200) { setStatus("超时,请稍后重试", true); btn.disabled = false; return; }
+        fetch("/serenity/opinions/task/" + taskId).then(function (r) { return r.json(); }).then(function (t) {
+          if (!t.ok) { setStatus("任务丢失", true); btn.disabled = false; return; }
+          if (t.state === "done") {
+            setStatus((t.result && t.result.cached) ? "完成(缓存)" : "完成", true);
+            btn.disabled = false; btn.textContent = "重新分析";
+            renderReport(t.result && t.result.report);
+          } else if (t.state === "failed") {
+            setStatus(t.message || "失败", true); btn.disabled = false;
+          } else {
+            setStatus(t.message || "分析中…", true);
+            setTimeout(function () { poll(taskId, tries + 1); }, 2500);
+          }
+        }).catch(function () { setTimeout(function () { poll(taskId, tries + 1); }, 3000); });
+      }
+
+      btn.addEventListener("click", function () {
+        var name = btn.dataset.name || "";
+        var code = btn.dataset.code || "";
+        if (!name) { setStatus("缺少股票名称", true); return; }
+        btn.disabled = true;
+        setStatus("启动分析…", true);
+        reportEl.style.display = "none";
+        fetch("/serenity/opinions/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: name, code: code, force: btn.textContent === "重新分析" }),
+        }).then(function (r) { return r.json(); }).then(function (p) {
+          if (!p.ok) { setStatus(p.message || "启动失败", true); btn.disabled = false; return; }
+          poll(p.task_id, 0);
+        }).catch(function () { setStatus("网络错误", true); btn.disabled = false; });
+      });
+
+      // 页面加载时若已有报告则直接展示
+      var preName = btn.dataset.name || "";
+      if (preName) {
+        fetch("/serenity/opinions/" + encodeURIComponent(preName)).then(function (r) { return r.json(); })
+          .then(function (p) { if (p.ok && p.report) { renderReport(p.report); btn.textContent = "重新分析"; } })
+          .catch(function () {});
+      }
+    })();
+    </script>
 
     <section class="panel">
       <h2 class="section-title">实时行情</h2>
