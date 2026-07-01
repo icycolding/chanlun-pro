@@ -18,7 +18,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable
 
 from jin10_web import fetch_flash_from_homepage
 from news import NewsItem
@@ -32,8 +32,6 @@ if str(_SRC_DIR) not in sys.path:
 from chanlun.db import DB
 
 _BEIJING_TZ = dt.timezone(dt.timedelta(hours=8))
-_VECTOR_DB_INSTANCE = None
-_VECTOR_DB_LOAD_ERROR = None
 
 
 def load_seen(path: Path) -> Dict[str, float]:
@@ -74,15 +72,6 @@ def build_news_record(item: NewsItem) -> dict:
     }
 
 
-def get_vector_db_safe():
-    global _VECTOR_DB_INSTANCE, _VECTOR_DB_LOAD_ERROR
-
-    if _VECTOR_DB_INSTANCE is not None:
-        return _VECTOR_DB_INSTANCE
-    if _VECTOR_DB_LOAD_ERROR is not None:
-        return None
-
-
 def build_asset_link_rows_safe(record: dict) -> list[dict]:
     try:
         cl_app_dir = _PROJECT_ROOT / "web" / "chanlun_chart" / "cl_app"
@@ -101,43 +90,14 @@ def build_asset_link_rows_safe(record: dict) -> list[dict]:
         print(f"[asset-link] build skipped: {e}")
         return []
 
-    try:
-        cl_app_dir = _PROJECT_ROOT / "web" / "chanlun_chart" / "cl_app"
-        if str(cl_app_dir) not in sys.path:
-            sys.path.insert(0, str(cl_app_dir))
-        from news_vector_db import get_vector_db
-
-        _VECTOR_DB_INSTANCE = get_vector_db()
-        return _VECTOR_DB_INSTANCE
-    except Exception as e:
-        _VECTOR_DB_LOAD_ERROR = str(e)
-        print(f"[vector] init skipped: {e}")
-        return None
-
-
-def sync_record_to_vector(record: dict, vector_db: Optional[object]) -> bool:
-    if vector_db is None:
-        return False
-
-    try:
-        added = bool(vector_db.add_news(record))
-        if added:
-            print(f"[vector] synced {record['news_id']}")
-        return added
-    except Exception as e:
-        print(f"[vector] sync failed for {record['news_id']}: {e}")
-        return False
-
 
 def persist_items(
     items: Iterable[NewsItem],
     db: DB,
     seen: Dict[str, float],
-    vector_db: Optional[object] = None,
 ) -> tuple[int, int, int]:
     inserted_count = 0
     skipped_count = 0
-    vector_synced_count = 0
 
     for item in items:
         news_id = item.article_id or f"jin10_{int(item.time.timestamp())}"
@@ -152,13 +112,12 @@ def persist_items(
                 record.get("news_id"),
                 build_asset_link_rows_safe(record),
             )
-        if sync_record_to_vector(record, vector_db):
-            vector_synced_count += 1
         print(f"[db] {record['published_at']} {record['title']}")
         seen[news_id] = item.time.timestamp()
         inserted_count += 1
 
-    return inserted_count, skipped_count, vector_synced_count
+    # 第三位历史上为向量同步计数，已移除向量库耦合，保留元组形状以兼容调用方
+    return inserted_count, skipped_count, 0
 
 
 def sync_jin10_news_once(
@@ -172,12 +131,10 @@ def sync_jin10_news_once(
     if max_items > 0:
         items = items[:max_items]
 
-    vector_db = get_vector_db_safe()
     inserted_count, skipped_count, vector_synced_count = persist_items(
         reversed(items),
         db,
         seen,
-        vector_db=vector_db,
     )
     save_seen(state_path, seen)
     return inserted_count, skipped_count, vector_synced_count

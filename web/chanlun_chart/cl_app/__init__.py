@@ -2893,5 +2893,12 @@ def create_app(test_config=None):
 
     if not app.config.get("TESTING", False):
         _start_serenity_aistocks_price_sync(interval_seconds=180)
+        # 金十新闻定时抓取开机自启（仅写入 MySQL cl_news，不加载向量库）
+        _start_jin10_watch(
+            interval=jin10_watch_status["interval"],
+            max_items=jin10_watch_status["max_items"],
+            url=jin10_watch_status["url"],
+            state_path=str(jin10_watch_state_path),
+        )
 
     return app
