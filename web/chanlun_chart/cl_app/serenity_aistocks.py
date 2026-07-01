@@ -2594,7 +2594,7 @@ def _prompt_analyze(name: str, code: str, gather_text: str) -> str:
         "5. 不得编造精确数字；无源处写定性并置 market_cap_research.live_number_source_required=true。\n"
         "6. scarcity/capacity/pricing/moat 的 label/durability 用 强/中/弱；valuation.verdict 用 低估/合理/高估；\n"
         "   scenario 给 牛/基准/熊 三档（prob 粗略概率、target 方向、drivers 关键驱动）；confidence 逐维给 高/中/低。\n"
-        "7. evidence_sources ≥3 条真实 http(s) 链接，每条带 tier(1/2/3)。\n\n"
+        "7. evidence_sources ≥3 条真实 http(s) 链接，每条 tier 取纯数字 1/2/3（1=一手披露/交易所，2=权威财媒，3=其他；写成整数，勿写 'tier2' 这类字符串）。\n\n"
         "只输出一个 JSON（无 markdown、无多余文字），结构：\n" + _V2_SCHEMA_SKELETON
     )
 
@@ -2786,6 +2786,37 @@ def _run_research_pipeline(
     return final, log_path
 
 
+def _classify_gate_failure(detail: str) -> tuple[str, str]:
+    """把质量闸门 detail 归类为 (error_code, 面向用户的友好文案)。
+
+    区分「证据不足」（数据源问题，非 bug，提示可换标的/重试）与「结构未达标」
+    （模型漏填字段/占位/分级非法，属流水线质量问题）。
+    """
+    d = detail or ""
+    evidence_hit = ("证据来源不足" in d) or ("缺合法 tier" in d)
+    structural_markers = (
+        "为空", "非法", "占位符", "须含", "须为", "不一致",
+        "缺 fit_reason_short", "缺 serenity_certification",
+        "缺合法已校验代码", "checklist", "认证", "疑似逃避",
+    )
+    structural_hit = any(m in d for m in structural_markers)
+    if evidence_hit and not structural_hit:
+        return (
+            "evidence_insufficient",
+            "公开证据不足（有效来源少于 3 条或来源分级缺失），为避免臆测已放弃出报告。"
+            "可换证据更充分的标的，或稍后联网重试。",
+        )
+    if evidence_hit and structural_hit:
+        return (
+            "quality_gate_mixed",
+            "研究质量未达标（既有证据不足、也有结构字段缺失），已放弃出报告，可稍后重试。",
+        )
+    return (
+        "quality_gate_structure",
+        "研究结构未达标（部分字段缺失/占位/分级非法），已放弃出报告，可稍后重试。",
+    )
+
+
 def _validate_single_research_entry(name: str, entry: dict[str, Any]) -> tuple[bool, str]:
     """用独立质量闸门脚本校验单条研究，返回 (是否通过, 说明)。"""
     tmp_path = _serenity_fit._AISTOCKS_RESEARCH_JSON_PATH.parent / f".analyze_check_{_analyze_slug(name)}.json"
@@ -2871,7 +2902,17 @@ def _run_serenity_analyze_task(task_id: str, name: str, code: str, force: bool) 
                     log.write(f"\n# 质量闸门未通过：\n{detail}\n")
             except OSError:
                 pass
-            raise RuntimeError(f"质量闸门未通过：{detail[:400]}")
+            err_code, friendly = _classify_gate_failure(detail)
+            _set_aistocks_scan_task(
+                task_id,
+                state="failed",
+                progress=100,
+                message=friendly,
+                error=err_code,
+                detail=detail[:400],  # 原始闸门明细，供前端可选展开诊断
+                finished_at=datetime.datetime.now().isoformat(),
+            )
+            return  # finally 仍会清理活跃任务
 
         _write_research_entry(name, entry)
         _set_aistocks_scan_task(

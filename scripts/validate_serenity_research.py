@@ -35,6 +35,23 @@ def _txt(value) -> str:
     return str(value).strip() if value is not None else ""
 
 
+_TIER_CN = {"一": "1", "二": "2", "三": "3"}
+
+
+def _norm_tier(value) -> str | None:
+    """把 tier 归一到 '1'/'2'/'3'。容忍模型漂移写法：1 / '2' / 'tier2' / 'T3' / '第二档'。"""
+    if value is None:
+        return None
+    s = str(value)
+    m = re.search(r"[123]", s)
+    if m:
+        return m.group(0)
+    for cn, num in _TIER_CN.items():
+        if cn in s:
+            return num
+    return None
+
+
 def _entry_version(entry: dict) -> int:
     try:
         return int(entry.get("schema_version", 1))
@@ -63,7 +80,7 @@ def _check_evidence(entry: dict, *, min_count: int, require_tier: bool) -> list[
     if require_tier:
         for idx, s in enumerate(http_sources):
             tier = (s or {}).get("tier")
-            if tier not in (1, 2, 3, "1", "2", "3"):
+            if _norm_tier(tier) is None:
                 errors.append(f"证据[{idx}] 缺合法 tier(1/2/3) (got {tier!r})")
     return errors
 

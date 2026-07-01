@@ -710,6 +710,9 @@
         .serenity-analyze-status.is-error {
             color: #dc2626;
         }
+        .serenity-analyze-status.is-warn {
+            color: #d97706;
+        }
         .serenity-analyze-status.is-done {
             color: #16a34a;
         }
@@ -2972,9 +2975,11 @@
                 return;
             }
             statusEl.textContent = text || "";
-            statusEl.classList.remove("is-error", "is-done");
+            statusEl.classList.remove("is-error", "is-warn", "is-done");
             if (kind === "error") {
                 statusEl.classList.add("is-error");
+            } else if (kind === "warn") {
+                statusEl.classList.add("is-warn");
             } else if (kind === "done") {
                 statusEl.classList.add("is-done");
             }
@@ -3007,7 +3012,9 @@
                     return { done: true, ok: true, result };
                 }
                 if (state === "failed") {
-                    setAnalyzeStatus(statusEl, task.message || "分析失败", "error");
+                    // 证据不足属数据源问题（非 bug），用琥珀色告警；其余用红色错误
+                    const kind = task.error === "evidence_insufficient" ? "warn" : "error";
+                    setAnalyzeStatus(statusEl, task.message || "分析失败", kind);
                     return { done: true, ok: false };
                 }
                 setAnalyzeStatus(statusEl, task.message || "分析进行中…", null);
