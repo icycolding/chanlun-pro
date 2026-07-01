@@ -1144,7 +1144,10 @@ def test_serenity_aistocks_index_template_renders_sheet_cards(monkeypatch):
     )
 
     assert "<h1>Serenity AI Stocks</h1>" not in html
-    assert "Sheet 总览" in html
+    assert "主题" in html
+    assert "搜索" in html
+    assert "新增" in html
+    assert "扫描" in html
     assert "科技线短缺材料总表" in html
     assert "芯片半导体" in html
     assert "后台同步" in html
@@ -1152,10 +1155,13 @@ def test_serenity_aistocks_index_template_renders_sheet_cards(monkeypatch):
     assert "价格" in html
     assert "active" in html
     assert "/serenity/aistocks/" in html
-    assert ".sidebar {\n            position: static;" in html
-    assert ".sheet-nav {\n            display: flex;" in html
-    assert "max-height: calc(100vh - 140px);" in html
-    assert "overflow-y: auto;" in html
+    assert 'class="toolbar-toggle-bar"' in html
+    assert 'class="toolbar-panels"' in html
+    assert "toggleToolbarPanel" in html
+    assert 'data-panel-target="themes"' in html
+    assert 'data-panel-target="search"' in html
+    assert 'data-panel-target="custom-stock"' in html
+    assert 'data-panel-target="scan"' in html
 
 
 def test_serenity_aistocks_index_template_includes_price_cells_and_restore_hooks(monkeypatch):
@@ -1221,6 +1227,31 @@ def test_serenity_aistocks_index_template_includes_price_cells_and_restore_hooks
     assert 'id="active-scan-tasks-json"' in html
     assert 'id="sheet-slugs-json"' in html
     assert 'JSON.parse(document.getElementById("active-scan-tasks-json")?.textContent || "{}")' in html
+
+
+def test_serenity_aistocks_index_template_reorders_columns_for_readability(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+    sheet = get_serenity_aistocks_sheet("科技线短缺材料总表")
+    workbook = load_serenity_aistocks_workbook()
+    html = _render_serenity_aistocks_index(
+        {
+            "workbook": workbook,
+            "selected_sheet": sheet,
+            "selected_sheet_slug": sheet["sheet_slug"],
+            "sync_status": {},
+            "sheet_slugs": [item["sheet_slug"] for item in workbook["sheets"]],
+            "active_scan_tasks": {},
+        }
+    )
+
+    assert html.index(">名称</th>") < html.index(">价格</span>")
+    assert html.index(">价格</span>") < html.index(">最近 3买</span>")
+    assert html.index(">背驰</span>") < html.index(">核心概念 / 备注</th>")
+    assert html.index(">核心概念 / 备注</th>") < html.index(">Serenity 标准</th>")
 
 
 def test_serenity_aistocks_index_template_renders_cached_recent_three_buy(monkeypatch):
@@ -1841,8 +1872,8 @@ def test_serenity_aistocks_index_template_includes_custom_stock_management_contr
     assert 'id="custom-stock-theme-input"' in html
     assert "custom-stock-delete-button" in html
     assert "submitCustomStockForm" in html
-    assert 'class="toolbar-card toolbar-card-add"' in html
-    assert 'class="toolbar-card toolbar-card-scan"' in html
+    assert 'data-toolbar-panel="custom-stock"' in html
+    assert 'data-toolbar-panel="scan"' in html
     assert "技术扫描" in html
     assert 'id="custom-stock-suggestions"' in html
     assert 'id="custom-stock-selected-symbol"' in html
@@ -1888,6 +1919,45 @@ def test_serenity_aistocks_index_template_simplifies_left_sheet_navigation(monke
     assert "可尝试抓价：" not in html
     assert 'class="sample-list"' not in html
     assert "点击左侧任一 Sheet" not in html
+    assert 'class="sidebar"' not in html
+    assert 'class="layout"' not in html
+    assert 'data-toolbar-panel="themes"' in html
+
+
+def test_serenity_aistocks_index_template_hides_tool_panels_by_default(monkeypatch):
+    class FakeDB:
+        def serenity_aistocks_latest_prices_query(self, items):
+            return []
+
+    monkeypatch.setattr(serenity_aistocks, "db", FakeDB())
+    sheet = get_serenity_aistocks_sheet("科技线短缺材料总表")
+    workbook = load_serenity_aistocks_workbook()
+    html = _render_serenity_aistocks_index(
+        {
+            "workbook": workbook,
+            "selected_sheet": sheet,
+            "selected_sheet_slug": sheet["sheet_slug"],
+            "selected_sheet_summary": workbook["sheets"][0],
+            "sync_status": {
+                "running": True,
+                "interval_seconds": 180,
+                "last_run_at_text": "2026-06-17 10:00:00",
+                "last_success_count": 18,
+                "last_total_candidates": 20,
+                "last_error": "",
+                "status_label": "运行中",
+            },
+            "sheet_slugs": [item["sheet_slug"] for item in workbook["sheets"]],
+            "active_scan_tasks": {},
+        }
+    )
+
+    assert 'class="toolbar-panel is-hidden"' in html
+    assert "let currentToolbarPanel = \"\";" in html
+    assert 'id="stock-filter-input"' in html
+    assert 'id="custom-stock-form"' in html
+    assert 'id="recent-three-buy-button"' in html
+    assert 'id="recent-beichi-button"' in html
 
 
 def test_fetch_serenity_aistocks_recent_three_buy_times_uses_daily_d_and_prefers_bi_3b(monkeypatch):
