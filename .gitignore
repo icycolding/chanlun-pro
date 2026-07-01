@@ -1,7 +1,32 @@
 *.pyc
+__pycache__/
 .rkey
+*.rkey
+pyarmor.rkey
 *.sqlite3
+*.sqlite3.*
+*.sqlm
 *.DS_Store
 *.bin
 *.log
+
+# runtime output / process logs
+*.out
+nohup.out
+
+# test / tooling caches
+.pytest_cache/
+.claude/
+
+# vector store / local dbs
+chroma_db/
+
+# downloaded binaries / archives
+*.tar.gz
+
+# vendored tooling checkout (236M, not part of this repo)
+/ECC/
+
+# serenity analyze runtime logs
+web/chanlun_chart/logs/
 
