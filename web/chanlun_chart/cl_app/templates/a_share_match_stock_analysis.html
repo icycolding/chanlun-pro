@@ -414,6 +414,197 @@
       </div>
     </section>
 
+    {% set cert = analysis.get("serenity_certification", {}) %}
+    {% if cert.get("verdict") %}
+    {% set _badge = {"yes": ("✓ 通过", "#16a34a"), "partial": ("◐ 部分", "#d97706"), "no": ("✗ 不符", "#dc2626"), "na": ("— 不适用", "#64748b")} %}
+    <section class="panel">
+      <h2 class="section-title">Serenity 方法论认证</h2>
+      <div class="selection-reason-block">
+        <span class="selection-reason-title">
+          认证结论：{{ cert.verdict }}{% if cert.get("score") %}　得分 {{ cert.score }}{% endif %}
+        </span>
+        {% if cert.get("summary") %}<p class="selection-reason-text">{{ cert.summary }}</p>{% endif %}
+        {% if cert.get("bottleneck_map") %}<p class="selection-basis-text">卡点链路：{{ cert.bottleneck_map }}</p>{% endif %}
+        {% if cert.get("disqualifiers") %}<p class="selection-basis-text">否决项：{{ cert.disqualifiers | join("；") }}</p>{% endif %}
+        {% if cert.get("anti_patterns_checked") %}<p class="selection-basis-text">反模式排查：{{ cert.anti_patterns_checked }}</p>{% endif %}
+      </div>
+      <ul class="news-list">
+        {% for item in cert.get("checklist", []) %}
+        {% set b = _badge.get(item.result, ("—", "#64748b")) %}
+        <li>
+          <div class="news-title">
+            {{ item.id }}. {{ item.name }}
+            <span style="margin-left:8px;padding:1px 8px;border-radius:6px;color:#fff;font-size:12px;background:{{ b[1] }};">{{ b[0] }}</span>
+          </div>
+          <div class="selection-metric-detail">{{ item.evidence or "—" }}</div>
+          {% if item.source_url %}<div class="news-meta"><a href="{{ item.source_url }}">来源</a></div>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% set thesis = analysis.get("thesis_view", {}) %}
+    {% set financials = analysis.get("financials_view", {}) %}
+    {% set moat = analysis.get("moat_view", {}) %}
+    {% set valuation = analysis.get("valuation_view", {}) %}
+    {% set scenario = analysis.get("scenario_view", {}) %}
+    {% set catalysts = analysis.get("catalysts_view", []) %}
+    {% set risks = analysis.get("risks_view", []) %}
+    {% set confidence = analysis.get("confidence", {}) %}
+
+    {% if thesis.get("variant_perception") %}
+    <section class="panel">
+      <h2 class="section-title">投资论点（变量感知）</h2>
+      <p class="selection-reason-text">{{ thesis.variant_perception }}</p>
+      <div class="selection-metric-grid">
+        {% if thesis.get("bull_points") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">多头逻辑</span>
+          {% for p in thesis.bull_points %}<p class="selection-metric-detail">▲ {{ p }}</p>{% endfor %}
+        </div>
+        {% endif %}
+        {% if thesis.get("bear_points") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">空头逻辑</span>
+          {% for p in thesis.bear_points %}<p class="selection-metric-detail">▼ {{ p }}</p>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if financials.get("revenue_trend_3y") or financials.get("revenue_segments") %}
+    <section class="panel">
+      <h2 class="section-title">财务概览</h2>
+      <div class="selection-metric-grid">
+        {% if financials.get("revenue_trend_3y") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">近 3 年营收趋势</span>
+          <p class="selection-metric-detail">{{ financials.revenue_trend_3y }}</p>
+        </div>
+        {% endif %}
+        {% if financials.get("margin_text") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">毛利</span>
+          <p class="selection-metric-detail">{{ financials.margin_text }}</p>
+        </div>
+        {% endif %}
+        {% if financials.get("operating_leverage_text") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">经营杠杆</span>
+          <p class="selection-metric-detail">{{ financials.operating_leverage_text }}</p>
+        </div>
+        {% endif %}
+      </div>
+      {% if financials.get("revenue_segments") %}
+      <div class="selection-metric-grid">
+        {% for seg in financials.revenue_segments %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">{{ seg.name }}</span>
+          <span class="selection-metric-value">{{ seg.pct }}</span>
+          <p class="selection-metric-detail">{{ seg.trend }}</p>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if moat.get("durability") or valuation.get("verdict") %}
+    <section class="panel">
+      <h2 class="section-title">护城河与估值</h2>
+      <div class="selection-metric-grid">
+        {% if moat.get("durability") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">护城河持久性</span>
+          <span class="selection-metric-value">{{ moat.durability }}</span>
+          {% if moat.get("moat_types") %}<p class="selection-metric-detail">类型：{{ moat.moat_types | join("、") }}</p>{% endif %}
+          <p class="selection-metric-detail">{{ moat.detail }}</p>
+        </div>
+        {% endif %}
+        {% if valuation.get("verdict") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">估值判定</span>
+          <span class="selection-metric-value">{{ valuation.verdict }}</span>
+          {% if valuation.get("pe_text") %}<p class="selection-metric-detail">P/E：{{ valuation.pe_text }}</p>{% endif %}
+          {% if valuation.get("pb_text") %}<p class="selection-metric-detail">P/B：{{ valuation.pb_text }}</p>{% endif %}
+          {% if valuation.get("peg_text") %}<p class="selection-metric-detail">PEG：{{ valuation.peg_text }}</p>{% endif %}
+          {% if valuation.get("vs_history_text") %}<p class="selection-metric-detail">对比历史：{{ valuation.vs_history_text }}</p>{% endif %}
+          {% if valuation.get("vs_peers_text") %}<p class="selection-metric-detail">对比同业：{{ valuation.vs_peers_text }}</p>{% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if scenario.get("bull", {}).get("drivers") or scenario.get("base", {}).get("drivers") %}
+    <section class="panel">
+      <h2 class="section-title">情景分析（牛 / 基准 / 熊）</h2>
+      <div class="selection-metric-grid">
+        {% for key, label in [("bull", "牛市"), ("base", "基准"), ("bear", "熊市")] %}
+        {% set leg = scenario.get(key, {}) %}
+        {% if leg.get("drivers") or leg.get("target") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">{{ label }}{% if leg.get("prob") %}（概率 {{ leg.prob }}）{% endif %}</span>
+          {% if leg.get("target") %}<span class="selection-metric-value">{{ leg.target }}</span>{% endif %}
+          <p class="selection-metric-detail">{{ leg.drivers }}</p>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if catalysts %}
+    <section class="panel">
+      <h2 class="section-title">催化日历（12 个月）</h2>
+      <ul class="news-list">
+        {% for c in catalysts %}
+        <li>
+          <div class="news-title">{{ c.event }}</div>
+          <div class="news-meta">{{ c.window or '--' }}</div>
+          <div class="selection-metric-detail">影响：{{ c.impact or '--' }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if risks %}
+    <section class="panel">
+      <h2 class="section-title">风险与监控</h2>
+      <ul class="news-list">
+        {% for r in risks %}
+        <li>
+          <div class="news-title">{{ r.risk }}</div>
+          <div class="selection-metric-detail">影响：{{ r.impact or '--' }}</div>
+          <div class="news-meta">监控指标：{{ r.monitor or '--' }}</div>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% endif %}
+
+    {% if confidence.get("overall") %}
+    <section class="panel">
+      <h2 class="section-title">研究置信度</h2>
+      <div class="selection-metric-grid">
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">总体置信</span>
+          <span class="selection-metric-value">{{ confidence.overall }}</span>
+          {% if confidence.get("evidence_tier_summary") %}<p class="selection-metric-detail">证据分层：{{ confidence.evidence_tier_summary }}</p>{% endif %}
+        </div>
+        {% if confidence.get("by_dimension") %}
+        <div class="selection-metric-card">
+          <span class="selection-metric-label">逐维置信</span>
+          {% for dim, level in confidence.by_dimension.items() %}<p class="selection-metric-detail">{{ dim }}：{{ level }}</p>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </section>
+    {% endif %}
+
     <section class="panel">
       <h2 class="section-title">证据来源</h2>
       <ul class="news-list">
@@ -427,7 +618,7 @@
             {{ item.title or "未命名来源" }}
             {% endif %}
           </div>
-          <div class="news-meta">{{ item.source_type or '--' }}</div>
+          <div class="news-meta">{{ item.source_type or '--' }}{% if item.tier %} · 证据分层 T{{ item.tier }}{% endif %}</div>
           <div class="selection-metric-detail">{{ item.summary or "暂无摘要" }}</div>
         </li>
         {% endfor %}

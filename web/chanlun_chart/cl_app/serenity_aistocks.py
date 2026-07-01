@@ -5,8 +5,11 @@ from concurrent.futures import ThreadPoolExecutor
 import datetime
 from functools import lru_cache
 import json
+import os
 from pathlib import Path
 import re
+import subprocess
+import tempfile
 import threading
 import time
 from typing import Any
@@ -30,6 +33,7 @@ from .a_share_matches_quotes import (
     normalize_hk_code,
 )
 from .a_share_stock_analysis import build_stock_analysis_detail_url
+from . import serenity_aistocks_serenity_fit as _serenity_fit
 from .serenity_aistocks_serenity_fit import build_serenity_aistock_fit_view
 from .tv_chart_request_mode import apply_lite_chart_config_override
 
@@ -2443,6 +2447,463 @@ def _resolve_serenity_aistocks_page_context(
     }
 
 
+# ---------------------------------------------------------------------------
+# 点击按需分析（Serenity 研究）：后端 spawn 无头 claude，过质量闸门后写回研究 JSON。
+# ---------------------------------------------------------------------------
+_ANALYZE_TASK_TYPE = "serenity_analyze"
+_ANALYZE_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60  # 命中缓存 1 周内直接复用，可强制刷新
+_ANALYZE_CLAUDE_TIMEOUT_SECONDS = 8 * 60
+_ANALYZE_CLAUDE_BIN = os.environ.get("SERENITY_CLAUDE_BIN") or "/root/.local/bin/claude"
+_VALIDATE_RESEARCH_SCRIPT = _PROJECT_ROOT / "scripts" / "validate_serenity_research.py"
+# 每次分析的实时过程日志目录，服务器上可 `tail -f` 观察 claude 的联网/推理全过程。
+_ANALYZE_LOG_DIR = Path(__file__).resolve().parents[1] / "logs" / "serenity_analyze"
+# 无头 claude 的中性工作目录：不在项目内运行，避免继承本项目 SessionStart hook
+# 注入的旧对话摘要（每次多吃约 28k input token 的成本噪声）。
+_ANALYZE_NEUTRAL_CWD = Path(tempfile.gettempdir()) / "serenity_analyze_cwd"
+
+
+def _analyze_slug(name: str) -> str:
+    return _slugify_sheet_name(_normalize_text(name)) or "unknown"
+
+
+def _load_research_json() -> dict[str, Any]:
+    try:
+        with open(_serenity_fit._AISTOCKS_RESEARCH_JSON_PATH, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def _research_entry_is_fresh(entry: dict[str, Any]) -> bool:
+    verified_at = _normalize_text(entry.get("verified_at"))
+    if not verified_at:
+        return False
+    try:
+        verified_dt = datetime.datetime.fromisoformat(verified_at)
+    except ValueError:
+        try:
+            verified_dt = datetime.datetime.strptime(verified_at, "%Y-%m-%d")
+        except ValueError:
+            return False
+    age = (datetime.datetime.now() - verified_dt).total_seconds()
+    return 0 <= age <= _ANALYZE_CACHE_TTL_SECONDS
+
+
+# Serenity 方法论 14 点认证清单（源自 references/methodology.md §15）。子进程在中性 cwd
+# 读不到项目文件，故内嵌为自包含 rubric，逐条判定 yes/partial/no/na + 证据。
+_SERENITY_CHECKLIST = (
+    "1. 瓶颈：是否独家/近独家单点卡点，无近期合格替代，具真实定价权？\n"
+    "2. 上游且便宜：是否位于『卖铲人』上游，且其组件占下游 BOM 比例小（买方宁可涨价买单而非绕开）？\n"
+    "3. 链路通透：能否从原料/输入层完整画到模组/成品，不混淆 衬底≠外延≠晶圆≠激光≠模块/封装？\n"
+    "4. 需求驱动：TAM 是否由超算 AI capex / 物理 AI（机器人）驱动，而非传统周期性市场？\n"
+    "5. 合同与对手方：是否有签约多年订单，且对手方信用强（AAA 超算/大厂而非烧钱 lab）？\n"
+    "6. 真实毛利：GAAP 毛利（非挑拣的非 GAAP/单行口径）是否支撑其质地？\n"
+    "7. 融资质量：是否存在大额增发/ATM、SBC、高息债等稀释否决项？（A 股看定增/大额减持/高质押）\n"
+    "8. 阶段：是否处于放量前的认证/设计导入期、被 TTM 收入低估；还是已被市场抢跑？\n"
+    "9. 催化与时点：可交易窗口内是否有明确日期催化（财报/行业大会/政策/指数纳入）？\n"
+    "10. 市值空间：市值是否足够小、机构重估仍在前方？\n"
+    "11. 验证滞后：机构/券商覆盖是否仍落后于供应链证据（=信息差），还是已被计价？\n"
+    "12. 风险与仓位：二元性有多强（稀释/单一客户/出口管制/重组）？\n"
+    "13. 披露权重：原作者是否持有/回避/无仓（A 股场景通常为 na）？\n"
+    "14. 宏观叠加：当前利率/关税/战争 regime 对该具体论点是利还是弊？"
+)
+
+# v2 研究 schema 骨架（analyze / critique 两轮共用）。详见 serenity-aleabitoreddit-main/RESEARCH_SCHEMA.md。
+_V2_SCHEMA_SKELETON = (
+    "{"
+    "\"code_in_xlsx\":\"\",\"code_verified\":\"\",\"code_fix_note\":\"\",\"verified_at\":\"YYYY-MM-DD\","
+    "\"fit_status\":\"fit|partial_fit|not_fit|watch\",\"fit_reason_short\":\"\",\"fit_reason_detail\":\"\",\"fit_basis\":\"\","
+    "\"selection_reason\":{\"summary\":\"\",\"fit_basis\":\"\"},"
+    "\"scarcity_view\":{\"label\":\"强|中|弱\",\"detail\":\"\"},"
+    "\"capacity_view\":{\"label\":\"强|中|弱\",\"detail\":\"\"},"
+    "\"pricing_view\":{\"label\":\"强|中|弱\",\"detail\":\"\"},"
+    "\"segment_market_view\":{\"market_size_text\":\"\",\"company_share_text\":\"\",\"share_level\":\"\"},"
+    "\"sector_context_view\":{\"sector_name\":\"\",\"sector_role\":\"\",\"market_size_text\":\"\",\"growth_outlook\":\"\","
+    "\"company_position_text\":\"\",\"company_share_text\":\"\",\"share_level\":\"\",\"evidence_note\":\"\"},"
+    "\"industry_chain_view\":{\"upstream\":\"\",\"midstream\":\"\",\"downstream\":\"\",\"company_link_position\":\"\",\"choke_point_note\":\"\"},"
+    "\"market_cap_research\":{\"current_text\":\"\",\"upside_text\":\"\",\"downside_text\":\"\",\"rationale\":\"\",\"live_number_source_required\":true},"
+    "\"financials_view\":{\"revenue_segments\":[{\"name\":\"\",\"pct\":\"\",\"trend\":\"\"}],\"revenue_trend_3y\":\"\",\"margin_text\":\"\",\"operating_leverage_text\":\"\"},"
+    "\"moat_view\":{\"moat_types\":[\"\"],\"durability\":\"强|中|弱\",\"detail\":\"\"},"
+    "\"valuation_view\":{\"pe_text\":\"\",\"pb_text\":\"\",\"peg_text\":\"\",\"vs_history_text\":\"\",\"vs_peers_text\":\"\",\"verdict\":\"低估|合理|高估\"},"
+    "\"catalysts_view\":[{\"window\":\"\",\"event\":\"\",\"impact\":\"\"}],"
+    "\"risks_view\":[{\"risk\":\"\",\"impact\":\"\",\"monitor\":\"\"}],"
+    "\"thesis_view\":{\"variant_perception\":\"\",\"bull_points\":[\"\"],\"bear_points\":[\"\"]},"
+    "\"scenario_view\":{\"bull\":{\"prob\":\"\",\"target\":\"\",\"drivers\":\"\"},\"base\":{\"prob\":\"\",\"target\":\"\",\"drivers\":\"\"},\"bear\":{\"prob\":\"\",\"target\":\"\",\"drivers\":\"\"}},"
+    "\"confidence\":{\"overall\":\"高|中|低\",\"by_dimension\":{\"scarcity\":\"\",\"valuation\":\"\",\"catalysts\":\"\",\"risks\":\"\"},\"evidence_tier_summary\":\"\"},"
+    "\"serenity_certification\":{\"verdict\":\"fit|partial_fit|not_fit|watch\",\"score\":\"N/14\","
+    "\"checklist\":["
+    "{\"id\":1,\"name\":\"瓶颈\",\"result\":\"yes|partial|no|na\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":2,\"name\":\"上游且便宜\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":3,\"name\":\"链路通透\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":4,\"name\":\"需求驱动\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":5,\"name\":\"合同与对手方\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":6,\"name\":\"真实毛利\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":7,\"name\":\"融资质量\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":8,\"name\":\"阶段\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":9,\"name\":\"催化与时点\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":10,\"name\":\"市值空间\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":11,\"name\":\"验证滞后\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":12,\"name\":\"风险与仓位\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":13,\"name\":\"披露权重\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"},"
+    "{\"id\":14,\"name\":\"宏观叠加\",\"result\":\"\",\"evidence\":\"\",\"source_url\":\"\"}"
+    "],\"bottleneck_map\":\"原料→…→模组/成品的多跳链路，并标注每层由谁卡点\","
+    "\"disqualifiers\":[],\"anti_patterns_checked\":\"\",\"summary\":\"\"},"
+    "\"evidence_sources\":[{\"title\":\"\",\"summary\":\"\",\"url\":\"\",\"source_type\":\"\",\"tier\":1}]"
+    "}"
+)
+
+
+def _prompt_gather(name: str, code: str) -> str:
+    """PASS A：只采集证据，不下结论。"""
+    return (
+        "你是卖方股票研究员（决策支持用途，本工具不下单、不自动交易）。这是第 1 步：只做数据采集，不下结论。\n"
+        f"联网检索 A 股「{name}」（xlsx 代码 {code or '未知'}）近 12 个月公开信息，逐项覆盖：\n"
+        f"①名称↔代码核验：确认 {code or '记录代码'} 是否真对应本公司，不符给正确代码（形如 sh600000/sz300285/bj430000）；\n"
+        "②最新年报/季报：营收、归母净利、各营收分部及占比、毛利率、经营杠杆；\n"
+        "③市值与估值：总市值、P/E、P/B、PEG（查得到就给并附来源；查不到写 null，不编造）；\n"
+        "④细分市场空间与公司份额；⑤产业链上下游与卡点；⑥护城河线索；\n"
+        "⑦近 12 月催化事件；⑧主要风险。\n"
+        "只输出一个 JSON（无 markdown、无多余文字）：\n"
+        "{\"code_check\":{\"code_in_xlsx\":\"\",\"code_verified\":\"\",\"note\":\"\"},"
+        "\"evidence\":[{\"topic\":\"\",\"point\":\"\",\"value\":\"\",\"url\":\"\",\"tier\":1}]}\n"
+        "tier：1=一手披露/交易所，2=权威财媒，3=其他。无法核实的字段值写 null。"
+    )
+
+
+def _prompt_analyze(name: str, code: str, gather_text: str) -> str:
+    """PASS B：基于采集证据做多维分析，产出完整 v2 schema。"""
+    return (
+        "你是卖方股票研究员（决策支持用途，不下单、不自动交易）。这是第 2 步：基于下方证据做多维分析，"
+        "按机构研究（CFA）结构严格输出完整 JSON。\n\n"
+        f"标的：「{name}」（xlsx 代码 {code or '未知'}）。\n"
+        "【第 1 步采集到的证据】\n" + (gather_text or "")[:6000] + "\n\n"
+        "要求：\n"
+        "1. 【核心】用 Serenity 方法论做一次完整认证 serenity_certification：逐条判定下面 14 点，"
+        "每条 result 取 yes/partial/no/na 并给 evidence(基于证据的简短理由)与 source_url。"
+        "从严如实判定——多数 A 股并非 US 式独家卡点，该给 partial/no 就给，不得为凑分虚高；"
+        "na 只用于真正不适用(如第 13 披露权重对 A 股)，不得用 na 逃避判断。"
+        "score 写成 已通过(yes)条数/14；verdict 依据总体强弱取 fit/partial_fit/not_fit/watch；"
+        "bottleneck_map 用多跳 BOM 链路(原料→…→模组)并标注每层由谁卡点；"
+        "disqualifiers 列命中的否决项(大额定增/减持/高质押/高息债等)；"
+        "anti_patterns_checked 说明已排查的反模式(纯技术面/内部人卖出/混淆链路层/情绪噪音)。\n"
+        "Serenity 14 点清单：\n" + _SERENITY_CHECKLIST + "\n"
+        "2. fit_status 必须等于 serenity_certification.verdict（两者一致）。\n"
+        "3. scarcity_view 即 Serenity 卡点/稀缺性一维；其余覆盖护城河/估值/催化/风险/情景/论点。\n"
+        "4. 每个视图组都要实证填写，不得留空或占位（禁止 待补充/待验证/TODO/N/A/暂无）。\n"
+        "5. 不得编造精确数字；无源处写定性并置 market_cap_research.live_number_source_required=true。\n"
+        "6. scarcity/capacity/pricing/moat 的 label/durability 用 强/中/弱；valuation.verdict 用 低估/合理/高估；\n"
+        "   scenario 给 牛/基准/熊 三档（prob 粗略概率、target 方向、drivers 关键驱动）；confidence 逐维给 高/中/低。\n"
+        "7. evidence_sources ≥3 条真实 http(s) 链接，每条带 tier(1/2/3)。\n\n"
+        "只输出一个 JSON（无 markdown、无多余文字），结构：\n" + _V2_SCHEMA_SKELETON
+    )
+
+
+def _prompt_critique(name: str, draft_text: str) -> str:
+    """PASS C：自查草稿并补全/修正，输出同结构 v2 JSON。"""
+    return (
+        f"你是严格的研究质控。下面是「{name}」的研究草稿 JSON，请逐字段自查并修正：\n"
+        "①serenity_certification 是否 14 条齐全、每条 result∈{yes,partial,no,na} 且有 evidence；"
+        "verdict/score/bottleneck_map/disqualifiers/anti_patterns_checked 是否填实；"
+        "是否存在为凑分虚高或滥用 na 逃避判断（如是则据证据改判）；fit_status 是否等于 verdict；\n"
+        "②scarcity/capacity/pricing/moat/valuation/scenario/thesis/confidence 是否都已实证填写；\n"
+        "③evidence_sources 是否 ≥3 条且每条带 tier；\n"
+        "④是否残留 待补充/待验证/待研究/TODO/N/A/暂无 等占位（有则据证据补实或改定性）；\n"
+        "⑤是否存在无来源的精确数字（有则改为定性或删除，并置 market_cap_research.live_number_source_required=true）。\n"
+        "修正后只输出完整、同结构的 v2 JSON（无 markdown、无多余文字）。\n\n"
+        "【草稿】\n" + (draft_text or "")[:9000]
+    )
+
+
+def _extract_json_object(text: str) -> dict[str, Any] | None:
+    start = text.find("{")
+    end = text.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    try:
+        parsed = json.loads(text[start : end + 1])
+    except json.JSONDecodeError:
+        return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def _render_stream_event(evt: dict[str, Any], counts: dict[str, int]) -> str | None:
+    """把 claude stream-json 事件渲染成一行可读的中文过程日志；无关事件返回 None。
+
+    counts 为可变计数器，按实际 tool_use 累计联网检索/抓取次数（server_tool_use
+    只统计服务端 web 工具，客户端 WebSearch/WebFetch 不计入，故在此自行累计）。
+    """
+    etype = evt.get("type")
+    if etype == "assistant":
+        parts: list[str] = []
+        for block in (evt.get("message") or {}).get("content") or []:
+            btype = block.get("type")
+            if btype == "text":
+                text = _normalize_text(block.get("text"))
+                if text:
+                    parts.append("💬 " + text[:200])
+            elif btype == "tool_use":
+                tool = block.get("name") or "tool"
+                if "websearch" in tool.lower():
+                    counts["search"] = counts.get("search", 0) + 1
+                elif "webfetch" in tool.lower():
+                    counts["fetch"] = counts.get("fetch", 0) + 1
+                inp = block.get("input") or {}
+                arg = _normalize_text(inp.get("query") or inp.get("url") or inp.get("prompt"))
+                parts.append(f"🔧 {tool} {arg}".strip()[:200])
+        return "\n".join(p for p in parts if p) or None
+    if etype == "user":
+        return "⬅️  收到工具结果"
+    if etype == "result":
+        server = (evt.get("usage") or {}).get("server_tool_use") or {}
+        searches = max(counts.get("search", 0), server.get("web_search_requests", 0))
+        fetches = max(counts.get("fetch", 0), server.get("web_fetch_requests", 0))
+        cost = evt.get("total_cost_usd") or 0
+        return (
+            f"✅ 完成 | 联网检索 {searches} 次 · 抓取网页 {fetches} 次 · 用时 "
+            f"{round((evt.get('duration_ms') or 0) / 1000)}s · 花费 ${cost:.3f}"
+        )
+    return None
+
+
+def _analyze_env() -> dict[str, str]:
+    env = dict(os.environ)
+    bin_dir = os.path.dirname(_ANALYZE_CLAUDE_BIN)
+    if bin_dir and bin_dir not in env.get("PATH", "").split(os.pathsep):
+        env["PATH"] = bin_dir + os.pathsep + env.get("PATH", "")
+    return env
+
+
+def _stream_one_claude(
+    task_id: str,
+    prompt: str,
+    log_path: Path,
+    *,
+    pass_title: str,
+    progress: int,
+) -> str:
+    """跑一轮无头 claude，逐事件追加写入可 tail 的过程日志，回传最新步骤给前端；返回最终文本。"""
+    _ANALYZE_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _ANALYZE_NEUTRAL_CWD.mkdir(parents=True, exist_ok=True)
+    proc = subprocess.Popen(
+        [
+            _ANALYZE_CLAUDE_BIN,
+            "-p",
+            prompt,
+            "--allowedTools",
+            "WebSearch WebFetch",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        cwd=str(_ANALYZE_NEUTRAL_CWD),
+        env=_analyze_env(),
+    )
+    # 看门狗：单轮超时强杀，避免 claude 卡住时子进程永远挂着。
+    watchdog = threading.Timer(_ANALYZE_CLAUDE_TIMEOUT_SECONDS, proc.kill)
+    watchdog.start()
+
+    final_text = ""
+    counts: dict[str, int] = {"search": 0, "fetch": 0}
+    try:
+        with open(log_path, "a", encoding="utf-8") as log:
+            log.write(f"\n===== {pass_title} =====\n")
+            log.write(f"# {datetime.datetime.now().isoformat()}\n\n")
+            log.flush()
+            for raw_line in proc.stdout or []:
+                line = raw_line.strip()
+                if not line:
+                    continue
+                try:
+                    evt = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if evt.get("type") == "result":
+                    final_text = _normalize_text(evt.get("result")) or final_text
+                rendered = _render_stream_event(evt, counts)
+                if not rendered:
+                    continue
+                stamp = datetime.datetime.now().strftime("%H:%M:%S")
+                log.write(f"[{stamp}] {rendered}\n")
+                log.flush()
+                headline = rendered.splitlines()[0][:110]
+                _set_aistocks_scan_task(
+                    task_id, state="running", message=f"{pass_title}｜{headline}", progress=progress
+                )
+    finally:
+        watchdog.cancel()
+        try:
+            proc.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+
+    if proc.returncode not in (0, None) and not final_text:
+        raise RuntimeError(f"{pass_title} 异常退出（returncode={proc.returncode}），详见日志 {log_path}")
+    return final_text
+
+
+def _run_research_pipeline(
+    task_id: str, name: str, code: str
+) -> tuple[dict[str, Any] | None, Path]:
+    """三轮流水线：采集 → 多维分析 → 自查补全。全程流式写入同一 tail 日志。"""
+    log_path = _ANALYZE_LOG_DIR / f"{_analyze_slug(name)}_{task_id[:8]}.log"
+    _ANALYZE_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(log_path, "w", encoding="utf-8") as log:
+        log.write(f"# Serenity 深度研究（3 轮流水线）：{name}（xlsx 代码 {code or '未知'}）\n")
+        log.write(f"# task={task_id}\n")
+        log.write(f"# 开始 {datetime.datetime.now().isoformat()}\n")
+    _set_aistocks_scan_task(task_id, log_file=str(log_path))
+
+    gather_text = _stream_one_claude(
+        task_id, _prompt_gather(name, code), log_path,
+        pass_title="PASS A · 数据采集", progress=35,
+    )
+    draft_text = _stream_one_claude(
+        task_id, _prompt_analyze(name, code, gather_text), log_path,
+        pass_title="PASS B · 多维分析", progress=65,
+    )
+    draft = _extract_json_object(draft_text)
+    if not draft:
+        raise RuntimeError("PASS B 未能解析出 JSON")
+
+    critique_text = _stream_one_claude(
+        task_id, _prompt_critique(name, draft_text), log_path,
+        pass_title="PASS C · 自查补全", progress=90,
+    )
+    final = _extract_json_object(critique_text) or draft
+    try:  # 总是落盘产出，便于失败诊断（无需重跑）
+        log_path.with_suffix(".result.json").write_text(
+            json.dumps(final, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except OSError:
+        pass
+    with open(log_path, "a", encoding="utf-8") as log:
+        log.write(f"\n# 结束 {datetime.datetime.now().isoformat()}\n")
+    return final, log_path
+
+
+def _validate_single_research_entry(name: str, entry: dict[str, Any]) -> tuple[bool, str]:
+    """用独立质量闸门脚本校验单条研究，返回 (是否通过, 说明)。"""
+    tmp_path = _serenity_fit._AISTOCKS_RESEARCH_JSON_PATH.parent / f".analyze_check_{_analyze_slug(name)}.json"
+    try:
+        tmp_path.write_text(json.dumps({name: entry}, ensure_ascii=False), encoding="utf-8")
+        completed = subprocess.run(
+            ["python3", str(_VALIDATE_RESEARCH_SCRIPT), str(tmp_path)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(_PROJECT_ROOT),
+        )
+        return completed.returncode == 0, (completed.stdout or completed.stderr or "").strip()
+    finally:
+        try:
+            tmp_path.unlink()
+        except OSError:
+            pass
+
+
+def _write_research_entry(name: str, entry: dict[str, Any]) -> None:
+    """原子合并单条研究到研究 JSON，并清 lru_cache 让读取层立即生效。"""
+    data = _load_research_json()
+    data[name] = entry
+    path = _serenity_fit._AISTOCKS_RESEARCH_JSON_PATH
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp_path, path)
+    _serenity_fit._load_research_overrides.cache_clear()
+    _serenity_fit._build_fit_map.cache_clear()
+
+
+def _analyze_result_summary(name: str, entry: dict[str, Any], *, cached: bool) -> dict[str, Any]:
+    return {
+        "name": name,
+        "cached": cached,
+        "fit_status": _normalize_text(entry.get("fit_status")),
+        "fit_reason_short": _normalize_text(entry.get("fit_reason_short")),
+        "code_verified": _normalize_text(entry.get("code_verified")) or _normalize_text(entry.get("code_in_xlsx")),
+        "verified_at": _normalize_text(entry.get("verified_at")),
+    }
+
+
+def _run_serenity_analyze_task(task_id: str, name: str, code: str, force: bool) -> None:
+    slug = _analyze_slug(name)
+    try:
+        if not force:
+            existing = _load_research_json().get(name)
+            if isinstance(existing, dict) and _research_entry_is_fresh(existing):
+                _set_aistocks_scan_task(
+                    task_id,
+                    state="done",
+                    progress=100,
+                    message="命中一周内缓存，直接复用",
+                    finished_at=datetime.datetime.now().isoformat(),
+                    result=_analyze_result_summary(name, existing, cached=True),
+                )
+                _clear_active_aistocks_scan_task(slug, _ANALYZE_TASK_TYPE, task_id)
+                return
+
+        _set_aistocks_scan_task(
+            task_id, state="running", progress=20, message="启动三轮深度研究流水线…"
+        )
+        entry, _log_path = _run_research_pipeline(task_id, name, code)
+        if not entry:
+            raise RuntimeError("未能从分析结果中解析出 JSON")
+
+        entry.setdefault("code_in_xlsx", code)
+        entry.setdefault("verified_at", datetime.date.today().isoformat())
+        entry["schema_version"] = 3
+        # fit_status 与 Serenity 认证结论保持一致（认证是唯一裁决口径）。
+        _cert_verdict = _normalize_text((entry.get("serenity_certification") or {}).get("verdict"))
+        if _cert_verdict in {"fit", "partial_fit", "not_fit", "watch"}:
+            entry["fit_status"] = _cert_verdict
+
+        _set_aistocks_scan_task(task_id, state="running", progress=70, message="正在通过质量闸门…")
+        passed, detail = _validate_single_research_entry(name, entry)
+        if not passed:
+            try:  # 落盘被拒条目 + 把闸门原因写进过程日志，便于诊断
+                rej = _ANALYZE_LOG_DIR / f"{_analyze_slug(name)}_{task_id[:8]}.rejected.json"
+                rej.write_text(json.dumps(entry, ensure_ascii=False, indent=2), encoding="utf-8")
+                with open(rej.with_name(f"{_analyze_slug(name)}_{task_id[:8]}.log"), "a", encoding="utf-8") as log:
+                    log.write(f"\n# 质量闸门未通过：\n{detail}\n")
+            except OSError:
+                pass
+            raise RuntimeError(f"质量闸门未通过：{detail[:400]}")
+
+        _write_research_entry(name, entry)
+        _set_aistocks_scan_task(
+            task_id,
+            state="done",
+            progress=100,
+            message="分析完成，已更新研究并刷新页面数据",
+            finished_at=datetime.datetime.now().isoformat(),
+            result=_analyze_result_summary(name, entry, cached=False),
+        )
+    except subprocess.TimeoutExpired:
+        _set_aistocks_scan_task(
+            task_id,
+            state="failed",
+            progress=100,
+            message="分析超时，请稍后重试",
+            error="analyze_timeout",
+            finished_at=datetime.datetime.now().isoformat(),
+        )
+    except Exception as exc:  # noqa: BLE001 - 面向用户回传可读错误
+        _set_aistocks_scan_task(
+            task_id,
+            state="failed",
+            progress=100,
+            message=f"分析失败：{str(exc)[:200]}",
+            error="analyze_failed",
+            finished_at=datetime.datetime.now().isoformat(),
+        )
+    finally:
+        _clear_active_aistocks_scan_task(slug, _ANALYZE_TASK_TYPE, task_id)
+
+
 def register_serenity_aistocks_routes(app, status_provider=None) -> None:
     status_provider = status_provider or (lambda: {})
 
@@ -2667,5 +3128,59 @@ def register_serenity_aistocks_routes(app, status_provider=None) -> None:
     def serenity_aistocks_recent_beichi_task(task_id: str):
         task = _get_aistocks_scan_task(task_id)
         if not task or _normalize_text(task.get("task_type")) != "recent_beichi":
+            return jsonify({"ok": False, "message": "任务不存在或已过期"}), 404
+        return jsonify({"ok": True, **task})
+
+    @app.route("/serenity/aistocks/analyze", methods=["POST"])
+    @login_required
+    def serenity_aistocks_analyze():
+        payload = request.get_json(silent=True) or {}
+        name = _normalize_text(payload.get("name"))
+        code = _normalize_text(payload.get("code"))
+        force = bool(payload.get("force"))
+        if not name:
+            return jsonify({"ok": False, "message": "股票名称不能为空"}), 400
+
+        slug = _analyze_slug(name)
+        active_task = _get_active_aistocks_scan_task(slug, _ANALYZE_TASK_TYPE)
+        if active_task:
+            return jsonify(
+                {
+                    "ok": True,
+                    "task_id": _normalize_text(active_task.get("task_id")),
+                    "task_type": _ANALYZE_TASK_TYPE,
+                    "message": "该股票已有分析任务在运行",
+                    "reused": True,
+                }
+            )
+
+        task_id = uuid.uuid4().hex
+        task_snapshot = _set_aistocks_scan_task(
+            task_id,
+            task_type=_ANALYZE_TASK_TYPE,
+            sheet_slug=slug,
+            stock_name=name,
+            stock_code=code,
+            state="pending",
+            message="分析任务已提交",
+            progress=0,
+        )
+        _set_active_aistocks_scan_task(slug, _ANALYZE_TASK_TYPE, task_snapshot)
+        _AISTOCKS_SCAN_EXECUTOR.submit(_run_serenity_analyze_task, task_id, name, code, force)
+        return jsonify(
+            {
+                "ok": True,
+                "task_id": task_id,
+                "task_type": _ANALYZE_TASK_TYPE,
+                "message": "分析任务已启动",
+                "reused": False,
+            }
+        )
+
+    @app.route("/serenity/aistocks/analyze/task/<task_id>")
+    @login_required
+    def serenity_aistocks_analyze_task(task_id: str):
+        task = _get_aistocks_scan_task(task_id)
+        if not task or _normalize_text(task.get("task_type")) != _ANALYZE_TASK_TYPE:
             return jsonify({"ok": False, "message": "任务不存在或已过期"}), 404
         return jsonify({"ok": True, **task})

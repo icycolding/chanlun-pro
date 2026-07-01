@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from functools import lru_cache
 from pathlib import Path
 import re
@@ -13,6 +14,9 @@ from .a_share_matches_quotes import normalize_a_share_code, normalize_hk_code
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _AISTOCKS_XLSX_PATH = _PROJECT_ROOT / "serenity-aleabitoreddit-main" / "aistocks.xlsx"
+_AISTOCKS_RESEARCH_JSON_PATH = (
+    _PROJECT_ROOT / "serenity-aleabitoreddit-main" / "aistocks_research.json"
+)
 _FIT_LABELS = {
     "fit": "符合",
     "partial_fit": "部分符合",
@@ -5088,6 +5092,20 @@ def _build_default_evidence_sources(
     return [announcement_source, market_source]
 
 
+def _overlay_nonempty(base: dict[str, Any], override: dict[str, Any] | None) -> dict[str, Any]:
+    """用 override 里的非空值增强 base（空字符串/空容器不覆盖），保留 base 的兜底文案。"""
+    out = dict(base)
+    for key, value in (override or {}).items():
+        if isinstance(value, str):
+            if value.strip():
+                out[key] = value
+        elif isinstance(value, bool):
+            out[key] = value
+        elif value:
+            out[key] = value
+    return out
+
+
 def _build_entry(
     *,
     row_id: str,
@@ -5204,7 +5222,7 @@ def _build_entry(
     reason_short = _normalize_text(profile.get("fit_reason_short")) or (
         f"{fit_label}：{fit_reason_detail or fit_basis or '已按 Serenity 方法完成静态归类。'}"
     )
-    return {
+    result = {
         "row_id": row_id,
         "sheet_slug": sheet_slug,
         "symbol": symbol,
@@ -5239,6 +5257,27 @@ def _build_entry(
         "industry_chain_view": industry_chain_view,
         "evidence_sources": evidence_sources,
     }
+    # v2：研究 JSON 若直接提供更丰富的结构化视图组，透传/增强，避免详情页丢字段。
+    for _grp in ("selection_reason", "segment_market_view", "sector_context_view"):
+        _pv = profile.get(_grp)
+        if isinstance(_pv, dict) and _pv:
+            result[_grp] = _overlay_nonempty(result[_grp], _pv)
+    for _grp in (
+        "scarcity_view", "capacity_view", "pricing_view", "financials_view",
+        "moat_view", "valuation_view", "thesis_view", "scenario_view", "confidence",
+        "serenity_certification",
+    ):
+        _pv = profile.get(_grp)
+        if isinstance(_pv, dict) and _pv:
+            result[_grp] = _pv
+    for _grp in ("catalysts_view", "risks_view"):
+        _pv = profile.get(_grp)
+        if isinstance(_pv, list) and _pv:
+            result[_grp] = _pv
+    # 透传 schema 版本，供质量闸门分级与详情页判断。
+    if profile.get("schema_version"):
+        result["schema_version"] = profile.get("schema_version")
+    return result
 
 
 def _build_profile_from_catalog_match(match: dict[str, Any]) -> dict[str, Any]:
@@ -5325,6 +5364,26 @@ def _catalog_match_map() -> dict[str, dict[str, Any]]:
     return mapping
 
 
+@lru_cache(maxsize=1)
+def _load_research_overrides() -> dict[str, dict[str, Any]]:
+    """Externalized, weekly-regenerated research keyed by stock name.
+
+    Highest-priority profile source so the scheduled Claude Code agent can
+    refresh detail-page content by rewriting aistocks_research.json without
+    editing source code. Keys starting with "_" (e.g. "_meta") are skipped.
+    """
+    try:
+        with open(_AISTOCKS_RESEARCH_JSON_PATH, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+    return {
+        key: value
+        for key, value in data.items()
+        if not key.startswith("_") and isinstance(value, dict)
+    }
+
+
 def _resolve_profile(
     *,
     row_id: str,
@@ -5332,10 +5391,15 @@ def _resolve_profile(
     cells: dict[str, Any],
     normalized_code: str,
 ) -> dict[str, Any]:
+    name = _candidate_value(cells, ("名称", "name", "公司"))
+
+    research = _load_research_overrides()
+    if name and name in research:
+        return research[name]
+
     if row_id in _ROW_OVERRIDES:
         return _ROW_OVERRIDES[row_id]
 
-    name = _candidate_value(cells, ("名称", "name", "公司"))
     note = _candidate_value(cells, ("核心概念", "备注", "概念"))
     category = _candidate_value(cells, ("所属分类",))
     text_blob = " ".join([sheet_name, category, name, note])

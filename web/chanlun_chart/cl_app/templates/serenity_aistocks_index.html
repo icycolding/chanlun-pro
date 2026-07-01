@@ -679,6 +679,40 @@
             color: #1d4ed8;
             text-decoration: underline;
         }
+        .serenity-analyze-button {
+            display: inline-block;
+            margin-top: 8px;
+            margin-left: 10px;
+            padding: 2px 10px;
+            border: 1px solid #7c3aed;
+            border-radius: 6px;
+            background: #f5f3ff;
+            color: #6d28d9;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .serenity-analyze-button:hover:not(:disabled) {
+            background: #7c3aed;
+            color: #ffffff;
+        }
+        .serenity-analyze-button:disabled {
+            opacity: 0.6;
+            cursor: progress;
+        }
+        .serenity-analyze-status {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #64748b;
+        }
+        .serenity-analyze-status.is-error {
+            color: #dc2626;
+        }
+        .serenity-analyze-status.is-done {
+            color: #16a34a;
+        }
         .price-main {
             font-weight: 700;
         }
@@ -1329,6 +1363,13 @@
                                     >
                                         <span class="serenity-fit-badge {{ row.serenity_fit_status }}">{{ row.serenity_fit_label }}</span>
                                         <a class="serenity-fit-detail-link" href="{{ row.serenity_fit_detail_url }}">查看详情</a>
+                                        <button
+                                            type="button"
+                                            class="serenity-analyze-button"
+                                            data-analyze-name="{{ quote.get('display_name', '') or row.cells.get('名称', '') }}"
+                                            data-analyze-code="{{ quote.get('code', '') }}"
+                                        >分析</button>
+                                        <span class="serenity-analyze-status"></span>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -1429,6 +1470,7 @@
         const STATUS_API_URL = "/serenity/aistocks/status";
         const RECENT_THREE_BUY_API_URL = "/serenity/aistocks/recent-three-buy-times";
         const RECENT_BEICHI_API_URL = "/serenity/aistocks/recent-beichi-times";
+        const ANALYZE_API_URL = "/serenity/aistocks/analyze";
         const STOCK_SEARCH_API_URL = "/serenity/aistocks/stock-search";
         const CUSTOM_STOCKS_API_URL = "/serenity/aistocks/custom-stocks";
         const REFRESH_INTERVAL_MS = 180000;
@@ -2924,6 +2966,98 @@
         if (recentBeichiButton) {
             recentBeichiButton.addEventListener("click", refreshRecentBeichiTimes);
         }
+
+        function setAnalyzeStatus(statusEl, text, kind) {
+            if (!statusEl) {
+                return;
+            }
+            statusEl.textContent = text || "";
+            statusEl.classList.remove("is-error", "is-done");
+            if (kind === "error") {
+                statusEl.classList.add("is-error");
+            } else if (kind === "done") {
+                statusEl.classList.add("is-done");
+            }
+        }
+
+        async function pollAnalyzeTask(taskId, button, statusEl) {
+            const taskUrl = `${ANALYZE_API_URL}/task/${taskId}`;
+            for (let attempt = 0; attempt < 240; attempt += 1) {
+                await new Promise((resolve) => setTimeout(resolve, 2500));
+                let task;
+                try {
+                    const response = await fetch(taskUrl, { headers: { Accept: "application/json" } });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    task = await response.json();
+                } catch (error) {
+                    setAnalyzeStatus(statusEl, "查询进度失败，重试中…", "error");
+                    continue;
+                }
+                if (!task || task.ok === false) {
+                    setAnalyzeStatus(statusEl, (task && task.message) || "任务已过期", "error");
+                    return { done: true, ok: false };
+                }
+                const state = task.state || "";
+                if (state === "done") {
+                    const result = task.result || {};
+                    const cachedTag = result.cached ? "（缓存）" : "";
+                    setAnalyzeStatus(statusEl, `${task.message || "分析完成"}${cachedTag}`, "done");
+                    return { done: true, ok: true, result };
+                }
+                if (state === "failed") {
+                    setAnalyzeStatus(statusEl, task.message || "分析失败", "error");
+                    return { done: true, ok: false };
+                }
+                setAnalyzeStatus(statusEl, task.message || "分析进行中…", null);
+            }
+            setAnalyzeStatus(statusEl, "分析超时，请稍后重试", "error");
+            return { done: true, ok: false };
+        }
+
+        async function handleAnalyzeClick(button) {
+            const name = button.dataset.analyzeName || "";
+            const code = button.dataset.analyzeCode || "";
+            const statusEl = button.parentElement
+                ? button.parentElement.querySelector(".serenity-analyze-status")
+                : null;
+            if (!name) {
+                setAnalyzeStatus(statusEl, "缺少股票名称，无法分析", "error");
+                return;
+            }
+            const force = button.dataset.analyzed === "1";
+            button.disabled = true;
+            setAnalyzeStatus(statusEl, force ? "重新分析中…" : "已提交，联网研究中…", null);
+            try {
+                const response = await fetch(ANALYZE_API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", Accept: "application/json" },
+                    body: JSON.stringify({ name, code, force }),
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload || payload.ok === false || !payload.task_id) {
+                    setAnalyzeStatus(statusEl, (payload && payload.message) || "启动分析失败", "error");
+                    return;
+                }
+                const outcome = await pollAnalyzeTask(payload.task_id, button, statusEl);
+                if (outcome.ok) {
+                    button.dataset.analyzed = "1";
+                    button.textContent = "重新分析";
+                }
+            } catch (error) {
+                setAnalyzeStatus(statusEl, "网络错误，请稍后重试", "error");
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        document.addEventListener("click", (event) => {
+            const button = event.target.closest(".serenity-analyze-button");
+            if (button) {
+                handleAnalyzeClick(button);
+            }
+        });
         const stockFilterInput = document.getElementById("stock-filter-input");
         if (stockFilterInput) {
             stockFilterInput.addEventListener("input", applyStockFilter);
